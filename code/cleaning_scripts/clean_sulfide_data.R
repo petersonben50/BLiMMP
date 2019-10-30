@@ -60,7 +60,7 @@ rm(S.metadata,
 #### Define output locations ####
 report.location <- "dataEdited/waterChemistry/sulfide/reports/"
 bad.data.location <- "dataEdited/waterChemistry/sulfide/badData/"
-good.data.location <- "dataEdited/waterChemistry/sulfide/"
+good.data.location <- "dataEdited/waterChemistry/sulfide/dataForReview"
 
 #### Data processing function ####
 data_file <- "dataRaw/waterChemistry/sulfide/sulfide_20191023.xlsx"
@@ -158,7 +158,7 @@ data_processing_function <- function(data_file,
   
   CCB.values <- data.spreadsheet.raw %>%
     filter(analysisType == "CCB")
-  
+  CCB.values
   data.spreadsheet.raw <- data.spreadsheet.raw %>%
     filter(analysisType != "CCB")
   
@@ -195,7 +195,7 @@ data_processing_function <- function(data_file,
     ccv.qc <- "pass"
   }
   
-  #### QC: NEED TO DO MATRIX SPIKE ####
+  #### QC: Check matrix spike ####
   
   # Pull out needed data
   spiked.sample <- data.spreadsheet[which(data.spreadsheet$analysisType == "MS"), "sulfurID"]
@@ -206,7 +206,7 @@ data_processing_function <- function(data_file,
   contribution.from.sample.nmol <- MS.samples %>%
     filter(analysisType == "SAM") %>%
     select(S_conc_uM) %>%
-    unlist(use.names = FALSE) * (as.numeric(run.info.vector["sample_added_ml"]) - as.numeric(run.info.vector["spike_volume_ml"]))
+    unlist(use.names = FALSE) * (as.numeric(run.info.vector["sample_added_ul"]) - as.numeric(run.info.vector["spike_volume_ul"])) / 1000
   
   # Calculate total mass in spiked solution
   spiked.solution.nmol <- MS.samples %>%
@@ -215,15 +215,23 @@ data_processing_function <- function(data_file,
     unlist(use.names = FALSE)
   
   # Calculate added mass
-  added.mass.nmol <- as.numeric(run.info.vector["spike_concentration_uM"]) * as.numeric(run.info.vector["spike_volume_ml"])
+  added.mass.nmol <- as.numeric(run.info.vector["spike_concentration_uM"]) * as.numeric(run.info.vector["spike_volume_ul"]) / 1000
   
   # Calculate percent recovery
   
   MS.recovery <- signif(((spiked.solution.nmol - contribution.from.sample.nmol) / added.mass.nmol) * 100, 3)
+  MS.recovery
   
   # Remove MS sample 
   data.spreadsheet <- data.spreadsheet %>%
     filter(analysisType != "MS")
+  
+  # Check replicates are within 15%
+  if (MS.recovery > 115 | MS.recovery < 85) {
+    ms.qc <- "fail"
+  } else {
+    ms.qc <- "pass"
+  }
   
   
   #### QC: Check on triplicates ####
@@ -258,9 +266,9 @@ data_processing_function <- function(data_file,
   #### Overall QC validation ####
   all.qc <- c(std.curve.qc,
               ccv.qc,
-              # matrix.qc,
+              ms.qc,
               rep.qc)
-  if (any(all.qc == "fail" && override == "off")) {
+  if (any(all.qc == "fail") && override == "off") {
     keeper.status = "fail"
   } else if (override == "pass") {
     keeper.status = "pass"
@@ -408,8 +416,14 @@ data_processing_function <- function(data_file,
 }
 
 
+#### Process it ####
 
 data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20191023.xlsx")
+
+data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20191029.xlsx")
+# We'll need to re-run this on the low curve. 
+
+
 
 
 #### Clean up before combining all samples ####
@@ -446,6 +460,14 @@ write.csv(incubation.results,
           "dataEdited/waterChemistry/sulfide/MA_data.csv",
           row.names = FALSE,
           quote = FALSE)
+
+#### Incubation samples to analyze yet ####
+unanalyzed.incubation.samples <- MA.metadata %>%
+  filter(!(sulfurID %in% incubation.results$sulfurID)) %>%
+  select(sulfurID) %>%
+  unlist(use.names = FALSE) %>%
+  write(file = "protocols/sulfideCline_protocol/incubation_samples_to_analyze.txt")
+
 
 
 #### Combine all WC data ####
