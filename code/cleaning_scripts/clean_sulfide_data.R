@@ -1,7 +1,10 @@
 #### code/cleaning_scripts/clean_sulfide_data.R ####
 # Benjamin D. Peterson
 
+
+
 #### Get ready, and fly! ####
+
 rm(list = ls())
 setwd("~/Box/BLiMMP/")
 library(dplyr)
@@ -9,11 +12,16 @@ library(lubridate)
 library(tidyr)
 library(readxl)
 
+
+
 #### Prepare metadata ####
+
 S.metadata <- read_xlsx("metadata/chem_S.xlsx")
 sampleID <- read_xlsx("metadata/2_sample_IDs.xlsx")
 incubationID <- read_xlsx("metadata/4_MA_ID.xlsx")
 tripID <- read_xlsx("metadata/1_trip_IDs.xlsx")
+
+
 
 #### Save out water column data ####
 
@@ -26,6 +34,8 @@ write.csv(WC.metadata,
           file = "metadata/processedMetadata/sulfide_WC.csv",
           row.names = FALSE,
           quote = FALSE)
+
+
 
 #### Save out incubation data ####
 
@@ -41,6 +51,8 @@ write.csv(MA.metadata,
           row.names = FALSE,
           quote = FALSE)
 
+
+
 #### Generate needed processing metadata ####
 
 processing.metadata <- S.metadata %>%
@@ -48,6 +60,7 @@ processing.metadata <- S.metadata %>%
   mutate_at(.vars = c("mass", "tare", "preservativeVol"),
             as.numeric)
   
+
   
 # Combine incubation data
 
@@ -57,13 +70,18 @@ rm(S.metadata,
    tripID)
 
 
+
 #### Define output locations ####
 report.location <- "dataEdited/waterChemistry/sulfide/reports/"
 bad.data.location <- "dataEdited/waterChemistry/sulfide/badData/"
-good.data.location <- "dataEdited/waterChemistry/sulfide/dataForReview"
+good.data.location <- "dataEdited/waterChemistry/sulfide/dataForReview/"
+
+
 
 #### Data processing function ####
-data_file <- "dataRaw/waterChemistry/sulfide/sulfide_20191023.xlsx"
+
+#data_file <- "dataRaw/waterChemistry/sulfide/sulfide_20191203.xlsx"
+#override = "pass"
 
 # Define the function
 data_processing_function <- function(data_file,
@@ -172,6 +190,9 @@ data_processing_function <- function(data_file,
     filter(analysisType != "STD") %>%
     filter(analysisType != "BLK") 
   
+  # If sample calculated to be less than 0µM, make it 0
+  data.spreadsheet$S_conc_uM[which(data.spreadsheet$S_conc_uM < 0)] <- 0
+  
   #### Calculate detection limit: NOT DONE FOR SULFIDE ####
   
   # LOD.fluorescence <- inter.coeff + 3*summary(std.curve.regression)$coefficients[2,2]
@@ -187,6 +208,7 @@ data_processing_function <- function(data_file,
            S_conc_uM,
            sulfide_uM) %>%
     mutate(deviation = (S_conc_uM - sulfide_uM)/S_conc_uM*100)
+  CCV.values
   data.spreadsheet <- data.spreadsheet %>%
     filter(analysisType != "CCV")
   if (any(CCV.values$deviation > 10)) {
@@ -416,13 +438,36 @@ data_processing_function <- function(data_file,
 }
 
 
-#### Process it ####
+#### Process data ####
 
 data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20191023.xlsx")
+# This one looks good.
+# Copy it into the good_data folder
 
-data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20191029.xlsx")
+data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20191029.xlsx",
+                         override = "fail")
 # We'll need to re-run this on the low curve. 
 
+data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20191105.xlsx")
+# Bad curve. Will need re-running.
+
+data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20191119.xlsx")
+# This one looks good.
+# Copy it into the good_data folder
+
+data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20191126.xlsx")
+# This one looks good. 
+# Copy it into the good_data folder
+
+data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20191203.xlsx",
+                         override = "pass")
+# The MS QC failed on this one, it was too high. The original measured curve was 
+# pretty low (Ab667 of 0.069). Let's let this one pass, since everything else
+# looks so good. 
+# Copy it into the good_data folder
+# Anna zeroed the machine with 1% ZnAc instead of water, which shifted the raw 
+# values slightly. However, it does not seem to have negatively impacted the 
+# data processing, as we have a good standard curve. We kept this anyways. 
 
 
 
@@ -432,7 +477,7 @@ rm(list = ls())
 
 
 # Load up all incubation data
-list.o.results <- list.files(path = "dataEdited/waterChemistry/sulfide",
+list.o.results <- list.files(path = "dataEdited/waterChemistry/sulfide/goodData/",
                              pattern = "_sulfide.csv",
                              full.names = TRUE)
 for (file.name in list.o.results) {
@@ -448,29 +493,24 @@ for (file.name in list.o.results) {
 }
 
 
+
 #### Combine all incubation data ####
 
 # Read in incubation metadata
 MA.metadata <- read.csv("metadata/processedMetadata/sulfide_MA.csv",
                         stringsAsFactors = FALSE)
-incubation.results <- S.results %>%
+MA.results <- S.results %>%
   inner_join(MA.metadata)
 
-write.csv(incubation.results,
+write.csv(MA.results,
           "dataEdited/waterChemistry/sulfide/MA_data.csv",
           row.names = FALSE,
           quote = FALSE)
 
-#### Incubation samples to analyze yet ####
-unanalyzed.incubation.samples <- MA.metadata %>%
-  filter(!(sulfurID %in% incubation.results$sulfurID)) %>%
-  select(sulfurID) %>%
-  unlist(use.names = FALSE) %>%
-  write(file = "protocols/sulfideCline_protocol/incubation_samples_to_analyze.txt")
-
 
 
 #### Combine all WC data ####
+
 WC.metadata <- read.csv("metadata/processedMetadata/sulfide_WC.csv",
                         stringsAsFactors = FALSE)
 WC.results <- S.results %>%
@@ -480,3 +520,20 @@ write.csv(WC.results,
           "dataEdited/waterChemistry/sulfide/WC_data.csv",
           row.names = FALSE,
           quote = FALSE)
+
+
+
+#### Incubation samples to analyze yet ####
+
+unanalyzed.MA.samples <- MA.metadata %>%
+  filter(!(sulfurID %in% MA.results$sulfurID))
+write.csv(unanalyzed.MA.samples,
+          file = "protocols/sulfideCline_protocol/MA_incubation_samples_to_analyze.csv",
+          row.names = FALSE)
+
+unanalyzed.WC.samples <- WC.metadata %>%
+  filter(!(sulfurID %in% WC.results$sulfurID))
+write.csv(unanalyzed.WC.samples,
+          file = "protocols/sulfideCline_protocol/WC_incubation_samples_to_analyze.csv",
+          row.names = FALSE)
+
