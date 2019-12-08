@@ -3,6 +3,7 @@
 # Benjamin D. Peterson
 
 
+
 #### Prep workspace ####
 rm(list = ls())
 setwd("~/Box/BLiMMP/")
@@ -12,7 +13,9 @@ library(readxl)
 library(tidyr)
 
 
+
 #### Generate correct metadata ####
+
 trip.id <- read_xlsx("metadata/1_trip_IDs.xlsx") %>%
   select(tripID, startDate)
 sample.ids <- read_xlsx("metadata/2_sample_IDs.xlsx") %>%
@@ -21,27 +24,29 @@ incubation.ids <- read_xlsx("metadata/4_MA_ID.xlsx") %>%
   select(incubationID, sampleID, filtered, amendment, sampleVolume, dateSpike, timeSpike)
 hg.ids <- read_xlsx("metadata/5_MA_Hg_samples.xlsx") %>%
   select(bottleID, incubationID, dateKilled, timeKilled, t, notes)
-final.data <- hg.ids %>%
+all.metadata <- hg.ids %>%
   filter(bottleID != "") %>%
   left_join(incubation.ids,
             by = "incubationID") %>%
   left_join(sample.ids) %>%
-  left_join(trip.id)
-data.for.checking <- final.data %>%
-  select(bottleID, incubationID, tripID, dateKilled, timeKilled, depth, t, filtered, amendment)
+  left_join(trip.id) 
 
-rm(hg.ids, incubation.ids, sample.ids, trip.id)
+metadata.to.save.out <- all.metadata %>%
+  select(bottleID, incubationID, sampleID, tripID, dateKilled,
+         timeKilled, depth, t, filtered, amendment)
 
-write.csv(data.for.checking,
+write.csv(metadata.to.save.out,
           "metadata/processedMetadata/incubation_Hg_metadata.csv",
           row.names = FALSE,
           quote = FALSE)
+
+rm(hg.ids, incubation.ids, sample.ids, trip.id, metadata.to.save.out)
 
 
 
 #### Calculate time gaps in processing (spiking or sample collection) ####
 
-processing.times <- final.data %>%
+processing.data <- all.metadata %>%
   filter(tripID != "BLiMMP_trip_003") %>%
   mutate(date_time_killed = ymd_hm(paste(dateKilled,
                                          timeKilled),
@@ -52,254 +57,156 @@ processing.times <- final.data %>%
   select(incubationID, date_time_spiked, date_time_killed, t) %>%
   spread(key = t,
          value = date_time_killed) %>%
-  rename(t0 = `0`,
-         t24 = `24`) %>%
   mutate(spike_to_kill_0_time = as.duration(date_time_spiked %--% t0),
-         t0_to_t24_time = as.duration(t0 %--% t24)) %>%
-  select(incubationID, spike_to_kill_0_time, t0_to_t24_time)
+         t0_to_t1_time = as.duration(t0 %--% t1)) %>%
+  select(incubationID, spike_to_kill_0_time, t0_to_t1_time)
 
 
-#### Methylmercury data, first run ####
-file.name <- "dataRaw/incubations/MeHg/I080719 BENDOTA.xlsx"
-file.data <- read_xlsx(file.name,
+
+#### Cleaning function ####
+
+# file.name.input <- "dataRaw/incubations/MeHg/I080719 BENDOTA.xlsx"
+# output.file.name <- "dataEdited/incubations/MeHg/incubations2019_20190807.csv"
+
+clean.MeHg.data.from <- function(file.name.input,
+                                 output.file.name,
+                                 metadata.df = all.metadata,
+                                 barcodes.to.remove = NULL) {
+  
+  file.name <- file.name.input
+  file.data <- read_xlsx(file.name,
                          sheet = "Summary",
                          skip = 6)
-# This whole run looked good, so we'll keep all of it. 
-file.data.clean <- file.data %>%
-  select(1, 3, 4, 5, 9) %>%
-  as.data.frame()
-colnames(file.data.clean) <- c("bottleID",
+  
+  # Select needed columns and rename them.
+  file.data.clean <- file.data %>%
+    select(1, 3, 4, 5, 9) %>%
+    as.data.frame()
+  colnames(file.data.clean) <- c("bottleID",
                                  "amb_MeHg_ng.L",
                                  "excess_MeHg_198_ng.L",
                                  "excess_MeHg_204_ng.L",
                                  "excess_DDL")
-file.data.clean <- file.data.clean[1:20, ]
-
-# Remove spikes
-file.data.clean <- file.data.clean %>%
-  filter(!duplicated(bottleID))
-
-# Combine with metadata
-file.data.clean <- file.data.clean %>%
-  left_join(data.for.checking)
-
-# Generate single treatment column
-filter.vector <- c("unfiltered", "filtered")
-names(filter.vector) <- c("no", "yes")
-
-file.data.clean <- file.data.clean %>%
-  mutate(filtered = filter.vector[filtered])
-
-unamended.index <- file.data.clean$treatment == ""
-file.data.clean$treatment[unamended.index] <- "unamended"
-
-file.data.clean <- file.data.clean %>%
-  mutate(treatment = paste(filtered,
-                           treatment,
-                           sep = "-")) %>%
-  select(-filtered)
-
-# Read out data
-write.csv(file.data.clean,
-          "dataEdited/incubations/MeHg/incubations2019_20190807.csv",
-          row.names = FALSE,
-          quote = FALSE)
-rm(list = ls(pattern = "file.*"))
-
-
-#### Methylmercury data, 2019-09-24 ####
-
-file.name <- "dataRaw/incubations/MeHg/I092419 BENDOTA_unchecked.xlsx"
-file.data <- read_xlsx(file.name,
-                         sheet = "Summary",
-                         skip = 6)
-file.data.clean <- file.data %>%
-  select(1, 3, 4, 5, 9) %>%
-  as.data.frame()
-colnames(file.data.clean) <- c("bottleID",
-                                 "amb_MeHg_ng.L",
-                                 "excess_MeHg_198_ng.L",
-                                 "excess_MeHg_204_ng.L",
-                                 "excess_DDL")
-file.data.clean <- file.data.clean[1:36, ]
-
-# Remove spikes
-file.data.clean <- file.data.clean %>%
-  filter(!duplicated(bottleID))
-
-# Combine with metadata
-file.data.clean <- file.data.clean %>%
-  left_join(data.for.checking)
-
-# Generate single treatment column
-filter.vector <- c("unfiltered", "filtered")
-names(filter.vector) <- c("no", "yes")
-
-file.data.clean <- file.data.clean %>%
-  mutate(filtered = filter.vector[filtered])
-
-unamended.index <- file.data.clean$treatment == ""
-file.data.clean$treatment[unamended.index] <- "unamended"
-
-file.data.clean <- file.data.clean %>%
-  mutate(treatment = paste(filtered,
-                           treatment,
-                           sep = "-")) %>%
-  select(-filtered)
-
-write.csv(file.data.clean,
-          "dataEdited/incubations/MeHg/incubations2019_20190924.csv",
-          row.names = FALSE,
-          quote = FALSE)
-rm(list = ls(pattern = "file.*"))
-
-
-#### Methylmercury data, 2019-09-25 ####
-
-file.name <- "dataRaw/incubations/MeHg/I092519 BENDOTA, HCC ISCO_unchecked.xlsx"
-file.data <- read_xlsx(file.name,
-                       sheet = "Summary",
-                       skip = 6)
-file.data.clean <- file.data %>%
-  select(1, 3, 4, 5, 9) %>%
-  as.data.frame()
-colnames(file.data.clean) <- c("bottleID",
-                               "amb_MeHg_ng.L",
-                               "excess_MeHg_198_ng.L",
-                               "excess_MeHg_204_ng.L",
-                               "excess_DDL")
-file.data.clean <- file.data.clean[1:36, ]
-
-# Remove spikes
-file.data.clean <- file.data.clean %>%
-  filter(!duplicated(bottleID))
-
-# Combine with metadata
-file.data.clean <- file.data.clean %>%
-  left_join(data.for.checking) %>%
-  filter(!is.na(incubationID))
-
-# Generate single treatment column
-filter.vector <- c("unfiltered", "filtered")
-names(filter.vector) <- c("no", "yes")
-
-file.data.clean <- file.data.clean %>%
-  mutate(filtered = filter.vector[filtered])
-
-unamended.index <- file.data.clean$treatment == ""
-file.data.clean$treatment[unamended.index] <- "unamended"
-
-file.data.clean <- file.data.clean %>%
-  mutate(treatment = paste(filtered,
-                           treatment,
-                           sep = "-")) %>%
-  select(-filtered)
-
-write.csv(file.data.clean,
-          "dataEdited/incubations/MeHg/incubations2019_20190925.csv",
-          row.names = FALSE,
-          quote = FALSE)
-rm(list = ls(pattern = "file.*"))
-
-
-
-
-
-
-
-
-
-#### THg data, first run ####
-THg.1 <- "dataRaw/incubations/THg/I060519 BENDOTA WATERS.xlsx"
-THg.1.data <- read_xlsx(THg.1,
-                        sheet = "Summary",
-                        skip = 10) %>%
-  select(1, 3, 4, 5, 6, 10)
-colnames(THg.1.data) <- c("sampleType",
-                          "barcode",
-                          "amb_THg_ng.L",
-                          "excess_THg_198_ng.L",
-                          "excess_THg_204_ng.L",
-                          "excess_DDL")
-THg.1.data.clean <- THg.1.data %>%
-  filter(sampleType == "SAM") %>%
-  select(-sampleType) %>%
-  as.data.frame()
-
-write.csv(THg.1.data.clean,
-          "dataEdited/incubations/THg/incubations2018_I060519.csv",
-          row.names = FALSE,
-          quote = FALSE)
-
-rm(list = ls(pattern = "THg.1*"))
-
-#### THg data, second run ####
-THg.2 <- "dataRaw/incubations/THg/I061019 BENDOTA WATERS.xlsx"
-THg.2.data <- read_xlsx(THg.2,
-                        sheet = "Summary",
-                        skip = 10) %>%
-  select(1, 3, 4, 5, 6, 10)
-colnames(THg.2.data) <- c("sampleType",
-                          "barcode",
-                          "amb_THg_ng.L",
-                          "excess_THg_198_ng.L",
-                          "excess_THg_204_ng.L",
-                          "excess_DDL")
-THg.2.data.clean <- THg.2.data %>%
-  filter(sampleType == "SAM") %>%
-  select(-sampleType) %>%
-  as.data.frame()
-
-write.csv(THg.2.data.clean,
-          "dataEdited/incubations/THg/incubations2018_I061019.csv",
-          row.names = FALSE,
-          quote = FALSE)
-
-rm(list = ls(pattern = "THg.2*"))
-
-#### Read in all MeHg data ####
-list.o.files <- list.files(path = "dataEdited/incubations/MeHg",
-                           pattern = "incubations2018")
-MeHg.data.list <- list()
-for (file.number in 1:length(list.o.files)) {
-  MeHg.data.list[[file.number]] <- read.csv(paste("dataEdited/incubations/MeHg/",
-                                                  list.o.files[file.number],
-                                                  sep = ""),
-                                            stringsAsFactors = FALSE)
+  file.data.clean <- file.data.clean %>%
+    filter(bottleID %in% metadata.df$bottleID)
+  
+  # Remove unwanted samples by barcode
+  if (!is.null(barcodes.to.remove)) {
+    
+    file.data.clean <- file.data.clean %>%
+      filter(!(bottleID %in% barcodes.to.remove))
+    
+  }
+  
+  # Remove spikes
+  file.data.clean <- file.data.clean %>%
+    filter(!duplicated(bottleID)) 
+  
+  # Round off numbers
+  file.data.clean[, -1] <- file.data.clean[, -1] %>%
+    mutate_all(as.numeric) %>% 
+    round(digits = 3)
+  
+  # Write out data
+  write.csv(file.data.clean,
+            output.file.name,
+            row.names = FALSE,
+            quote = FALSE)
 }
-MeHg.data <- do.call(rbind,
-                     MeHg.data.list)
-rm(list.o.files,
-   MeHg.data.list,
-   file.number)
-
-#### Combine MeHg data with metadata ####
-MeHg.data.final <- left_join(MeHg.data,
-                             metadata) %>%
-  arrange(timePoint) %>%
-  arrange(bag)
 
 
-#### Read in all THg data ####
-list.o.files <- list.files(path = "dataEdited/incubations/THg/",
-                           pattern = "incubations2018")
-THg.data.list <- list()
-for (file.number in 1:length(list.o.files)) {
-  THg.data.list[[file.number]] <- read.csv(paste("dataEdited/incubations/THg/",
-                                                  list.o.files[file.number],
-                                                  sep = ""),
-                                            stringsAsFactors = FALSE)
+
+#### Clean files ####
+
+clean.MeHg.data.from("dataRaw/incubations/MeHg/I080719 BENDOTA.xlsx",
+                     "dataEdited/incubations/MeHg/cleaned/incubations2019_20190807.csv")
+
+clean.MeHg.data.from("dataRaw/incubations/MeHg/I092419 BENDOTA_unchecked.xlsx",
+                     "dataEdited/incubations/MeHg/cleaned/incubations2019_20190924.csv")
+
+clean.MeHg.data.from("dataRaw/incubations/MeHg/I092519 BENDOTA, HCC ISCO_unchecked.xlsx",
+                     "dataEdited/incubations/MeHg/cleaned/incubations2019_20190925.csv")
+
+clean.MeHg.data.from("dataRaw/incubations/MeHg/I120419 BENDOTA.xlsx",
+                     "dataEdited/incubations/MeHg/cleaned/incubations2019_20191204.csv",
+                     barcodes.to.remove = "MSC576AR")
+
+clean.MeHg.data.from("dataRaw/incubations/MeHg/I120519 BENDOTA.xlsx",
+                     "dataEdited/incubations/MeHg/cleaned/incubations2019_20191205.csv")
+
+
+
+#### Combine MeHg data ####
+
+rm(clean.MeHg.data.from)
+
+# Load up all incubation data
+list.o.results <- list.files(path = "dataEdited/incubations/MeHg/cleaned",
+                             pattern = "incubations2019",
+                             full.names = TRUE)
+
+for (file.name in list.o.results) {
+  if (file.name == list.o.results[1]) {
+    MeHg.results <- read.csv(file.name,
+                             stringsAsFactors = FALSE)
+  } else {
+    MeHg.results <- rbind(MeHg.results,
+                          read.csv(file.name,
+                                   stringsAsFactors = FALSE))
+  }
+  
 }
-THg.data <- do.call(rbind,
-                     THg.data.list)
-rm(list.o.files,
-   THg.data.list,
-   file.number)
 
-#### Combine THg data with metadata ####
-THg.data.final <- left_join(THg.data,
-                             metadata) %>%
-  arrange(timePoint) %>%
-  arrange(bag)
+rm(list.o.results,
+   file.name)
 
-rm(THg.data)
+
+
+#### Normalize t1 values to 24 hours ####
+
+MeHg.198.production.t1 <- MeHg.results %>%
+  select(bottleID, excess_MeHg_198_ng.L) %>%
+  left_join(all.metadata) %>%
+  filter(t == "t1") %>%
+  full_join(processing.data) %>%
+  mutate(t0_to_t1_time = (as.numeric(t0_to_t1_time) / (24*60*60))) %>%
+  arrange(incubationID) %>%
+  mutate(t0_to_t1_time = replace_na(t0_to_t1_time, 1)) %>%
+  mutate(excess_MeHg_198_ng.L_normalized = round((excess_MeHg_198_ng.L / t0_to_t1_time), 3)) %>%
+  select(bottleID, incubationID, sampleID, tripID, startDate, depth, t, excess_MeHg_198_ng.L_normalized) %>%
+  rename(excess_MeHg_198_ng.L = excess_MeHg_198_ng.L_normalized)
+
+
+#### Check out spike-to-kill times and if it influences t0 values ####
+
+check_t0_timing <- MeHg.results  %>%
+  left_join(all.metadata) %>%
+  filter(t == "t0")%>%
+  full_join(processing.data) %>%
+  filter(!is.na(spike_to_kill_0_time)) %>%
+  select(excess_MeHg_198_ng.L, spike_to_kill_0_time)
+plot(x = check_t0_timing$spike_to_kill_0_time,
+     y = check_t0_timing$excess_MeHg_198_ng.L,
+     pch = 18,
+     xlab = "Spike time to kill time (sec)",
+     ylab = "Excess Me198Hg in t0 sample")
+# The high MeHg samples in the t0 samples do not seem to be 
+# related to longer wait times between spiking and killing t=0.
+# More likely to be due to contamination of some sort. 
+# We'll keep the t0 time points as they are. 
+
+MeHg.198.t0 <- MeHg.results  %>%
+  left_join(all.metadata) %>%
+  filter(t == "t0")%>%
+  full_join(processing.data) %>%
+  select(bottleID, incubationID, sampleID, tripID, startDate, depth, t, excess_MeHg_198_ng.L)
+
+
+
+#### Combine Me198Hg data and save it out ####
+
+MeHg.198.data <- rbind(MeHg.198.t0, MeHg.198.production.t1)
+
+write.csv(MeHg.198.data,
+          "dataEdited/incubations/MeHg/incubations2019_Me198Hg.csv",
+          row.names = FALSE)
