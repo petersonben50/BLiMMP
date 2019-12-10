@@ -77,9 +77,9 @@ processing.metadata <- S.metadata %>%
 # Combine incubation data
 
 rm(S.metadata,
-   sampleID,
-   incubationID,
-   tripID)
+   incubation_IDs,
+   sample_IDs,
+   trip_IDs)
 
 
 
@@ -92,7 +92,7 @@ good.data.location <- "dataEdited/waterChemistry/sulfide/dataForReview/"
 
 #### Data processing function ####
 
-#data_file <- "dataRaw/waterChemistry/sulfide/sulfide_20191209B.xlsx"
+#data_file <- "dataRaw/waterChemistry/sulfide/sulfide_20191210.xlsx"
 #override = "pass"
 
 # Define the function
@@ -497,6 +497,12 @@ data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20191209.xlsx")
 
 data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20191209B.xlsx")
 # Standard curve looks like shit. This needs to be re-run. 
+
+data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20191210.xlsx")
+# BLiMMP_S_0067 is below the curve (is 0) so was removed automatically.
+# However, we'll just include it, and will manually add it to the file 
+# that will be transferred to the good_data folder. 
+
 
 
 #### Clean up before combining all samples ####
