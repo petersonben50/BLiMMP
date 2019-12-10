@@ -29,11 +29,20 @@ all.metadata <- hg.ids %>%
   left_join(incubation.ids,
             by = "incubationID") %>%
   left_join(sample.ids) %>%
-  left_join(trip.id) 
+  left_join(trip.id)
+
+# Add treatment column with all treatment information
+filtered.vector <- c("filtered", "unfiltered")
+names(filtered.vector) <- c("yes", "no")
+all.metadata <- all.metadata %>%
+  mutate(treatment = paste(filtered.vector[filtered],
+                           amendment,
+                           sep = "-"))
+  
 
 metadata.to.save.out <- all.metadata %>%
   select(bottleID, incubationID, sampleID, tripID, dateKilled,
-         timeKilled, depth, t, filtered, amendment)
+         timeKilled, depth, t, filtered, amendment, treatment)
 
 write.csv(metadata.to.save.out,
           "metadata/processedMetadata/incubation_Hg_metadata.csv",
@@ -173,7 +182,7 @@ MeHg.198.production.t1 <- MeHg.results %>%
   arrange(incubationID) %>%
   mutate(t0_to_t1_time = replace_na(t0_to_t1_time, 1)) %>%
   mutate(excess_MeHg_198_ng.L_normalized = round((excess_MeHg_198_ng.L / t0_to_t1_time), 3)) %>%
-  select(bottleID, incubationID, sampleID, tripID, startDate, depth, t, excess_MeHg_198_ng.L_normalized) %>%
+  select(bottleID, incubationID, sampleID, tripID, startDate, depth, treatment, t, excess_MeHg_198_ng.L_normalized) %>%
   rename(excess_MeHg_198_ng.L = excess_MeHg_198_ng.L_normalized)
 
 
@@ -199,13 +208,16 @@ MeHg.198.t0 <- MeHg.results  %>%
   left_join(all.metadata) %>%
   filter(t == "t0")%>%
   full_join(processing.data) %>%
-  select(bottleID, incubationID, sampleID, tripID, startDate, depth, t, excess_MeHg_198_ng.L)
+  select(bottleID, incubationID, sampleID, tripID, startDate, depth, treatment, t, excess_MeHg_198_ng.L)
 
 
 
 #### Combine Me198Hg data and save it out ####
 
-MeHg.198.data <- rbind(MeHg.198.t0, MeHg.198.production.t1)
+MeHg.198.data <- rbind(MeHg.198.t0, MeHg.198.production.t1) %>%
+  arrange(t) %>%
+  arrange(treatment) %>%
+  arrange(sampleID)
 
 write.csv(MeHg.198.data,
           "dataEdited/incubations/MeHg/incubations2019_Me198Hg.csv",
