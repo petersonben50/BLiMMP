@@ -59,6 +59,12 @@ library(tidyverse)
 
 
 
+#### Read in metadata ####
+
+metal.metadata <- read.csv("metadata/processedMetadata/metal_metadata.csv",
+                           stringsAsFactors = FALSE)
+
+
 #### Read in data ####
 
 data.file.name <- "dataEdited/waterChemistry/ICP/unprocessed/ICP_20191213.csv"
@@ -107,7 +113,35 @@ all.data <- ICP.data %>%
   select(metalID, element,sampleID, tripID, depth, startDate, conc_ppm, corr_conc_ppm) %>%
   as.data.frame()
 
-# Read out data
-write.csv(all.data,
+
+#### Calculate particulate concentration ####
+
+# Generate appropriate vector
+metalID.vector <- unique(all.data$metalID)
+filtered.samples <- grep("FM", metalID.vector)
+unfiltered.samples <- grep("UM", metalID.vector)
+
+filtration.vector <- vector(length = length(metalID.vector))
+filtration.vector[filtered.samples] <- "filtered"
+filtration.vector[unfiltered.samples] <- "unfiltered"
+
+names(filtration.vector) <- metalID.vector
+
+rm(filtered.samples,
+   unfiltered.samples,
+   metalID.vector)
+
+# Calculate filter-passing vs. particulate
+final.data <- all.data %>%
+  mutate(filtration = filtration.vector[metalID]) %>%
+  select(tripID, sampleID, startDate, depth, filtration, element, corr_conc_ppm) %>%
+  spread(key = filtration,
+         value = corr_conc_ppm) %>%
+  mutate(part_conc_ppm = unfiltered - filtered) %>%
+  rename(diss_conc_ppm = filtered) %>%
+  select(-unfiltered)
+
+# Write out data
+write.csv(final.data,
           "dataEdited/waterChemistry/ICP/metal_data.csv",
           row.names = FALSE)
