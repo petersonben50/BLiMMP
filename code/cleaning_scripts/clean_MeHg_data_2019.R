@@ -1,4 +1,4 @@
-#### code/cleaning_scripts/clean_Hg_2019_data.R ####
+#### code/cleaning_scripts/clean_MeHg_2019_data.R ####
 # Written for BLiMMP project
 # Benjamin D. Peterson
 
@@ -6,8 +6,9 @@
 
 #### Prep workspace ####
 rm(list = ls())
-setwd("~/Box/BLiMMP/")
+setwd("/Users/benjaminpeterson/Documents/research/BLiMMP")
 library(dplyr)
+library(lubridate)
 library(readODS)
 library(readxl)
 library(tidyr)
@@ -42,10 +43,11 @@ all.metadata <- all.metadata %>%
 
 metadata.to.save.out <- all.metadata %>%
   select(bottleID, incubationID, sampleID, tripID, dateKilled,
-         timeKilled, depth, t, filtered, amendment, treatment)
+         timeKilled, depth, t, filtered, amendment, treatment) %>%
+  filter()
 
 write.csv(metadata.to.save.out,
-          "metadata/processedMetadata/incubation_Hg_metadata.csv",
+          "metadata/processedMetadata/incubation_Hg_metadata_2019.csv",
           row.names = FALSE,
           quote = FALSE)
 
@@ -56,7 +58,7 @@ rm(hg.ids, incubation.ids, sample.ids, trip.id, metadata.to.save.out)
 #### Calculate time gaps in processing (spiking or sample collection) ####
 
 processing.data <- all.metadata %>%
-  filter(tripID != "BLiMMP_trip_003") %>%
+  # filter(tripID != "BLiMMP_trip_003") %>%
   mutate(date_time_killed = ymd_hm(paste(dateKilled,
                                          timeKilled),
                                    tz = "US/Central")) %>%
@@ -89,7 +91,7 @@ clean.MeHg.data.from <- function(file.name.input,
   
   # Select needed columns and rename them.
   file.data.clean <- file.data %>%
-    select(1, 3, 4, 5, 9) %>%
+    select(1, 3, 4, 5, 17) %>%
     as.data.frame()
   colnames(file.data.clean) <- c("bottleID",
                                  "amb_MeHg_ng.L",
@@ -129,19 +131,32 @@ clean.MeHg.data.from <- function(file.name.input,
 
 clean.MeHg.data.from("dataRaw/incubations/MeHg/I080719 BENDOTA.xlsx",
                      "dataEdited/incubations/MeHg/cleaned/incubations2019_20190807.csv")
+# Checked this one manually. All looks good to go ahead.
 
-clean.MeHg.data.from("dataRaw/incubations/MeHg/I092419 BENDOTA_unchecked.xlsx",
+clean.MeHg.data.from("dataRaw/incubations/MeHg/I092419 BENDOTA.xlsx",
                      "dataEdited/incubations/MeHg/cleaned/incubations2019_20190924.csv")
+# Checked this one manually. All looks good to go ahead.
 
-clean.MeHg.data.from("dataRaw/incubations/MeHg/I092519 BENDOTA, HCC ISCO_unchecked.xlsx",
+clean.MeHg.data.from("dataRaw/incubations/MeHg/I092519 BENDOTA.xlsx",
                      "dataEdited/incubations/MeHg/cleaned/incubations2019_20190925.csv")
 
-clean.MeHg.data.from("dataRaw/incubations/MeHg/I120419 BENDOTA.xlsx",
-                     "dataEdited/incubations/MeHg/cleaned/incubations2019_20191204.csv",
-                     barcodes.to.remove = "MSC576AR")
+# clean.MeHg.data.from("dataRaw/incubations/MeHg/I120419 BENDOTA.xlsx",
+#                      "dataEdited/incubations/MeHg/cleaned/incubations2019_20191204.csv",
+#                      barcodes.to.remove = "MSC576AR")
+# This one had a super high blank. Not gonna keep it. Re-running these samples
+# in February 2020. 
 
 clean.MeHg.data.from("dataRaw/incubations/MeHg/I120519 BENDOTA.xlsx",
                      "dataEdited/incubations/MeHg/cleaned/incubations2019_20191205.csv")
+# Checked this one manually. All looks good to go ahead.
+
+
+clean.MeHg.data.from("dataRaw/incubations/MeHg/I020520 BENDOTA.xlsx",
+                     "dataEdited/incubations/MeHg/cleaned/incubations2019_20200205.csv",
+                     barcodes.to.remove = "MSC576AR")
+# MSC576AR was run on 2019-12-05 as well, and they had similar results.
+# So, removing this on here.
+# Checked this one manually. All looks good to go ahead.
 
 
 
@@ -171,22 +186,26 @@ rm(list.o.results,
 
 
 
-#### Normalize t1 values to 24 hours ####
+#### Clean Me198Hg data ####
+
+# Normalize t1 values to 24 hours
 
 MeHg.198.production.t1 <- MeHg.results %>%
-  select(bottleID, excess_MeHg_198_ng.L) %>%
+  select(bottleID, excess_MeHg_198_ng.L, excess_DDL) %>%
   left_join(all.metadata) %>%
   filter(t == "t1") %>%
-  full_join(processing.data) %>%
-  mutate(t0_to_t1_time = (as.numeric(t0_to_t1_time) / (24*60*60))) %>%
+  left_join(processing.data) %>%
+  # Calculate fraction of 24 hours that the samples were incubated for.
+  mutate(t0_to_t1_time.fraction = (as.numeric(t0_to_t1_time) / (24*60*60))) %>%
   arrange(incubationID) %>%
-  mutate(t0_to_t1_time = replace_na(t0_to_t1_time, 1)) %>%
-  mutate(excess_MeHg_198_ng.L_normalized = round((excess_MeHg_198_ng.L / t0_to_t1_time), 3)) %>%
-  select(bottleID, incubationID, sampleID, tripID, startDate, depth, treatment, t, excess_MeHg_198_ng.L_normalized) %>%
+  # mutate(t0_to_t1_time = replace_na(t0_to_t1_time, 1)) %>%
+  # Divide by the fraction
+  mutate(excess_MeHg_198_ng.L_normalized = round((excess_MeHg_198_ng.L / t0_to_t1_time.fraction), 3)) %>%
+  select(bottleID, incubationID, sampleID, tripID, startDate, depth, treatment, t, excess_MeHg_198_ng.L_normalized, excess_DDL) %>%
   rename(excess_MeHg_198_ng.L = excess_MeHg_198_ng.L_normalized)
 
 
-#### Check out spike-to-kill times and if it influences t0 values ####
+# Check out spike-to-kill times and if it influences t0 values
 
 check_t0_timing <- MeHg.results  %>%
   left_join(all.metadata) %>%
@@ -203,22 +222,58 @@ plot(x = check_t0_timing$spike_to_kill_0_time,
 # related to longer wait times between spiking and killing t=0.
 # More likely to be due to contamination of some sort. 
 # We'll keep the t0 time points as they are. 
+rm(check_t0_timing)
 
+# Pull out needed data from t0 samples
 MeHg.198.t0 <- MeHg.results  %>%
   left_join(all.metadata) %>%
   filter(t == "t0")%>%
-  full_join(processing.data) %>%
-  select(bottleID, incubationID, sampleID, tripID, startDate, depth, treatment, t, excess_MeHg_198_ng.L)
+  left_join(processing.data) %>%
+  select(bottleID, incubationID, sampleID, tripID, startDate, depth, treatment, t, excess_MeHg_198_ng.L, excess_DDL)
 
 
-
-#### Combine Me198Hg data and save it out ####
+# Combine Me198Hg data
 
 MeHg.198.data <- rbind(MeHg.198.t0, MeHg.198.production.t1) %>%
   arrange(t) %>%
   arrange(treatment) %>%
   arrange(sampleID)
 
+# Which ones are above detection?
+
+MeHg.198.data <- MeHg.198.data %>%
+  mutate(above_DDL = (excess_MeHg_198_ng.L > excess_DDL)) %>%
+  select(-excess_DDL)
+
+
+
+# Write out data
+
 write.csv(MeHg.198.data,
           "dataEdited/incubations/MeHg/incubations2019_Me198Hg.csv",
           row.names = FALSE)
+
+
+# Clean up
+
+rm(list = ls(pattern = "MeHg.198"),
+   processing.data)
+
+
+#### Clean ambient Hg data ####
+
+ambient.MeHg <- MeHg.results %>%
+  left_join(all.metadata) %>%
+  select(bottleID, incubationID, sampleID, tripID, startDate, depth, treatment, t, amb_MeHg_ng.L) %>%
+  arrange(t) %>%
+  arrange(treatment) %>%
+  arrange(sampleID)
+write.csv(ambient.MeHg,
+          "dataEdited/incubations/MeHg/incubations2019_MeHg_ambient.csv",
+          row.names = FALSE)
+
+
+
+#### Which samples haven't been analyzed? ####
+
+unanalyzed.samples <- all.metadata$bottleID[which(!(all.metadata$bottleID %in% ambient.MeHg$bottleID))]
