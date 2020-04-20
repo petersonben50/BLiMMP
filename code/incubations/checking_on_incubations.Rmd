@@ -1,0 +1,376 @@
+---
+title: "2019 MeHg production assays"
+author: "Benjamin D. Peterson"
+date: "12/5/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+rm(list = ls())
+library(knitr)
+library(tidyverse)
+```
+
+
+In this document, I'll go through the data we collected from the 2019 MeHg production assays.
+In here, I'm mostly checking to see how well we did with the assays, and what we might need to focus on going forward. 
+
+
+#### BLiMMP_trip_003: Take 1
+
+Let's take a look at the first set of incubations.
+We did not collect an Exo profile due to equipment issues. 
+We only got geochemical data from this profile, and only got sulfide and FC data in addition to the Hg data. 
+We focused on collecting one sample from just below the oxic-anoxic interface, and one from much deeper. 
+The deeper sample smelled of sulfide. 
+Let's check out the Hg data first. 
+
+``` {r incubations BLiMMP_trip_003, echo=FALSE, message = FALSE}
+Hg.incubation.data <- read.csv("/Users/benjaminpeterson/Box/BLiMMP/dataEdited/incubations/MeHg/incubations2019_Me198Hg.csv",
+                            stringsAsFactors = FALSE) 
+
+# Pull out needed stat
+plotting.data <- Hg.incubation.data %>%
+  filter(tripID == "BLiMMP_trip_003") %>%
+  select(incubationID, depth, startDate, t, treatment, excess_MeHg_198_ng.L) %>%
+  spread(key = t,
+         value = excess_MeHg_198_ng.L)
+
+color.vector <- c("green", "red")
+names(color.vector) <- c("unfiltered-unamended", "filtered-unamended")
+
+# Plot up data
+par(mfrow = c(1, 2),
+    mar = c(4.5, 4.5, 3, 1))
+invisible(
+sapply(sort(unique(plotting.data$depth)),
+       function(depth.of.interest) {
+         {
+           
+             y_max <- ceiling(max(c(plotting.data$t0, plotting.data$t1))*100)/100
+             y_min <- floor(min(c(plotting.data$t0, plotting.data$t1))*100)/100
+
+           
+           plotting.data.depth <- plotting.data %>%
+             filter(depth == depth.of.interest)
+           
+            stripchart(list(plotting.data.depth$t0,
+                            plotting.data.depth$t1),
+              vertical = TRUE,
+              cex = 0,
+              ylim = c(y_min, y_max),
+              group.names = c("t=0", "t=24"),
+              main = paste("Me198Hg production\nat ",
+                           depth.of.interest,
+                           "m",
+                           sep = ""))
+            
+           for (treatment.of.interest in unique(plotting.data.depth$treatment)) {
+                    
+                    plotting.data.treatment <- plotting.data.depth %>%
+                      filter(treatment == treatment.of.interest)
+                    
+                    stripchart(list(plotting.data.treatment$t0,
+                                    plotting.data.treatment$t1),
+                      vertical = TRUE,
+                      pch = 18,
+                      group.names = c("t=0", "t=24"),
+                      col = color.vector[plotting.data.treatment$treatment],
+                      add = TRUE)
+           }
+            
+            for (row.num in 1:nrow(plotting.data.depth)) {
+              segments(1, plotting.data.depth$t0[row.num],
+                       2, plotting.data.depth$t1[row.num],
+                       col = color.vector[plotting.data.depth$treatment[row.num]])
+            }
+            text(y = plotting.data.depth$t1,
+                 x= 1.75, 
+                 labels = plotting.data.depth$incubationID,
+                 cex = 0.8)
+
+            
+           }
+         }) 
+)
+
+```
+
+We see that there appears to be no Me198Hg production at 10.3m.
+Obviously, there's still no production of Me198Hg when we filter it.
+However, at 20m, we see appreciable amounts of MeHg being produced.
+Two of the incubations (BLiMMP_MA_0022 and 0023) produce approximately 0.03ng/L of MeHg in 24 hours, but the third incubation (BLiMMP_MA_0021) was substantially lower.
+For this incubation, I had noted in my field notes that I did not mix this bag well between injecting the tracer and retrieving the t0 sample.
+Thus, I likely withdrew most of the tracer before it had time to mix in.
+
+Additionally (and interestingly), I noticed that the sulfide levels in this bag at the end of the incubation were substantially lower than in the other bags from this depth.
+I doubt this is related to withdrawing the spike early, more likely just some O2 intrusion into the bag, which could also account for the lower Me198Hg production. 
+
+```{r sulfide_data_incubations_BLiMMP_trip_003,  echo=FALSE, message = FALSE, fig.height = 5, fig.width = 5}
+
+sulfide.data <- read.csv("/Users/benjaminpeterson/Box/BLiMMP/dataEdited/waterChemistry/sulfide/MA_data.csv",
+                         stringsAsFactors = FALSE) %>%
+  filter(tripID == "BLiMMP_trip_003")
+
+# Set up color vector
+color.vector <- c("green", "red")
+names(color.vector) <- c("unfiltered-unamended", "filtered-unamended")
+# Set up depth constraints
+y_max <- ceiling(max(c(sulfide.data$S_conc_uM, sulfide.data$S_conc_uM)))
+y_min <- floor(min(c(sulfide.data$S_conc_uM, sulfide.data$S_conc_uM)))
+
+par(mar = c(4.5, 4.5, 3, 1),
+    mfrow = c(1, 1))
+invisible(
+  stripchart(S_conc_uM ~ depth,
+            data = sulfide.data,
+            vertical = TRUE,
+            cex = 1,
+            ylim = c(y_min, y_max),
+            method = "jitter",
+            pch = 18,
+            main = "Sulfide concentration from\nincubations from BLiMMP_trip_003",
+            xlab = "Depth of incubation",
+            ylab = "Sulfide concentration (uM)",
+            cex.main = 0.9))
+  
+  sulfide.data.deep <- sulfide.data %>%
+    filter(depth == 20)
+  text(x = 1.75,
+       y = sulfide.data.deep$S_conc_uM,
+       labels = sulfide.data.deep$incubationID,
+       cex = 0.7)
+
+
+
+```
+
+
+
+#### BLiMMP_trip_005: Second round of incubations
+
+In the second round of incubations that we tried, we added an additional depth, as well as a molybdate treatment.
+The uppermost depth (11.7m) was taken from the small turbidity spike right below the oxic-anoxic interface. 
+Sulfide was quite low at this point, only 5.38µM.
+The next depth was 14m, where sulfide was up to 18.3µM.
+The final depth was 20.1m, where sulfide had accumulated to relatively high levels (80µM). 
+Leucine uptake rates were fastest at the sample from the oxic-anoxic interface, approximately twice as high as they were at the other two depths.
+The methylation data did not match this trend, however.
+There was no detectable methylation in the uppermost layer, and both of the bottom two layers had relatively similar methylations rates.
+However, the data was very noisy. 
+
+```{r BLiMMP_trip_005, echo = FALSE, out.height= "75%", out.width="75%"}
+
+# Read in a PDF of the document
+graph.path <- "/Users/benjaminpeterson/Box/BLiMMP/results/incubations/BLiMMP_trip_005_incubations.png"
+include_graphics(graph.path)
+```
+
+
+First, we'll look at the data from 14m. 
+BLiMMP_MA_0042 has low production of Me198Hg relative to the other two replicates. 
+How does the sulfide data compare? 
+
+```{r sulfide_data_incubations_BLiMMP_trip_005_14m,  echo=FALSE, message = FALSE, fig.height = 4, fig.width = 8}
+trip.of.interest <- "BLiMMP_trip_005"
+color.vector <- c("green", "red", "black", "orange", "pink", "blue")
+names(color.vector) <- c("unfiltered-unamended", "filtered-unamended", "unfiltered-molybdate",
+                         "unfiltered-starch", "unfiltered-algal", "unfiltered-starch-molybdate")
+
+par(mfrow = c(1, 2),
+    mar = c(4.5, 4.5, 3, 1))
+invisible(
+sapply(c(14, 20.1),
+       function(depth.of.interest) {
+         
+         sulfide.data <- read.csv("/Users/benjaminpeterson/Box/BLiMMP/dataEdited/waterChemistry/sulfide/MA_data.csv",
+                         stringsAsFactors = FALSE) %>%
+            filter(tripID == trip.of.interest,
+                   depth == depth.of.interest) %>%
+            left_join(read.csv("/Users/benjaminpeterson/Box/BLiMMP/dataEdited/incubations/MeHg/incubations2019_Me198Hg.csv",
+                               stringsAsFactors = FALSE) %>%
+                        filter(t == "t1"))
+          
+          WC.S.levels <- read.csv("/Users/benjaminpeterson/Box/BLiMMP/dataEdited/waterChemistry/sulfide/WC_data.csv",
+                                   stringsAsFactors = FALSE) %>%
+            filter(tripID == trip.of.interest,
+                   depth == depth.of.interest) %>%
+            select(S_conc_uM) %>%
+            unlist(use.names = FALSE)
+          
+          plot(x = jitter(sulfide.data$S_conc_uM),
+               y= jitter(sulfide.data$excess_MeHg_198_ng.L),
+               col = color.vector[sulfide.data$treatment],
+               pch = 18,
+               ylim = c(-0.01, max(sulfide.data$excess_MeHg_198_ng.L)*1.2),
+               xlim = c(0, max(sulfide.data$S_conc_uM)*1.2),
+               xlab = "Sulfide concentration\nat end of incubation(uM)",
+               ylab = "MeHg production after 24hr (ng/L/day)",
+               main = paste("MeHg production compared\nto sulfide levels at ",
+                            depth.of.interest,
+                            "\nWater column = ",
+                            WC.S.levels,
+                            "µM",
+                            sep = ""),
+               cex.main = 0.85)
+          # 
+          # legend("topleft",
+          #        legend = names(color.vector),
+          #        text.col = color.vector)
+          }
+       )
+)
+
+
+```
+
+The sample with low MeHg production also had no sulfide left in that bag at the end of it, whereas the two bags with noticeable MeHg production did have sulfide remaining.
+However, this sulfide is still substantially lower than what was in the water column when we originally collected it.
+I suspect that there may have been substantial O2 leakage into the bags, which would lead to the oxidation of sulfide to sulfate. 
+It seems that we may have had a similar issue with the filtered controls and the molybdate-injected bags.
+However, the samples where there is some sulfide also show much lower levels of MeHg production than we see in the two unfiltered-unamended samples with sulfate present.
+It could be that the reason we only see MeHg production where there's sulfide is that the sulfide acts as a buffer to maintain the redox status of the sample and consumes 02. 
+ 
+ 
+ 
+
+#### BLiMMP_trip_006: Final round for 2019
+
+
+
+```{r BLiMMP_trip_006, echo = FALSE, out.height= "75%", out.width="75%"}
+
+# Read in a PDF of the document
+graph.path <- "/Users/benjaminpeterson/Box/BLiMMP/results/incubations/BLiMMP_trip_006_incubations.png"
+include_graphics(graph.path)
+```
+
+
+One sample that stands out as particularly problematic is the unfiltered-algal samples at 19.3m with the high starting level of Me198Hg. 
+The final Me198Hg is just as high as it is in the unfiltered-unamended samples, but this is likely due to the high starting levels. 
+This bag was BLiMMP_MA_0077. 
+
+
+
+```{r sulfide_data_incubations_BLiMMP_trip_006,  echo=FALSE, message = FALSE, fig.height = 5, fig.width = 10}
+
+trip.of.interest <- "BLiMMP_trip_006"
+color.vector <- c("green", "red", "black", "orange", "pink", "blue")
+names(color.vector) <- c("unfiltered-unamended", "filtered-unamended", "unfiltered-molybdate",
+                         "unfiltered-starch", "unfiltered-algal", "unfiltered-starch-molybdate")
+
+par(mfrow = c(1, 2),
+    mar = c(4.5, 4.5, 3, 1))
+invisible(
+sapply(c(16.18, 19.30),
+       function(depth.of.interest) {
+         
+         sulfide.data <- read.csv("/Users/benjaminpeterson/Box/BLiMMP/dataEdited/waterChemistry/sulfide/MA_data.csv",
+                         stringsAsFactors = FALSE) %>%
+            filter(tripID == trip.of.interest,
+                   depth == depth.of.interest) %>%
+            left_join(read.csv("/Users/benjaminpeterson/Box/BLiMMP/dataEdited/incubations/MeHg/incubations2019_Me198Hg.csv",
+                               stringsAsFactors = FALSE) %>%
+                        filter(t == "t1"))
+          
+          WC.S.levels <- read.csv("/Users/benjaminpeterson/Box/BLiMMP/dataEdited/waterChemistry/sulfide/WC_data.csv",
+                                   stringsAsFactors = FALSE) %>%
+            filter(tripID == trip.of.interest,
+                   depth == depth.of.interest) %>%
+            select(S_conc_uM) %>%
+            unlist(use.names = FALSE)
+          
+          plot(x = jitter(sulfide.data$S_conc_uM),
+               y= jitter(sulfide.data$excess_MeHg_198_ng.L),
+               col = color.vector[sulfide.data$treatment],
+               pch = 18,
+               ylim = c(-0.01, max(sulfide.data$excess_MeHg_198_ng.L)*1.2),
+               xlim = c(0, max(sulfide.data$S_conc_uM)*1.2),
+               xlab = "Sulfide concentration\nat end of incubation(uM)",
+               ylab = "MeHg production after 24hr (ng/L/day)",
+               main = paste("MeHg production compared\nto sulfide levels at ",
+                            depth.of.interest,
+                            "\nWater column = ",
+                            WC.S.levels,
+                            "µM",
+                            sep = ""),
+               cex.main = 0.85)
+          # 
+          # legend("topleft",
+          #        legend = names(color.vector),
+          #        text.col = color.vector)
+          }
+       )
+)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r Hg_data_BLiMMP_trip_006, include=FALSE}
+
+Hg.incubation.data.006.methylation <- Hg.incubation.data %>%
+  filter(tripID == "BLiMMP_trip_006") %>%
+  select(incubationID, excess_MeHg_198_ng.L, t, depth, treatment)
+
+
+```
+
+
+
+
+Let's check out the leucine uptake data. 
+We only did this from incubations at 16.18m on 2019-10-08 (BLiMMP_sample_0034).
+Let's take the average of the original leucine uptake assay and get an average for it, then find the fractional change between that and each of our samples, just to see how different they really are. 
+
+```{r Shift_in_leucine_uptake, width = 10, height = 10, echo=FALSE}
+
+original.uptake <- read.csv("/Users/benjaminpeterson/Box/BLiMMP/dataEdited/leucineUptake/water_column_uptake.csv",
+                            stringsAsFactors = FALSE) %>%
+  filter(sampleID == "BLiMMP_sample_0034") %>%
+  select(Leu_uptake_pM_A) %>%
+  unlist(use.names = FALSE) %>%
+  mean()
+
+leucine.uptake.MA <- read.csv("/Users/benjaminpeterson/Box/BLiMMP/dataEdited/leucineUptake/incubation_uptake.csv",
+                              stringsAsFactors = FALSE) %>%
+  select(incubationID, condition, Leu_uptake_pM_A) %>%
+  mutate(change_in_leu_uptake =( (Leu_uptake_pM_A - original.uptake) / original.uptake)*100) %>%
+  filter(condition != "none - filtered")
+
+# stripplot by group
+
+par(mfrow = c(2, 1),
+    mar = c(3, 4.5, 3, 1))
+stripchart(change_in_leu_uptake ~ condition,
+           data = leucine.uptake.MA,
+           vertical = TRUE,
+           pch = 18,
+           method = "jitter",
+           main = "Grouped by Condition")
+stripchart(change_in_leu_uptake ~ incubationID,
+           data = leucine.uptake.MA,
+           vertical = TRUE,
+           pch = 18,
+           method = "jitter",
+           main = "Grouped by incubation ID")
+
+```
+
+We took two samples from each incubation.
+The data is super noisy. Not sure that I can really get anything out of it.
+The noisiness is even from within a single incubation.
+Curious that if anything, the molybdate-treated sample is the one that retains the most heterotrophic activity.
+Let's compare this to the Hg data. 
+
