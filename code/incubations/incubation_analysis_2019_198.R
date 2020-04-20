@@ -478,15 +478,15 @@ color.vector.003 <- c(cb.translator["bluishgreen"],
 names(color.vector.003) <- c("unfiltered-unamended",
                              "filtered-unamended")
 
-# png("results/incubations/BLiMMP_trip_003_incubations.png",
-#     units = "in",
-#     res = 240,
-#     height = 10,
-#     width = 6)
-pdf("results/incubations/BLiMMP_trip_003_incubations.pdf",
-    height = 6,
-    width = 6,
-    useDingbats = FALSE)
+png("results/incubations/BLiMMP_trip_003_incubations.png",
+    units = "in",
+    res = 240,
+    height = 4,
+    width = 6)
+# pdf("results/incubations/BLiMMP_trip_003_incubations.pdf",
+#     height = 6,
+#     width = 6,
+#     useDingbats = FALSE)
 par(mfrow = c(1, 2))
 plot.incubation.data(trip.of.interest = "BLiMMP_trip_003",
                      plot.exo = FALSE,
@@ -496,15 +496,15 @@ plot.incubation.data(trip.of.interest = "BLiMMP_trip_003",
 dev.off()
 
 
-# png("results/incubations/BLiMMP_trip_005_incubations.png",
-#     units = "in",
-#     res = 240,
-#     height = 10,
-#     width = 6)
-pdf("results/incubations/BLiMMP_trip_005_incubations.pdf",
+png("results/incubations/BLiMMP_trip_005_incubations.png",
+    units = "in",
+    res = 240,
     height = 10,
-    width = 6,
-    useDingbats = FALSE)
+    width = 6)
+# pdf("results/incubations/BLiMMP_trip_005_incubations.pdf",
+#     height = 10,
+#     width = 6,
+#     useDingbats = FALSE)
 par(mfrow = c(2, 3))
 plot.incubation.data(trip.of.interest = "BLiMMP_trip_005",
                      plot.exo = TRUE,
@@ -527,15 +527,15 @@ names(color.vector.006) <- c("unfiltered-molybdate",
                          "unfiltered-starch-molybdate",
                          "unfiltered-algal")
 
-# png("results/incubations/BLiMMP_trip_006_incubations.png",
-#     units = "in",
-#     res = 240,
-#     height = 10,
-#     width = 6)
-pdf("results/incubations/BLiMMP_trip_006_incubations.pdf",
+png("results/incubations/BLiMMP_trip_006_incubations.png",
+    units = "in",
+    res = 240,
     height = 10,
-    width = 6,
-    useDingbats = FALSE)
+    width = 6)
+# pdf("results/incubations/BLiMMP_trip_006_incubations.pdf",
+#     height = 10,
+#     width = 6,
+#     useDingbats = FALSE)
 par(mfrow = c(2, 3))
 par(mfrow = c(2, 3))
 plot.incubation.data(trip.of.interest = "BLiMMP_trip_006",
