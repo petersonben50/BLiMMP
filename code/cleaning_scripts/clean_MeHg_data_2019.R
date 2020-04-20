@@ -246,16 +246,29 @@ write.csv(MeHg.198.data,
           row.names = FALSE)
 
 
+#### Calculate Me198Hg production over assay ####
+
+MeHg.delta <- MeHg.198.data %>%
+  select(-c(bottleID, above_DDL)) %>%
+  spread(t, excess_MeHg_198_ng.L) %>%
+  left_join(processing.data) %>%
+  # Calculate fraction of 24 hours that the samples were incubated for.
+  mutate(t0_to_t1_time.fraction = (as.numeric(t0_to_t1_time) / (24*60*60))) %>%
+  arrange(incubationID) %>%
+  # mutate(t0_to_t1_time = replace_na(t0_to_t1_time, 1)) %>%
+  # Calculate change in MeHg normalized to incubation time
+  mutate(Me198Hg_production = round(((t1 - t0) / t0_to_t1_time.fraction), 3)) %>%
+  select(incubationID, sampleID, tripID, startDate, depth, treatment, Me198Hg_production)
+
+# Write out data
+write.csv(MeHg.delta,
+          "dataEdited/incubations/MeHg/incubations2019_Me198Hg_production.csv",
+          row.names = FALSE)
+
+
 # Clean up
 
 rm(list = ls(pattern = "MeHg.198"))
-
-
-
-
-
-
-
 
 
 
