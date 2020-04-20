@@ -5,6 +5,7 @@
 
 
 #### Prep workspace ####
+
 rm(list = ls())
 setwd("/Users/benjaminpeterson/Documents/research/BLiMMP")
 library(dplyr)
@@ -256,8 +257,93 @@ write.csv(MeHg.198.data,
 
 # Clean up
 
-rm(list = ls(pattern = "MeHg.198"),
-   processing.data)
+rm(list = ls(pattern = "MeHg.198"))
+
+
+
+
+
+
+
+
+
+
+
+#### Clean Me204Hg data ####
+
+# Normalize t1 values to 24 hours
+
+MeHg.204.production.t1 <- MeHg.results %>%
+  select(bottleID, excess_MeHg_204_ng.L, excess_DDL) %>%
+  left_join(all.metadata) %>%
+  filter(t == "t1") %>%
+  left_join(processing.data) %>%
+  # Calculate fraction of 24 hours that the samples were incubated for.
+  mutate(t0_to_t1_time.fraction = (as.numeric(t0_to_t1_time) / (24*60*60))) %>%
+  arrange(incubationID) %>%
+  # mutate(t0_to_t1_time = replace_na(t0_to_t1_time, 1)) %>%
+  # Divide by the fraction
+  mutate(excess_MeHg_204_ng.L_normalized = round((excess_MeHg_204_ng.L / t0_to_t1_time.fraction), 3)) %>%
+  select(bottleID, incubationID, sampleID, tripID, startDate, depth, treatment, t, excess_MeHg_204_ng.L_normalized, excess_DDL) %>%
+  rename(excess_MeHg_204_ng.L = excess_MeHg_204_ng.L_normalized)
+
+
+# Check out spike-to-kill times and if it influences t0 values
+
+check_t0_timing <- MeHg.results  %>%
+  left_join(all.metadata) %>%
+  filter(t == "t0")%>%
+  full_join(processing.data) %>%
+  filter(!is.na(spike_to_kill_0_time)) %>%
+  select(excess_MeHg_204_ng.L, spike_to_kill_0_time)
+par(mfrow = c(1,1))
+plot(x = check_t0_timing$spike_to_kill_0_time,
+     y = check_t0_timing$excess_MeHg_204_ng.L,
+     pch = 18,
+     xlab = "Spike time to kill time (sec)",
+     ylab = "Excess Me204Hg in t0 sample")
+# It looks like there might actually be some rapid demethylation occurring.
+# Hard to tell for sure, but there does seem to be a clear trend in
+# decreasing Me204Hg as time to spike increased.
+rm(check_t0_timing)
+
+# Pull out needed data from t0 samples
+MeHg.204.t0 <- MeHg.results  %>%
+  left_join(all.metadata) %>%
+  filter(t == "t0")%>%
+  left_join(processing.data) %>%
+  select(bottleID, incubationID, sampleID, tripID, startDate, depth, treatment, t, excess_MeHg_204_ng.L, excess_DDL)
+
+
+# Combine Me204Hg data
+
+MeHg.204.data <- rbind(MeHg.204.t0, MeHg.204.production.t1) %>%
+  arrange(t) %>%
+  arrange(treatment) %>%
+  arrange(sampleID)
+
+# Which ones are above detection?
+
+MeHg.204.data <- MeHg.204.data %>%
+  mutate(above_DDL = (excess_MeHg_204_ng.L > excess_DDL)) %>%
+  select(-excess_DDL)
+
+
+
+# Write out data
+
+write.csv(MeHg.204.data,
+          "dataEdited/incubations/MeHg/incubations2019_Me204Hg.csv",
+          row.names = FALSE)
+
+
+
+
+
+
+
+
+
 
 
 #### Clean ambient Hg data ####
