@@ -189,23 +189,6 @@ rm(list.o.results,
 
 #### Clean Me198Hg data ####
 
-# Normalize t1 values to 24 hours
-
-MeHg.198.production.t1 <- MeHg.results %>%
-  select(bottleID, excess_MeHg_198_ng.L, excess_DDL) %>%
-  left_join(all.metadata) %>%
-  filter(t == "t1") %>%
-  left_join(processing.data) %>%
-  # Calculate fraction of 24 hours that the samples were incubated for.
-  mutate(t0_to_t1_time.fraction = (as.numeric(t0_to_t1_time) / (24*60*60))) %>%
-  arrange(incubationID) %>%
-  # mutate(t0_to_t1_time = replace_na(t0_to_t1_time, 1)) %>%
-  # Divide by the fraction
-  mutate(excess_MeHg_198_ng.L_normalized = round((excess_MeHg_198_ng.L / t0_to_t1_time.fraction), 3)) %>%
-  select(bottleID, incubationID, sampleID, tripID, startDate, depth, treatment, t, excess_MeHg_198_ng.L_normalized, excess_DDL) %>%
-  rename(excess_MeHg_198_ng.L = excess_MeHg_198_ng.L_normalized)
-
-
 # Check out spike-to-kill times and if it influences t0 values
 
 check_t0_timing <- MeHg.results  %>%
@@ -230,6 +213,14 @@ MeHg.198.t0 <- MeHg.results  %>%
   left_join(all.metadata) %>%
   filter(t == "t0")%>%
   left_join(processing.data) %>%
+  select(bottleID, incubationID, sampleID, tripID, startDate, depth, treatment, t, excess_MeHg_198_ng.L, excess_DDL)
+
+# Pull out t1 data
+
+MeHg.198.production.t1 <- MeHg.results %>%
+  select(bottleID, excess_MeHg_198_ng.L, excess_DDL) %>%
+  left_join(all.metadata) %>%
+  filter(t == "t1") %>%
   select(bottleID, incubationID, sampleID, tripID, startDate, depth, treatment, t, excess_MeHg_198_ng.L, excess_DDL)
 
 
