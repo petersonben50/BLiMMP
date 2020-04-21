@@ -282,7 +282,7 @@ plot(x = jitter(sulfide.data$S_conc_uM),
                xlim = c(0, max(sulfide.data$S_conc_uM)*1.2),
                xlab = "Sulfide concentration\nat end of incubation(uM)",
                ylab = "MeHg production after 24hr (ng/L/day)",
-               main = paste("MeHg production compared\nto sulfide levels at 14m\nWater column = ",
+               main = paste("MeHg production compared\nto sulfide levels at 19.3m\nWater column = ",
                             WC.S.levels,
                             "µM",
                             sep = ""),
@@ -349,7 +349,22 @@ If we get a chance to analyze that, we'll look to that for answers, otherwise we
 
 ### BLiMMP_trip_006: Final round for 2019
 
+In our third and final round of incubations for 2019, we went back to just doing 2 depths.
+We also reduced the number of replicates for our different conditions to 2, to try to increase the number of amendments we could try, as a prelude to the 2020 season.
+We stuck with the usual set of filtered controls, ambient conditions, and molybdate amendments.
+However, we also added starch amendments, algal biomass amendments, and starch + molybdate.
+The logic behind this was that we had seen a large number of fermentative hgcA+ bacteria in our genomes, and we hypothesized that they would be able to drive MeHg production independent of sulfate reduction.
+First we needed to see if they would increase MeHg production, however, so that's why we started here.
+We did do the starch-molybdate amendment to try to get a start on this though.
 
+The first depth was just under the oxic/anoxic interface.
+Normally we'd see the turbidity spike here, but the turbidity spike was right on the oxic/anoxic interface, so we went about 30-50cm below that, where DO was at 0.
+This put us at about 16.2m.
+Surprisingly, sulfide was already almost 60µM here.
+Mn was also slightly enriched here relative to the deeper sample, up over 8µM (about 0.46ppm), suggesting localized Mn cycling at the oxic/anoxic interface.
+The second depth was at 19.3m.
+Here, sulfide was nearly 100µM, but Mn was under 6µM.
+Let's look at the Hg data.
 
 ```{r BLiMMP_trip_006, echo = FALSE, out.height= "75%", out.width="75%"}
 
@@ -358,86 +373,179 @@ graph.path <- "/Users/benjaminpeterson/Documents/research/BLiMMP/results/incubat
 include_graphics(graph.path)
 ```
 
+Let's also look at it as a change in Me^198^Hg over the experiment.
+One of our algal-amended samples is pretty high in t=0 sample, so looking at it this way might clean it up
 
-One sample that stands out as particularly problematic is the unfiltered-algal samples at 19.3m with the high starting level of Me^198^Hg. 
-The final Me^198^Hg is just as high as it is in the unfiltered-unamended samples, but this is likely due to the high starting levels. 
-This bag was BLiMMP_MA_0077. 
+``` {r change_in_MeHg_BLiMMP_trip_006, fig.width = 10, fig.height = 4, echo=FALSE, message = FALSE}
+library(patchwork)
+
+# Generate needed color vector
+color.vector.006 <- c(cb.translator["black"],
+                      cb.translator["bluishgreen"],
+                      cb.translator["vermillion"],
+                      cb.translator["orange"],
+                      cb.translator["blue"],
+                      cb.translator["reddishpurple"])
+names(color.vector.006) <- c("unfiltered\nmolybdate",
+                             "unfiltered\nunamended",
+                             "filtered\nunamended",
+                             "unfiltered\nstarch",
+                             "unfiltered\nstarch\nmolybdate",
+                             "unfiltered\nalgal")
 
 
+# Read in the data
+data.path <- "/Users/benjaminpeterson/Documents/research/BLiMMP/dataEdited/incubations/MeHg/incubations2019_Me198Hg_production.csv"
+MeHg.data <- read.csv(data.path,
+                      stringsAsFactors = FALSE) %>%
+  filter(tripID == "BLiMMP_trip_006") %>%
+  select(incubationID, depth, treatment, Me198Hg_production)
+plot.list <- list()
+for (depth.of.interest in unique(MeHg.data$depth)) {
+  depth.of.interest.m <- paste(depth.of.interest, "m", sep = "")
+  plot.list[[depth.of.interest.m]] <- MeHg.data %>%
+    filter(depth == depth.of.interest) %>%
+    mutate(treatment = gsub("-", "\n", treatment)) %>%
+    mutate(treatment = factor(treatment, levels =  c("filtered\nunamended",
+                                                     "unfiltered\nunamended",
+                                                     "unfiltered\nmolybdate",
+                                                     "unfiltered\nalgal",
+                                                     "unfiltered\nstarch",
+                                                     "unfiltered\nstarch\nmolybdate"))) %>%
+    ggplot(aes(x = treatment,
+               y = Me198Hg_production,
+               color = treatment)) +
+    geom_jitter(position = position_jitter(0.1)) +
+    scale_color_manual(values = color.vector.006) +
+    theme_classic() +
+    theme(legend.position = "none") +
+    ylim(min(MeHg.data$Me198Hg_production)-0.001,
+         max(MeHg.data$Me198Hg_production)+0.003) +
+    xlab("") +
+    ggtitle(depth.of.interest.m)
+    
+}
+
+plot.list[[1]] + plot.list[[2]]
+
+```
+
+Some of the findings from our previous incubations are confirmed here.
+First, there is no abiotic MeHg production, but we do see MeHg production at both depths with sulfide accumulations.
+We didn't have any anoxic depths without sulfide accumulation to compare, as we did at the other dates.
+It's impossible to say for sure with the small number of samples, but it does look like MeHg production might be a little higher in the upper sample (16.2m), which is consistent with the higher heterotrophic activity at that depth.
+Once again, molybdate addition completely eliminates MeHg production.
+
+Surprisingly, the starch and algal amendments result in a decrease in MeHg production.
+The algal biomass resulted in a greater decrease of methylation than starch at 16.2m.
+At 19.3m, one of the starch-amended incubations had lower MeHg production, but we also saw a complete loss of sulfide in that bag (see below).
+Finally, adding starch and molybdate also completely knocked out methylation.
+This response is curious.
+
+One potential explanation would be if the injection resulted in a change in the redox status of the bags.
+We didn't inject sterile water into the ambient conditions as a way to control for effects of just injecting anything into the sample, likely as a way for O~2~ to get in, but it is unlikely that this would have that large of an impact.
+But, just to be sure, I checked the sulfide levels in the bags, below.
 
 ```{r sulfide_data_incubations_BLiMMP_trip_006,  echo=FALSE, message = FALSE, fig.height = 5, fig.width = 10}
 
 trip.of.interest <- "BLiMMP_trip_006"
-color.vector <- c("green", "red", "black", "orange", "pink", "blue")
-names(color.vector) <- c("unfiltered-unamended", "filtered-unamended", "unfiltered-molybdate",
-                         "unfiltered-starch", "unfiltered-algal", "unfiltered-starch-molybdate")
+# Generate needed color vector
+color.vector.006 <- c(cb.translator["black"],
+                      cb.translator["bluishgreen"],
+                      cb.translator["vermillion"],
+                      cb.translator["orange"],
+                      cb.translator["blue"],
+                      cb.translator["reddishpurple"])
+names(color.vector.006) <- c("unfiltered-molybdate",
+                             "unfiltered-unamended",
+                             "filtered-unamended",
+                             "unfiltered-starch",
+                             "unfiltered-starch-molybdate",
+                             "unfiltered-algal")
 
 par(mfrow = c(1, 2),
     mar = c(4.5, 4.5, 3, 1))
-invisible(
-sapply(c(16.18, 19.30),
-       function(depth.of.interest) {
-         
-         sulfide.data <- read.csv("/Users/benjaminpeterson/Documents/research/BLiMMP/dataEdited/waterChemistry/sulfide/MA_data.csv",
+
+sulfide.data <- read.csv("/Users/benjaminpeterson/Documents/research/BLiMMP/dataEdited/waterChemistry/sulfide/MA_data.csv",
                          stringsAsFactors = FALSE) %>%
-            filter(tripID == trip.of.interest,
-                   depth == depth.of.interest) %>%
-            left_join(read.csv("/Users/benjaminpeterson/Documents/research/BLiMMP/dataEdited/incubations/MeHg/incubations2019_Me198Hg.csv",
-                               stringsAsFactors = FALSE) %>%
-                        filter(t == "t1"))
-          
-          WC.S.levels <- read.csv("/Users/benjaminpeterson/Documents/research/BLiMMP/dataEdited/waterChemistry/sulfide/WC_data.csv",
+  filter(tripID == trip.of.interest,
+         depth == 16.18) %>%
+  left_join(MeHg.data) %>%
+  select(incubationID, treatment, S_conc_uM, Me198Hg_production)
+
+WC.S.levels <- read.csv("/Users/benjaminpeterson/Documents/research/BLiMMP/dataEdited/waterChemistry/sulfide/WC_data.csv",
                                    stringsAsFactors = FALSE) %>%
             filter(tripID == trip.of.interest,
-                   depth == depth.of.interest) %>%
+                   depth == 16.18) %>%
             select(S_conc_uM) %>%
             unlist(use.names = FALSE)
-          
-          plot(x = jitter(sulfide.data$S_conc_uM),
-               y= jitter(sulfide.data$excess_MeHg_198_ng.L),
-               col = color.vector[sulfide.data$treatment],
-               pch = 18,
-               ylim = c(-0.01, max(sulfide.data$excess_MeHg_198_ng.L)*1.2),
+plot(x = jitter(sulfide.data$S_conc_uM),
+     y = jitter(sulfide.data$Me198Hg_production),
+     col = color.vector.006[sulfide.data$treatment],
+     pch = 18,
+     ylim = c(-0.01, max(sulfide.data$Me198Hg_production)*1.2),
                xlim = c(0, max(sulfide.data$S_conc_uM)*1.2),
                xlab = "Sulfide concentration\nat end of incubation(uM)",
                ylab = "MeHg production after 24hr (ng/L/day)",
-               main = paste("MeHg production compared\nto sulfide levels at ",
-                            depth.of.interest,
-                            "\nWater column = ",
+               main = paste("MeHg production compared\nto sulfide levels at 16.2m\nWater column = ",
                             WC.S.levels,
                             "µM",
                             sep = ""),
                cex.main = 0.85)
-          # 
-          # legend("topleft",
-          #        legend = names(color.vector),
-          #        text.col = color.vector)
-          }
-       )
-)
+
+# Second depth
+sulfide.data <- read.csv("/Users/benjaminpeterson/Documents/research/BLiMMP/dataEdited/waterChemistry/sulfide/MA_data.csv",
+                         stringsAsFactors = FALSE) %>%
+  filter(tripID == trip.of.interest,
+         depth == 19.3) %>%
+  left_join(MeHg.data) %>%
+  select(incubationID, treatment, S_conc_uM, Me198Hg_production)
+
+WC.S.levels <- read.csv("/Users/benjaminpeterson/Documents/research/BLiMMP/dataEdited/waterChemistry/sulfide/WC_data.csv",
+                                   stringsAsFactors = FALSE) %>%
+            filter(tripID == trip.of.interest,
+                   depth == 19.3) %>%
+            select(S_conc_uM) %>%
+            unlist(use.names = FALSE)
+anomalous.point <- sulfide.data %>%
+  filter(incubationID == "BLiMMP_MA_0076")
+plot(x = jitter(sulfide.data$S_conc_uM),
+     y = jitter(sulfide.data$Me198Hg_production),
+     col = color.vector.006[sulfide.data$treatment],
+     pch = 18,
+     ylim = c(-0.01, max(sulfide.data$Me198Hg_production)*1.2),
+               xlim = c(0, max(sulfide.data$S_conc_uM)*1.2),
+               xlab = "Sulfide concentration\nat end of incubation(uM)",
+               ylab = "MeHg production after 24hr (ng/L/day)",
+               main = paste("MeHg production compared\nto sulfide levels at 19.3m\nWater column = ",
+                            WC.S.levels,
+                            "µM",
+                            sep = ""),
+               cex.main = 0.85)
+text(x = anomalous.point$S_conc_uM + 15,
+     y = anomalous.point$Me198Hg_production + 0.004,
+    labels = anomalous.point$incubationID,
+    col = color.vector.006[anomalous.point$treatment])
 
 ```
 
+There is no definitive trend in the sulfide data.
+At 16.2m, it might be the case within conditions that lower sulfide leads to less MeHg production, but it's impossible to say with any certainty with the data we have, with limited sample number.
+At 19.3m, there is definitely no trend between lost sulfide and MeHg production.
+The one sample that we did see tank on MeHg production unexpectedly was BLiMMP_MA_0076, which was a starch amended incubation.
+That incubation was also completely out of sulfide, suggesting some O~2~ intrusion which would explain the lack of methylation.
 
 
 
 
 
+I had hypothesized that the amendments of starch and algal biomass would have amped up MeHg production due to a ramping up of whole community metabolism, but this doesn't seem to be the case.
+We'll look more at the impact on overall heterotrophy below.
 
 
 
 
 
-
-
-<!-- ```{r Hg_data_BLiMMP_trip_006, include=FALSE} -->
-
-<!-- Hg.incubation.data.006.methylation <- Hg.incubation.data %>% -->
-<!--   filter(tripID == "BLiMMP_trip_006") %>% -->
-<!--   select(incubationID, excess_MeHg_198_ng.L, t, depth, treatment) -->
-
-
-<!-- ``` -->
 
 
 
