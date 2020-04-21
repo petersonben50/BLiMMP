@@ -208,7 +208,7 @@ plot.bacterial.profile <- function(date.of.sampling) {
                             stringsAsFactors = FALSE) %>%
     filter(startDate == date.of.sampling)
   
-  leucine.adj.for.plotting <- 60
+  leucine.adj.for.plotting <- 4
   
   plot(x = NA,
        y = NA,
@@ -219,7 +219,7 @@ plot.bacterial.profile <- function(date.of.sampling) {
        yaxt = "n",
        ylab = "")
   
-  points(x = leu.data.date$Leu_uptake_pM_A/leucine.adj.for.plotting,
+  points(x = leu.data.date$µgBCP_per_L_hr*leucine.adj.for.plotting,
          y = leu.data.date$depth,
          pch = 18,
          col = cb.translator["bluishgreen"])
@@ -231,16 +231,16 @@ plot.bacterial.profile <- function(date.of.sampling) {
   
   # Add axis for sulfide
   axis(1,
-       at = seq(0, 10, by = 2.5),
-       labels = seq(0, 10, by = 2.5)*leucine.adj.for.plotting)
+       at = seq(0, 10, by = 2),
+       labels = seq(0, 10, by = 2)/leucine.adj.for.plotting)
   
   # Add label for depth
   title(ylab = "Depth (m)",
         line = 1.5)
   
   # Add label for leucine
-  title(xlab = "Leucine uptake (pM)",
-        line = 1.5)
+  title(xlab = "Bacterial Carbon Production\n(µgC/L/hr)",
+        line = 3)
   }
   
 
