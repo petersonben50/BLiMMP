@@ -129,11 +129,16 @@ plot.redox.profile <- function(trip) {
   Mn.data.date <- read.csv(ICP.data.name,
                                 stringsAsFactors = FALSE) %>%
     filter(tripID == trip,
-           element == "Mn")
+           element == "Mn") %>%
+    mutate(diss_conc_uM = diss_conc_ppm / 54.938 * 1000) %>%
+    mutate(part_conc_uM = part_conc_ppm / 54.938 * 1000)
+  
   Fe.data.date <- read.csv(ICP.data.name,
                            stringsAsFactors = FALSE) %>%
     filter(tripID == trip,
-           element == "Fe")
+           element == "Fe") %>%
+    mutate(diss_conc_uM = diss_conc_ppm / 54.938 * 1000) %>%
+    mutate(part_conc_uM = part_conc_ppm / 54.938 * 1000)
   
   
   
@@ -151,8 +156,8 @@ plot.redox.profile <- function(trip) {
        ylab = "")
   
   # Add Mn data points
-  Mn.adjustment.for.plotting <- 10
-  points(x = Mn.data.date$diss_conc_ppm*Mn.adjustment.for.plotting,
+  Mn.adjustment.for.plotting <- 1
+  points(x = Mn.data.date$diss_conc_uM*Mn.adjustment.for.plotting,
          y = -Mn.data.date$depth,
          pch = 18,
          col = cb.translator["orange"])
@@ -171,7 +176,7 @@ plot.redox.profile <- function(trip) {
   axis(1,
        line = 3,
        at = seq(0, 10, by = 2),
-       labels = seq(0, 10, by = 2)/sulfide.adjustment.for.plotting)
+       labels = seq(0, 10, by = 2)/Mn.adjustment.for.plotting)
   
   # Add label for depth
   title(ylab = "Depth (m)",
@@ -182,7 +187,7 @@ plot.redox.profile <- function(trip) {
         line = 1.5)
   
   # Add label for Mn
-  title(xlab = "Mn (ppm)",
+  title(xlab = "Mn (µM)",
         line = 4.5)
   
   # Add legend
