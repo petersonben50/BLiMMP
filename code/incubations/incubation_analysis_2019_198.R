@@ -320,7 +320,7 @@ plot.MeHg.time.course.depth <- function(selected.depth,
              col = color.vector[trip_data_depth_segments$treatment[row.num]])
   }
   
-  title(ylab = "MeHg production (ng/L per day)",
+  title(ylab = "Excess Me198Hg (ng/L)",
         line = 1.75)
   
   legend("topleft",
@@ -328,92 +328,6 @@ plot.MeHg.time.course.depth <- function(selected.depth,
          text.col = color.vector[length(color.vector):1],
          bty = "n")
 }
-
-
-
-
-
-
-
-#### Function to plot change in Me204Hg for each depth on a given trip ####
-
-plot.Me204Hg.time.course.depth <- function(selected.depth,
-                                           trip_data,
-                                           color.vector.input = NULL) {
-  
-  par(mar=c(3,3,2.5,1), mgp=c(1.5,0.4,0), tck=-0.008)
-  
-  y_max <- ceiling(max(trip_data$excess_MeHg_204_ng.L)*100)/100 + 0.01
-  y_min <- floor(min(trip_data$excess_MeHg_204_ng.L)*100)/100
-  
-  # Isolate by depth
-  trip_data_depth <- trip_data %>%
-    filter(depth == selected.depth)
-  
-  #### Make a color vector ####
-  if (is.null(color.vector.input)) {
-    color.vector <- c(cb.translator["black"],
-                      cb.translator["bluishgreen"],
-                      cb.translator["vermillion"])
-    names(color.vector) <- c("unfiltered-molybdate",
-                             "unfiltered-unamended",
-                             "filtered-unamended")
-  } else {
-    color.vector <- color.vector.input
-  }
-  
-  ####  Make a time vector #### 
-  time.vector <- c(0, 1)
-  names(time.vector) <- c("t0", "t1")
-  
-  #### Add column for above DDL ####
-  trip_data_depth[, "DDL_shape"] <- rep(4, length(trip_data_depth$above_DDL))
-  trip_data_depth$DDL_shape[trip_data_depth$above_DDL] <- 18
-  
-  
-  plot(x = time.vector[trip_data_depth$t],
-       y = trip_data_depth$excess_MeHg_204_ng.L,
-       ylim = c(y_min, y_max),
-       xlim = c(-0.5, 1.5),
-       pch = trip_data_depth$DDL_shape,
-       col = color.vector[trip_data_depth$treatment],
-       cex = 1.25,
-       xaxt = "n",
-       xlab = "",
-       ylab = "",
-       main = paste(selected.depth,
-                    "m",
-                    sep = ""))
-  axis(1,
-       at = c(0, 1),
-       labels = c("t0", "t1"))
-  
-  #### Add segments to link samples within an incubation ####
-  
-  trip_data_depth_segments <- trip_data_depth %>%
-    select(-c(above_DDL, DDL_shape, depth)) %>%
-    spread(key = t,
-           value = excess_MeHg_204_ng.L)
-  
-  for (row.num in 1:nrow(trip_data_depth_segments)) {
-    segments(0, trip_data_depth_segments$t0[row.num],
-             1, trip_data_depth_segments$t1[row.num],
-             col = color.vector[trip_data_depth_segments$treatment[row.num]])
-  }
-  
-  title(ylab = "MeHg production (ng/L per day)",
-        line = 1.75)
-  
-  legend("topleft",
-         legend =  names(color.vector)[length(color.vector):1],
-         text.col = color.vector[length(color.vector):1],
-         bty = "n")
-}
-
-
-
-
-
 
 
 
