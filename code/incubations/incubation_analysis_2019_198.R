@@ -208,7 +208,7 @@ plot.bacterial.profile <- function(date.of.sampling) {
                             stringsAsFactors = FALSE) %>%
     filter(startDate == date.of.sampling)
   
-  leucine.adj.for.plotting <- 100
+  leucine.adj.for.plotting <- 60
   
   plot(x = NA,
        y = NA,
@@ -231,8 +231,8 @@ plot.bacterial.profile <- function(date.of.sampling) {
   
   # Add axis for sulfide
   axis(1,
-       at = seq(0, 10, by = 2),
-       labels = seq(0, 10, by = 2)*leucine.adj.for.plotting)
+       at = seq(0, 10, by = 2.5),
+       labels = seq(0, 10, by = 2.5)*leucine.adj.for.plotting)
   
   # Add label for depth
   title(ylab = "Depth (m)",
