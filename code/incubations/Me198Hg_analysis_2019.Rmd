@@ -535,62 +535,79 @@ At 19.3m, there is definitely no trend between lost sulfide and MeHg production.
 The one sample that we did see tank on MeHg production unexpectedly was BLiMMP_MA_0076, which was a starch amended incubation.
 That incubation was also completely out of sulfide, suggesting some O~2~ intrusion which would explain the lack of methylation.
 
-
-
-
-
-I had hypothesized that the amendments of starch and algal biomass would have amped up MeHg production due to a ramping up of whole community metabolism, but this doesn't seem to be the case.
-We'll look more at the impact on overall heterotrophy below.
-
-
-
-
-
-
-
-
-
-Let's check out the leucine uptake data. 
+I had hypothesized that the amendments of starch and algal biomass would have amped up MeHg production due to a ramping up of whole community metabolism, so let's check out the leucine uptake data.
+We'll look at this as µg of bacterial carbon production per liter per hour, which we've calculated based on the leucine uptake rates, same as we did for the water column samples.
 We only did this from incubations at 16.18m on 2019-10-08 (BLiMMP_sample_0034).
-Let's take the average of the original leucine uptake assay and get an average for it, then find the fractional change between that and each of our samples, just to see how different they really are. 
+Let's take the average of the original leucine uptake assay and get an average for it, then find the fractional change between that and each of our samples, just to see how different they really are.
+We took two samples from each incubation, so two dots correspond to one bag.
 
 ```{r Shift_in_leucine_uptake, width = 10, height = 10, echo=FALSE}
 
 original.uptake <- read.csv("/Users/benjaminpeterson/Documents/research/BLiMMP/dataEdited/leucineUptake/water_column_uptake.csv",
                             stringsAsFactors = FALSE) %>%
   filter(sampleID == "BLiMMP_sample_0034") %>%
-  select(Leu_uptake_pM_A) %>%
+  select(µgBCP_per_L_hr) %>%
   unlist(use.names = FALSE) %>%
   mean()
 
 leucine.uptake.MA <- read.csv("/Users/benjaminpeterson/Documents/research/BLiMMP/dataEdited/leucineUptake/incubation_uptake.csv",
                               stringsAsFactors = FALSE) %>%
-  select(incubationID, condition, Leu_uptake_pM_A) %>%
-  mutate(change_in_leu_uptake =( (Leu_uptake_pM_A - original.uptake) / original.uptake)*100) %>%
-  filter(condition != "none - filtered")
+  select(incubationID, treatment, µgBCP_per_L_hr) %>%
+  mutate(delta_µgBCP_per_L_hr =( (µgBCP_per_L_hr - original.uptake) / original.uptake)*100) %>%
+  filter(treatment != "unamended - filtered")
 
 # stripplot by group
 
-par(mfrow = c(2, 1),
-    mar = c(3, 4.5, 3, 1))
-stripchart(change_in_leu_uptake ~ condition,
-           data = leucine.uptake.MA,
-           vertical = TRUE,
-           pch = 18,
-           method = "jitter",
-           main = "Grouped by Condition")
-stripchart(change_in_leu_uptake ~ incubationID,
-           data = leucine.uptake.MA,
-           vertical = TRUE,
-           pch = 18,
-           method = "jitter",
-           main = "Grouped by incubation ID")
+# Generate needed color vector
+color.vector.006 <- c(cb.translator["black"],
+                      cb.translator["bluishgreen"],
+                      cb.translator["vermillion"],
+                      cb.translator["orange"],
+                      cb.translator["blue"],
+                      cb.translator["reddishpurple"])
+names(color.vector.006) <- c("unfiltered\nmolybdate",
+                             "unfiltered\nunamended",
+                             "filtered\nunamended",
+                             "unfiltered\nstarch",
+                             "unfiltered\nstarch\nmolybdate",
+                             "unfiltered\nalgal")
+
+# Generate plot
+leucine.uptake.MA %>%
+  mutate(treatment = gsub("-", "\n", treatment)) %>%
+  mutate(treatment = factor(treatment, levels =  c("filtered\nunamended",
+                                                   "unfiltered\nunamended",
+                                                   "unfiltered\nmolybdate",
+                                                   "unfiltered\nalgal",
+                                                   "unfiltered\nstarch",
+                                                   "unfiltered\nstarch\nmolybdate"))) %>%
+  ggplot(aes(x = treatment,
+             y = delta_µgBCP_per_L_hr,
+             color = treatment)) +
+  geom_jitter(position = position_jitter(0.1)) +
+  scale_color_manual(values = color.vector.006) +
+  theme_classic() +
+  theme(legend.position = "none") +
+  ylim(-100, 25) +
+  xlab("") +
+  ylab("Change in µgBCP / L / hr")
+    
 
 ```
 
-We took two samples from each incubation.
-The data is super noisy. Not sure that I can really get anything out of it.
-The noisiness is even from within a single incubation.
-Curious that if anything, the molybdate-treated sample is the one that retains the most heterotrophic activity.
-Let's compare this to the Hg data. 
+Not super informative, unfortunately.
+BCP was almost completely knocked out in the filtered controls, as expected.
+In the other three conditions that we did this for, the data is pretty noisey.
+But, it seems that there is a general drop-off in BCP over the course of the incubation, anywhere from 0-40%.
+This drop-off was very consistent between the ambient conditions and the starch amendment.
+If anything, the molybdate-amended sample retained more of the ambient heterotrophy, but again, the data is pretty noisey.
+If this analysis is run again, I think the samples need to be sure to be processed ASAP, since it's tough to rule out effects of delayed processing on this (incubation samples were processed the next afternoon).
 
+
+## Takeaways:
+
+1. Boom, again we got detectable methylation. 
+2. MeHg production seems to be slightly higher near the oxic/anoxic interface, tracking with heterotrophic activity, but data is pretty noisy. More replicates next time.
+3. Molybdate once again knocks out MeHg production.
+4. Starch and algal amendments *decrease* MeHg production. While we only have two reps from each condition at each depth, this seems to be a consistent result. The decrease isn't explained by sulfide levels or changes in heterotrophy.
+5. Gonna need more replicates overall. Saying anything about different MeHg production at different depths is gonna need more reps. In the future, split up depth discrete sampling from testing different amendments, to be able to give them each the replicates they deserve.
