@@ -35,11 +35,11 @@ metadata.MA <- leucine.metadata %>%
   left_join(sampleID.metadata) %>%
   left_join(tripID.metadata,
             by = "tripID") %>%
-  mutate(condition = paste(amendment,
+  mutate(treatment = paste(amendment,
                            " - ",
                            filtered.vector[filtered],
                            sep = "")) %>%
-  select(uptakeID, incubationID, sampleID, startDate, depth, condition)
+  select(uptakeID, incubationID, sampleID, startDate, depth, treatment)
 
 rm(list = ls(pattern = ".metadata"),
    filtered.vector)
