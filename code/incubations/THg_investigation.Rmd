@@ -1,0 +1,281 @@
+---
+title: "Checking total Hg from 2019 incubations"
+author: "Benjamin D. Peterson"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(ggplot2)
+library(patchwork)
+library(tidyverse)
+
+cb.translator <- readRDS("/Users/benjaminpeterson/Box/ancillary_science_stuff/colors/colorblind_friendly_colors_R/colorblind_friendly_colors.rds")
+
+```
+
+### Investigation of THg data from incubations
+
+When cleaning the THg data, I noticed that the values were highly, highly variable, much more so that we would expect.
+I wanted to investigate this, and see if I could figure out what was going on.
+
+
+So, I wanted to look at the ratios of 204Hg to 198Hg.
+We'll look at the ratios for each date and depth separately, just to cut down on the noise.
+
+```{r 198vs204 2019-08-30, fig.width = 15, fig.height = 5, echo=FALSE}
+
+color.vector <- c(cb.translator["black"],
+                      cb.translator["bluishgreen"],
+                      cb.translator["vermillion"],
+                      cb.translator["orange"],
+                      cb.translator["blue"],
+                      cb.translator["reddishpurple"])
+names(color.vector) <- c("unfiltered-molybdate",
+                             "unfiltered-unamended",
+                             "filtered-unamended",
+                             "unfiltered-starch",
+                             "unfiltered-starch-molybdate",
+                             "unfiltered-algal")
+
+shape_vector <- c(17, 19)
+names(shape_vector) <- c("t0", "t1")
+
+THg.data.all <- read.csv("/Users/benjaminpeterson/Documents/research/BLiMMP/dataEdited/incubations/THg/incubations2019_THg.csv",
+                     stringsAsFactors = FALSE)
+for (date.of.interest in unique(THg.data.all$startDate) %>% sort()) {
+  
+  THg.data <- THg.data.all %>%
+    filter(startDate == date.of.interest)
+  
+  par(mfrow = c(1, 3))
+  
+  for (depth.of.interest in unique(THg.data$depth) %>% sort()) {
+    THg.data.depth <- THg.data %>%
+      filter(depth == depth.of.interest)
+    
+  plot(THg.data.depth$THg_198,
+       THg.data.depth$THg_204,
+       xlim = c(0, 2),
+       ylim = c(0, 2),
+       xlab = "T198Hg",
+       ylab = "T204Hg",
+       xaxs = "i",
+       yaxs = "i",
+       pch = shape_vector[THg.data.depth$t],
+       cex = 1,
+       col = color.vector[THg.data.depth$treatment],
+       main = paste(date.of.interest, ": ",
+                    depth.of.interest, "m", sep = ""))
+  # text(THg.data.depth$THg_198,
+  #      THg.data.depth$THg_204,
+  #      labels = THg.data.depth$incubationID)
+  abline(0, 1)
+
+}
+# legend("bottomright",
+#        legend =  c("filtered-unamended",
+#                    "unfiltered-unamended",
+#                    "unfiltered-molybdate",
+#                    "t0", "t1"),
+#        pch = c(NA, NA, NA, ))
+}
+
+```
+
+
+As expected, the ratios fall pretty tightly onto a 1:1 line.
+This is encouraging, since the two isotopes were injected at a 1:1 ratio.
+If we were to see substantial loss of Hg to the sides of the bag, I would think that the ability of the MeHg to absorb to the side of the bag would be substantially different than that of Hg, and we would see some systematic deviation from the 1:1 line.
+Since we don't see that, I'm encouraged that we're not losing a substantial portion of MeHg to the sides of the bag.
+
+However, there are some exceptions here.
+The four most apparent as being divergent are from the same date, depth, and time point, 2019-08-30, 11.7m, and t=1.
+All the other samples from that depth fall right on the 1:1 line, so it wasn't something systemic.
+I checked the notes for these four incubations.
+One of the molybdate-amended bags had some brown clumps in the bag, likely due to dying cells, but another bag had this too that wasn't off the 1:1 line.
+They also weren't killed at a particularly different time.
+Honestly, I have no idea what happened to these four.
+There's not much more we can say about them, since we didn't see any methylation at this depth anyways, and there was no sulfide to start with, so can't go off of the redox state.
+
+Some samples have a systematic deviation from the 1:1 line (see 2019-08-30, 20.1m).
+In these samples, I would expect that we're seeing some sort of loss pathway, since all the pre-incubations were spiked with the same stock (which should be 1:1).
+The line is deviating below the line, suggesting that it's a lost of 204Hg.
+However, both the t1 and t0 samples fall on a similar line, suggesting that the loss pathway happened before they were even injected into the bags.
+
+Still, need to expain the systematic deviation from t0 to t1 in total Hg.
+I think it's likely due to the mixing of the bag before sampling t0.
+The spread looks better from the October trip than the August one, and I remember being more thorough about mixing before sampling.
+I think I need to ensure that I'm doing a good job of purging the spike out of the rubber tubing before mixing occurs. 
+
+
+
+
+
+<!-- Long shot, but maybe it's related to total Hg data? -->
+<!-- ```{r ExcessvsAmb, fig.height = 6, fig.width = 12, echo=FALSE} -->
+
+<!-- THg.data <- read.csv("/Users/benjaminpeterson/Documents/research/BLiMMP/dataEdited/incubations/THg/incubations2019_THg.csv", -->
+<!--                      stringsAsFactors = FALSE) -->
+<!-- par(mfrow = c(1, 2)) -->
+<!-- plot(THg.data$THg_198, -->
+<!--      THg.data$amb_Hg, -->
+<!--      pch = 18, -->
+<!--      cex = 0.8) -->
+<!-- plot(THg.data$THg_204, -->
+<!--      THg.data$amb_Hg, -->
+<!--      pch = 18, -->
+<!--      cex = 0.8) -->
+<!-- ``` -->
+<!-- Nope, definitely not, as expected. -->
+
+
+Next, I wanted to look at them by date and time point.
+
+```{r THg by date and t, fig.height = 6, fig.width = 15, echo=FALSE}
+
+THg.data <- read.csv("/Users/benjaminpeterson/Documents/research/BLiMMP/dataEdited/incubations/THg/incubations2019_THg.csv",
+                     stringsAsFactors = FALSE)
+THg.data.198.plot <- THg.data %>%
+  select(startDate, depth, treatment, t, THg_198) %>%
+  ggplot(aes(startDate, THg_198, fill = t)) +
+  geom_boxplot() + 
+  # geom_dotplot(binaxis='y', stackdir='center',
+  #              position=position_dodge(1)) +
+  scale_y_continuous(limits=c(0, 2.5)) +
+  ggtitle("Total 198Hg")
+
+THg.data.204.plot <- THg.data %>%
+  select(startDate, depth, treatment, t, THg_204) %>%
+  ggplot(aes(startDate, THg_204, fill = t)) +
+  geom_boxplot() + 
+  # geom_dotplot(binaxis='y', stackdir='center',
+  #              position=position_dodge(1)) +
+  scale_y_continuous(limits=c(0, 2.5)) +
+  ggtitle("Total 204Hg")
+
+THg.data.amb.plot <- THg.data %>%
+  select(startDate, depth, treatment, t, amb_Hg) %>%
+  ggplot(aes(startDate, amb_Hg, fill = t)) +
+  geom_boxplot() + 
+  # geom_dotplot(binaxis='y', stackdir='center',
+  # position=position_dodge(1)) +
+  scale_y_continuous(limits=c(0, 5)) +
+  ggtitle("Total ambient Hg")
+
+THg.data.198.plot + THg.data.204.plot + THg.data.amb.plot
+  
+```
+Interesting.
+Looks like we had much larger injections of the spike into the bags on the first two outings, since both t=0 and t=1 are higher.
+The gap between t=0 and t=1 is much higher too, which could be due to loss of Hg to the bags, or due to poor mixing before sampling t=0.
+
+
+```{r THg by t and condition, fig.height = 10, fig.width = 15, echo=FALSE}
+
+THg.data <- read.csv("/Users/benjaminpeterson/Documents/research/BLiMMP/dataEdited/incubations/THg/incubations2019_THg.csv",
+                     stringsAsFactors = FALSE)
+
+THg.data.198.plot.Aug <- THg.data %>%
+  filter(startDate == "2019-08-30") %>%
+  select(startDate, depth, treatment, t, THg_198) %>%
+  ggplot(aes(treatment, THg_198, fill = t)) +
+  geom_boxplot() + 
+  # geom_dotplot(binaxis='y', stackdir='center',
+  #              position=position_dodge(1)) +
+  scale_y_continuous(limits=c(0, 2.5)) +
+  ggtitle("Total 198Hg August")
+THg.data.198.plot.Oct <- THg.data %>%
+  filter(startDate == "2019-10-08") %>%
+  select(startDate, depth, treatment, t, THg_198) %>%
+  mutate(treatment = gsub("unfiltered-", "", treatment)) %>%
+  ggplot(aes(treatment, THg_198, fill = t)) +
+  geom_boxplot() + 
+  # geom_dotplot(binaxis='y', stackdir='center',
+  #              position=position_dodge(1)) +
+  scale_y_continuous(limits=c(0, 2.5)) +
+  ggtitle("Total 198Hg Oct")
+
+THg.data.204.plot.Aug <- THg.data %>%
+  filter(startDate == "2019-08-30") %>%
+  select(startDate, depth, treatment, t, THg_204) %>%
+  ggplot(aes(treatment, THg_204, fill = t)) +
+  geom_boxplot() + 
+  # geom_dotplot(binaxis='y', stackdir='center',
+  #              position=position_dodge(1)) +
+  scale_y_continuous(limits=c(0, 2.5)) +
+  ggtitle("Total 204Hg August")
+THg.data.204.plot.Oct <- THg.data %>%
+  filter(startDate == "2019-10-08") %>%
+  select(startDate, depth, treatment, t, THg_204) %>%
+  mutate(treatment = gsub("unfiltered-", "", treatment)) %>%
+  ggplot(aes(treatment, THg_204, fill = t)) +
+  geom_boxplot() + 
+  # geom_dotplot(binaxis='y', stackdir='center',
+  #              position=position_dodge(1)) +
+  scale_y_continuous(limits=c(0, 2.5)) +
+  ggtitle("Total 204Hg Oct")
+
+(THg.data.198.plot.Aug + THg.data.198.plot.Oct) / (THg.data.204.plot.Aug + THg.data.204.plot.Oct)
+  
+```
+
+
+
+
+
+Next I looked at the percent change. 
+
+```{r change in THg by t and condition, fig.height = 15, fig.width = 15, echo=FALSE}
+
+THg.198.data.delta <- read.csv("/Users/benjaminpeterson/Documents/research/BLiMMP/dataEdited/incubations/THg/incubations2019_198Hg_delta_norm.csv",
+                     stringsAsFactors = FALSE)
+
+THg.198.data.delta.plot.Aug <- THg.198.data.delta %>%
+  filter(startDate == "2019-08-30") %>%
+  select(startDate, depth, treatment, per_change_198_norm) %>%
+  mutate(treatment = gsub("unfiltered-", "", treatment)) %>%
+  ggplot(aes(treatment, per_change_198_norm, fill = depth)) +
+  geom_boxplot() + 
+  # geom_dotplot(binaxis='y', stackdir='center',
+  #              position=position_dodge(1)) +
+  ggtitle("Total 198Hg Aug")
+THg.198.data.delta.plot.Oct <- THg.198.data.delta %>%
+  filter(startDate == "2019-10-08") %>%
+  select(startDate, depth, treatment, per_change_198_norm) %>%
+  mutate(treatment = gsub("unfiltered-", "", treatment)) %>%
+  ggplot(aes(treatment, per_change_198_norm, fill = depth)) +
+  geom_boxplot() + 
+  # geom_dotplot(binaxis='y', stackdir='center',
+  #              position=position_dodge(1)) +
+  ggtitle("Total 198Hg Oct")
+
+
+
+THg.204.data.delta <- read.csv("/Users/benjaminpeterson/Documents/research/BLiMMP/dataEdited/incubations/THg/incubations2019_204Hg_delta_norm.csv",
+                     stringsAsFactors = FALSE)
+
+THg.204.data.delta.plot.Aug <- THg.204.data.delta %>%
+  filter(startDate == "2019-08-30") %>%
+  select(startDate, depth, treatment, per_change_204_norm) %>%
+  mutate(treatment = gsub("unfiltered-", "", treatment)) %>%
+  ggplot(aes(treatment, per_change_204_norm, fill = depth)) +
+  geom_boxplot() + 
+  # geom_dotplot(binaxis='y', stackdir='center',
+  #              position=position_dodge(1)) +
+  ggtitle("Total 204Hg Aug")
+THg.204.data.delta.plot.Oct <- THg.204.data.delta %>%
+  filter(startDate == "2019-10-08") %>%
+  select(startDate, depth, treatment, per_change_204_norm) %>%
+  mutate(treatment = gsub("unfiltered-", "", treatment)) %>%
+  ggplot(aes(treatment, per_change_204_norm, fill = depth)) +
+  geom_boxplot() + 
+  # geom_dotplot(binaxis='y', stackdir='center',
+  #              position=position_dodge(1)) +
+  ggtitle("Total 204Hg Oct")
+
+
+(THg.198.data.delta.plot.Aug + THg.198.data.delta.plot.Oct) / (THg.204.data.delta.plot.Aug + THg.204.data.delta.plot.Oct)
+
+```
