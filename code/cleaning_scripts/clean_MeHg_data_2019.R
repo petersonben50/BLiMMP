@@ -40,7 +40,7 @@ all.metadata <- all.metadata %>%
   mutate(treatment = paste(filtered.vector[filtered],
                            amendment,
                            sep = "-"))
-  
+
 
 metadata.to.save.out <- all.metadata %>%
   select(bottleID, incubationID, sampleID, tripID, dateKilled,
@@ -84,12 +84,12 @@ clean.MeHg.data.from <- function(file.name.input,
                                  output.file.name,
                                  metadata.df = all.metadata,
                                  barcodes.to.remove = NULL) {
-  
+
   file.name <- file.name.input
   file.data <- read_xlsx(file.name,
                          sheet = "Summary",
                          skip = 6)
-  
+
   # Select needed columns and rename them.
   file.data.clean <- file.data %>%
     select(1, 3, 4, 5, 17) %>%
@@ -101,24 +101,24 @@ clean.MeHg.data.from <- function(file.name.input,
                                  "excess_DDL")
   file.data.clean <- file.data.clean %>%
     filter(bottleID %in% metadata.df$bottleID)
-  
+
   # Remove unwanted samples by barcode
   if (!is.null(barcodes.to.remove)) {
-    
+
     file.data.clean <- file.data.clean %>%
       filter(!(bottleID %in% barcodes.to.remove))
-    
+
   }
-  
+
   # Remove spikes
   file.data.clean <- file.data.clean %>%
-    filter(!duplicated(bottleID)) 
-  
+    filter(!duplicated(bottleID))
+
   # Round off numbers
   file.data.clean[, -1] <- file.data.clean[, -1] %>%
-    mutate_all(as.numeric) %>% 
+    mutate_all(as.numeric) %>%
     round(digits = 3)
-  
+
   # Write out data
   write.csv(file.data.clean,
             output.file.name,
@@ -145,7 +145,7 @@ clean.MeHg.data.from("dataRaw/incubations/MeHg/I092519 BENDOTA.xlsx",
 #                      "dataEdited/incubations/MeHg/cleaned/incubations2019_20191204.csv",
 #                      barcodes.to.remove = "MSC576AR")
 # This one had a super high blank. Not gonna keep it. Re-running these samples
-# in February 2020. 
+# in February 2020.
 
 clean.MeHg.data.from("dataRaw/incubations/MeHg/I120519 BENDOTA.xlsx",
                      "dataEdited/incubations/MeHg/cleaned/incubations2019_20191205.csv")
@@ -179,7 +179,7 @@ for (file.name in list.o.results) {
                           read.csv(file.name,
                                    stringsAsFactors = FALSE))
   }
-  
+
 }
 
 rm(list.o.results,
@@ -202,10 +202,10 @@ plot(x = check_t0_timing$spike_to_kill_0_time,
      pch = 18,
      xlab = "Spike time to kill time (sec)",
      ylab = "Excess Me198Hg in t0 sample")
-# The high MeHg samples in the t0 samples do not seem to be 
+# The high MeHg samples in the t0 samples do not seem to be
 # related to longer wait times between spiking and killing t=0.
-# More likely to be due to contamination of some sort. 
-# We'll keep the t0 time points as they are. 
+# More likely to be due to contamination of some sort.
+# We'll keep the t0 time points as they are.
 rm(check_t0_timing)
 
 # Pull out needed data from t0 samples
@@ -360,6 +360,17 @@ ambient.MeHg <- MeHg.results %>%
   arrange(sampleID)
 write.csv(ambient.MeHg,
           "dataEdited/incubations/MeHg/incubations2019_MeHg_ambient.csv",
+          row.names = FALSE)
+
+
+#### Predicted water column MeHg ####
+WC.MeHg <- ambient.MeHg %>%
+  filter(t == "t0",
+         treatment == "unfiltered-unamended") %>%
+  group_by(tripID, sampleID, startDate, depth) %>%
+  summarise(amb_MeHg_ng.L = mean(amb_MeHg_ng.L))
+write.csv(WC.MeHg,
+          "dataEdited/incubations/MeHg/incubations2019_MeHg_ambient_WC.csv",
           row.names = FALSE)
 
 
