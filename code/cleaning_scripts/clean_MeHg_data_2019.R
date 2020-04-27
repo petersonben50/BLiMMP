@@ -275,21 +275,13 @@ rm(list = ls(pattern = "MeHg.198"))
 
 #### Clean Me204Hg data ####
 
-# Normalize t1 values to 24 hours
+# Clean t1 sample values
 
 MeHg.204.production.t1 <- MeHg.results %>%
   select(bottleID, excess_MeHg_204_ng.L, excess_DDL) %>%
   left_join(all.metadata) %>%
   filter(t == "t1") %>%
-  left_join(processing.data) %>%
-  # Calculate fraction of 24 hours that the samples were incubated for.
-  mutate(t0_to_t1_time.fraction = (as.numeric(t0_to_t1_time) / (24*60*60))) %>%
-  arrange(incubationID) %>%
-  # mutate(t0_to_t1_time = replace_na(t0_to_t1_time, 1)) %>%
-  # Divide by the fraction
-  mutate(excess_MeHg_204_ng.L_normalized = round((excess_MeHg_204_ng.L / t0_to_t1_time.fraction), 3)) %>%
-  select(bottleID, incubationID, sampleID, tripID, startDate, depth, treatment, t, excess_MeHg_204_ng.L_normalized, excess_DDL) %>%
-  rename(excess_MeHg_204_ng.L = excess_MeHg_204_ng.L_normalized)
+  select(bottleID, incubationID, sampleID, tripID, startDate, depth, treatment, t, excess_MeHg_204_ng.L, excess_DDL)
 
 
 # Check out spike-to-kill times and if it influences t0 values
@@ -344,6 +336,10 @@ write.csv(MeHg.204.data,
 
 
 
+  
+  
+  
+  
 
 
 
