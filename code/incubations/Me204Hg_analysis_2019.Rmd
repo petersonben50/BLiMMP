@@ -1,0 +1,247 @@
+---
+title: "Me204Hg analysis from 2019 incubations"
+author: "Benjamin D. Peterson"
+date: "4/23/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+rm(list = ls())
+library(knitr)
+library(tidyverse)
+
+cb.translator <- readRDS("/Users/benjaminpeterson/Box/ancillary_science_stuff/colors/colorblind_friendly_colors_R/colorblind_friendly_colors.rds")
+```
+
+
+In this document, I'll go through the Me204Hg data we collected from the 2019 MeHg production assays.
+In here, I'm mostly checking to see if we can get any interesting detectable signatures from the amended MeHg.
+
+First, I just looked at the raw values of Me204Hg across the incubations.
+Note that the scales are consistent at each depth within a sampling date, but are different across the different dates.
+
+``` {r MeHg raw incubations, echo=FALSE, out.width = "75%", out.height = "75%", message = FALSE}
+# Read in a PDF of the document
+graph.path <- "/Users/benjaminpeterson/Documents/research/BLiMMP/results/incubations/demethylation/demeth_raw_values.png"
+knitr::include_graphics(graph.path)
+```
+
+As we can see, there is a very consistent decrease in overall MeHg across each experiment.
+However, we also see a general decrease in the total levels of Hg, likely due to poor mixing during initial sampling (see THg analysis document).
+So, a better way to do this is fraction of 204Hg found as Me204Hg.
+Here's that plot:
+
+``` {r MeHg percent incubations, echo=FALSE, out.width = "75%", out.height = "75%", message = FALSE}
+# Read in a PDF of the document
+graph.path <- "/Users/benjaminpeterson/Documents/research/BLiMMP/results/incubations/demethylation/demeth_percent.png"
+knitr::include_graphics(graph.path)
+```
+
+Looking at it this way, there's a little more variability, with some concerning values.
+The samples from 2019-07-30 are odd, with MeHg fractions reaching up int 115-140%, which should not be the case, obviously.
+We analyzed both MeHg and THg from the same samples, stored in 1% HCl.
+Some sort of preservation issue, with loss of 204Hg over time?
+Not exactly sure what's going on here.
+
+The values from 2019-08-30, at least at 11.7m and 14m, were much closer to what we'd expect.
+At both t0 and t1, the values hover around 100%, within approximately 10% or so.
+Seems to be a slight trend in decreasing MeHg in at 14m, but pretty slight.
+For some reason, at 20.1m, the MeHg values start at a lower fraction, hovering around 70%.
+The best explanation for this I can think of is a rapid abiotic demethylation route in the pre-incubation step, or a rapid demethylation upon injection into the bags.
+It is likely the former, since we see a consistent decrease across all conditions (even the filtered bags), and the preincubations are just filtered sample water, so if it is abiotic it could occur just as easily in the pre-incubations.
+
+We see this again on 2019-10-08.
+At 16.2m , the start values are pretty variable, ranging from ~70% to just under 100%.
+However, it does seem that once the incubation starts, the values remain relatively constant.
+At 19.3m, the start values have dropped even more, and we're starting at around 60% MeHg.
+This one seems to have a more consistent drop over time though.
+Let's look at them at a change over the course of the incubation.
+First let's look at BLiMMP_003.
+
+```{r change in percent MeHg, echo=FALSE, fig.width = 6, fig.height = 4, echo=FALSE, message = FALSE}
+
+library(patchwork)
+
+Me204Hg.per.change <- read.csv("/Users/benjaminpeterson/Documents/research/BLiMMP/dataEdited/incubations/MeHg/incubations2019_Me204Hg_percent_change.csv",
+                               stringsAsFactors = FALSE)
+
+
+# Generate needed color vector
+color.vector.003 <- c(cb.translator["vermillion"],
+                      cb.translator["bluishgreen"])
+names(color.vector.003) <- c("filtered\nunamended",
+                         "unfiltered\nunamended")
+
+color.vector <- color.vector.003
+date.of.interest <- "2019-07-30"
+plot.list <- list()
+
+per.change.MeHg.data.date <- Me204Hg.per.change %>%
+  filter(startDate == date.of.interest)
+
+for (depth.of.interest in unique(per.change.MeHg.data.date$depth) %>% sort()) {
+  
+  depth.of.interest.m <- paste(depth.of.interest, "m", sep = "")
+  
+  plot.list[[depth.of.interest.m]] <- per.change.MeHg.data.date %>%
+    filter(depth == depth.of.interest) %>%
+    mutate(treatment = gsub("-", "\n", treatment)) %>%
+    mutate(treatment = factor(treatment, levels = names(color.vector))) %>%
+    ggplot(aes(x = treatment,
+               y = change_in_per_MeHg_norm,
+               color = treatment)) +
+    geom_jitter(position = position_jitter(0.1)) +
+    scale_color_manual(values = color.vector) +
+    theme_classic() +
+    theme(legend.position = "none") +
+    ylim(min(per.change.MeHg.data.date$change_in_per_MeHg_norm)-5,
+         max(per.change.MeHg.data.date$change_in_per_MeHg_norm)+5) +
+    xlab("") +
+    ylab("Change in %MeHg") +
+    ggtitle(paste(date.of.interest,
+                  ": ",
+                  depth.of.interest.m,
+                  sep = ""))
+  
+}
+
+plot.list[[1]] + plot.list[[2]]
+
+
+```
+
+
+Filtered samples hover around 0% change, but pretty noisy.
+Under ambient conditions, it seems that there is some demethylation.
+Not much though.
+
+Let's check out samples from BLiMMP_005.
+
+```{r change in percent MeHg August, echo=FALSE, fig.width = 9, fig.height = 4, echo=FALSE, message = FALSE}
+
+library(patchwork)
+
+Me204Hg.per.change <- read.csv("/Users/benjaminpeterson/Documents/research/BLiMMP/dataEdited/incubations/MeHg/incubations2019_Me204Hg_percent_change.csv",
+                               stringsAsFactors = FALSE)
+
+
+# Generate needed color vector
+color.vector.005 <- c(cb.translator["vermillion"],
+                      cb.translator["bluishgreen"],
+                      cb.translator["black"])
+names(color.vector.005) <- c("filtered\nunamended",
+                             "unfiltered\nunamended",
+                             "unfiltered\nmolybdate")
+
+color.vector <- color.vector.005
+date.of.interest <- "2019-08-30"
+plot.list <- list()
+
+per.change.MeHg.data.date <- Me204Hg.per.change %>%
+  filter(startDate == date.of.interest)
+
+for (depth.of.interest in unique(per.change.MeHg.data.date$depth) %>% sort()) {
+  
+  depth.of.interest.m <- paste(depth.of.interest, "m", sep = "")
+  
+  plot.list[[depth.of.interest.m]] <- per.change.MeHg.data.date %>%
+    filter(depth == depth.of.interest) %>%
+    mutate(treatment = gsub("-", "\n", treatment)) %>%
+    mutate(treatment = factor(treatment, levels = names(color.vector))) %>%
+    ggplot(aes(x = treatment,
+               y = change_in_per_MeHg_norm,
+               color = treatment)) +
+    geom_jitter(position = position_jitter(0.1)) +
+    scale_color_manual(values = color.vector) +
+    theme_classic() +
+    theme(legend.position = "none") +
+    ylim(min(per.change.MeHg.data.date$change_in_per_MeHg_norm)-5,
+         max(per.change.MeHg.data.date$change_in_per_MeHg_norm)+5) +
+    xlab("") +
+    ylab("Change in %MeHg") +
+    ggtitle(paste(date.of.interest,
+                  ": ",
+                  depth.of.interest.m,
+                  sep = ""))
+  
+}
+
+plot.list[[1]] + plot.list[[2]] + plot.list[[3]]
+
+
+```
+
+At 11.7m, there doesn't seem to be much change at all in MeHg levels.
+If anything, the molybdate-amended samples have a slight increase, but this is likely just noise.
+
+At 14m, there is no different in MeHg change across the different conditions.
+There does seem to be a decrease in the fraction of MeHg across all 3 samples though, but only about 5-10%.
+
+At 20.1m, there is also a general small decrease in MeHg, and is slightly more pronounced in the filtered controls, getting down to 20-30% decrease, as opposed to the ~10% decrease under the other two conditions.
+
+```{r change in percent MeHg October, echo=FALSE, fig.width = 9, fig.height = 4, echo=FALSE, message = FALSE}
+
+color.vector.006 <- c(cb.translator["vermillion"],
+                      cb.translator["bluishgreen"],
+                      cb.translator["black"],
+                      cb.translator["orange"],
+                      cb.translator["blue"],
+                      cb.translator["reddishpurple"])
+names(color.vector.006) <- c("filtered\nunamended",
+                             "unfiltered\nunamended",
+                             "unfiltered\nmolybdate",
+                             "unfiltered\nstarch",
+                             "unfiltered\nstarch\nmolybdate",
+                             "unfiltered\nalgal")
+                             
+color.vector <- color.vector.006
+date.of.interest <- "2019-10-08"
+plot.list <- list()
+
+per.change.MeHg.data.date <- Me204Hg.per.change %>%
+  filter(startDate == date.of.interest)
+
+for (depth.of.interest in unique(per.change.MeHg.data.date$depth) %>% sort()) {
+  
+  depth.of.interest.m <- paste(depth.of.interest, "m", sep = "")
+  
+  plot.list[[depth.of.interest.m]] <- per.change.MeHg.data.date %>%
+    filter(depth == depth.of.interest) %>%
+    mutate(treatment = gsub("-", "\n", treatment)) %>%
+    mutate(treatment = factor(treatment, levels = names(color.vector))) %>%
+    ggplot(aes(x = treatment,
+               y = change_in_per_MeHg_norm,
+               color = treatment)) +
+    geom_jitter(position = position_jitter(0.1)) +
+    scale_color_manual(values = color.vector) +
+    theme_classic() +
+    theme(legend.position = "none") +
+    ylim(min(per.change.MeHg.data.date$change_in_per_MeHg_norm)-5,
+         max(per.change.MeHg.data.date$change_in_per_MeHg_norm)+5) +
+    xlab("") +
+    ylab("Change in %MeHg") +
+    ggtitle(paste(date.of.interest,
+                  ": ",
+                  depth.of.interest.m,
+                  sep = ""))
+  
+}
+
+plot.list[[1]] + plot.list[[2]]
+
+```
+
+This data is super noisy.
+Seems to be more drastic decreases in the deepest levels, at 19.3m.
+These are the samples where the fraction MeHg is already super low at the beginning (50-70% or so).
+This drop holds up in the filtered samples, so there is likely an abiotic mechanism at play.
+
+### Takeaways
+
+Not many.
+There is some demethylation occurring, but it doesn't seem to be biologically mediated, since we see it in the filtered samples too.
+There seems to be increasing amounts of demethylation deeper in the water column, with increased sulfide.
+Additionally, this process can happen quickly and in our preincubation step, since the samples at 19.3m in October had well under 100% MeHg at t0.
+Molybdate-amendment doesn't appear to have a clear impact on MeHg production.
+For the other amendments, there weren't enough reps and the data was too noisy to get a clear signal.
