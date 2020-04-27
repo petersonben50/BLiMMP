@@ -182,6 +182,10 @@ for (file.name in list.o.results) {
 
 }
 
+write.csv(MeHg.results,
+          "dataEdited/incubations/MeHg/incubations2019_MeHg_all.csv",
+          row.names = FALSE)
+
 rm(list.o.results,
    file.name)
 
@@ -268,7 +272,8 @@ write.csv(MeHg.delta,
 
 # Clean up
 
-rm(list = ls(pattern = "MeHg.198"))
+rm(list = ls(pattern = "MeHg.198"),
+   MeHg.delta)
 
 
 
@@ -332,10 +337,78 @@ write.csv(MeHg.204.data,
           "dataEdited/incubations/MeHg/incubations2019_Me204Hg.csv",
           row.names = FALSE)
 
+# Clean up
+rm(list = ls(pattern = "MeHg"))
 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+#### Calculate percent Me204Hg in each sample collected ####
+
+# Read in THg data
+THg.data <- read.csv("dataEdited/incubations/THg/incubations2019_THg.csv",
+                     stringsAsFactors = FALSE)
+# Read in MeHg data
+MeHg.data <- read.csv("dataEdited/incubations/MeHg/incubations2019_Me204Hg.csv",
+                     stringsAsFactors = FALSE)
+
+# Calculate percent MeHg
+per.MeHg.data <- full_join(MeHg.data,
+                           THg.data) %>%
+  select(tripID, incubationID, startDate, depth, treatment, t, excess_MeHg_204_ng.L, THg_204) %>%
+  mutate(per_MeHg_204 = (excess_MeHg_204_ng.L / THg_204) * 100) %>%
+  select(-c(excess_MeHg_204_ng.L, THg_204))
+
+# Write out percentage MeHg data
+write.csv(per.MeHg.data,
+          "dataEdited/incubations/MeHg/incubations2019_Me204Hg_percent.csv",
+          row.names = FALSE)
+
+
+
+
+
+
+
+
+
+
+#### Calculate change in percent MeHg ####
+
+# Join percent data with processing time
+per.MeHg.data.change <- per.MeHg.data %>% 
+  spread(key = t,
+         value = per_MeHg_204) %>%
+  left_join(processing.data) %>%
+  # Calculate fraction of 24 hours that the samples were incubated for.
+  mutate(t0_to_t1_time.fraction = (as.numeric(t0_to_t1_time) / (24*60*60))) %>%
+  arrange(incubationID) %>%
+  mutate(change_in_per_MeHg = ((t1 - t0) / t0) * 100) %>%
+  mutate(change_in_per_MeHg_norm = round((change_in_per_MeHg / t0_to_t1_time.fraction), 3)) %>%
+  select(-c(change_in_per_MeHg, t0_to_t1_time.fraction, t0_to_t1_time, spike_to_kill_0_time, t0, t1))
+  
+# Write out percentage MeHg data
+write.csv(per.MeHg.data.change,
+          "dataEdited/incubations/MeHg/incubations2019_Me204Hg_percent_change.csv",
+          row.names = FALSE)
+
+rm(list = ls(pattern = "per."),
+   THg.data,
+   MeHg.data)
+  
   
   
   
@@ -347,6 +420,9 @@ write.csv(MeHg.204.data,
 
 
 #### Clean ambient Hg data ####
+
+MeHg.results <- read.csv("dataEdited/incubations/MeHg/incubations2019_MeHg_all.csv",
+                         stringsAsFactors = FALSE)
 
 ambient.MeHg <- MeHg.results %>%
   left_join(all.metadata) %>%
