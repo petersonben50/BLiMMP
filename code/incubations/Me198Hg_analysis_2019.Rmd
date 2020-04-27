@@ -1,7 +1,6 @@
 ---
 title: "2019 MeHg production assays"
 author: "Benjamin D. Peterson"
-date: "12/5/2019"
 output: html_document
 ---
 

@@ -1,7 +1,6 @@
 ---
 title: "Me204Hg analysis from 2019 incubations"
 author: "Benjamin D. Peterson"
-date: "4/23/2020"
 output: html_document
 ---
 
