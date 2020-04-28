@@ -27,12 +27,22 @@ We focused on collecting one sample from just below the oxic-anoxic interface, a
 The deeper sample smelled of sulfide. 
 Let's check out the raw Hg data first.
 
-``` {r incubations BLiMMP_trip_003, echo=FALSE, out.width = "50%", out.height = "50%", message = FALSE}
+``` {r MeHg BLiMMP_trip_003, echo=FALSE, out.width = "50%", out.height = "50%", message = FALSE}
 # Read in a PDF of the document
-graph.path <- "/Users/benjaminpeterson/Documents/research/BLiMMP/results/incubations/BLiMMP_trip_003_incubations.png"
+graph.path <- "/Users/benjaminpeterson/Documents/research/BLiMMP/results/incubations/methylation/incubations2019/BLiMMP_trip_003_incubations.png"
 knitr::include_graphics(graph.path)
 
 ```
+
+Also looked at it as percent MeHg of total Hg pool.
+
+``` {r fraction MeHg BLiMMP_trip_003, echo=FALSE, out.width = "50%", out.height = "50%", message = FALSE}
+# Read in a PDF of the document
+graph.path <- "/Users/benjaminpeterson/Documents/research/BLiMMP/results/incubations/methylation/incubations2019/BLiMMP_003_per_Me198Hg.png"
+knitr::include_graphics(graph.path)
+
+```
+Don't really change how it looks.
 
 Let's also visualize as the change in MeHg from t0 to t1.
 I calculated this as the excess Me^198^Hg at t=1 minus the excess Me^198^Hg at t=0, with no adjustment for samples below DL, then normalized that value to 24 hours of production, since many of these only incubated for 22 hours or so.
@@ -135,6 +145,19 @@ invisible(
 
 ```
 
+
+Again, I wanted to look at this as a fraction of total Hg pool.
+So, here we have the change in %MeHg from t0 to t1.
+
+``` {r change in fraction MeHg BLiMMP_trip_003, echo=FALSE, out.width = "50%", out.height = "50%", message = FALSE}
+# Read in a PDF of the document
+graph.path <- "/Users/benjaminpeterson/Documents/research/BLiMMP/results/incubations/methylation/incubations2019/BLiMMP_003_change_in_per_Me198Hg.png"
+knitr::include_graphics(graph.path)
+
+```
+
+Doesn't change our interpretation much, if at all.
+
 #### Takeaways
 
 1. We can consistently detect MeHg production in Mendota.
@@ -152,10 +175,10 @@ The final depth was 20.1m, where sulfide had accumulated to relatively high leve
 Leucine uptake rates were highest at the sample from the oxic-anoxic interface, approximately twice as high as they were at the other two depths.
 Let's look at the Hg data.
 
-```{r BLiMMP_trip_005, echo = FALSE, out.height= "50%", out.width="60%"}
+```{r MeHg BLiMMP_trip_005, echo = FALSE, out.height= "50%", out.width="60%"}
 
 # Read in the PNG file with the incubation data
-graph.path <- "/Users/benjaminpeterson/Documents/research/BLiMMP/results/incubations/BLiMMP_trip_005_incubations.png"
+graph.path <- "/Users/benjaminpeterson/Documents/research/BLiMMP/results/incubations/methylation/incubations2019/BLiMMP_trip_005_incubations.png"
 include_graphics(graph.path)
 ```
 
@@ -164,6 +187,19 @@ The two samples in the lower sections of the water column showed no production o
 They showed approximately similar levels of MeHg production in the unfiltered, unamended sample, but the data was pretty noisy, with both having one replicate that showed little to no MeHg production.
 We'll look at those replicates later.
 Finally, when we added molybdate, the MeHg production shut down again, to pretty much the same levels we saw in the filtered controls.
+
+As before, here it is as fraction MeHg:
+
+```{r fraction MeHg BLiMMP_trip_005, echo = FALSE, out.height= "50%", out.width="60%"}
+
+# Read in the PNG file with the incubation data
+graph.path <- "/Users/benjaminpeterson/Documents/research/BLiMMP/results/incubations/methylation/incubations2019/BLiMMP_005_per_Me198Hg.png"
+include_graphics(graph.path)
+```
+
+Pretty much the same.
+
+
 Below I plotted this up as the change in Me^198^Hg from t0 to t1.
 
 ``` {r change_in_MeHg_BLiMMP_trip_005, fig.width = 8, fig.height = 4, echo=FALSE, message = FALSE}
@@ -211,6 +247,17 @@ plot.list[[1]] + plot.list[[2]] + plot.list[[3]]
 ```
 
 Viewing the data this way tells pretty much the same story.
+
+And finally, viewing it as change in %MeHg:
+
+```{r change in fraction MeHg BLiMMP_trip_005, echo = FALSE, out.height= "50%", out.width="60%"}
+
+# Read in the PNG file with the incubation data
+graph.path <- "/Users/benjaminpeterson/Documents/research/BLiMMP/results/incubations/methylation/incubations2019/BLiMMP_005_change_in_per_Me198Hg.png"
+include_graphics(graph.path)
+```
+
+
 
 Now, let's look at those anamolous incubations with low Me^198^Hg production.
 I compared the MeHg production to the amount of sulfide left in the bag at the end of the incubation to see if it explained anything.
@@ -365,15 +412,25 @@ The second depth was at 19.3m.
 Here, sulfide was nearly 100µM, but Mn was under 6µM.
 Let's look at the Hg data.
 
-```{r BLiMMP_trip_006, echo = FALSE, out.height= "75%", out.width="75%"}
+```{r MeHg BLiMMP_trip_006, echo = FALSE, out.height= "75%", out.width="75%"}
 
 # Read in a PDF of the document
-graph.path <- "/Users/benjaminpeterson/Documents/research/BLiMMP/results/incubations/BLiMMP_trip_006_incubations.png"
+graph.path <- "/Users/benjaminpeterson/Documents/research/BLiMMP/results/incubations/methylation/incubations2019/BLiMMP_trip_006_incubations.png"
 include_graphics(graph.path)
 ```
 
+Here it as percent MeHg of total Hg pool:
+
+```{r fraction MeHg BLiMMP_trip_006, echo = FALSE, out.height= "75%", out.width="75%"}
+
+# Read in a PDF of the document
+graph.path <- "/Users/benjaminpeterson/Documents/research/BLiMMP/results/incubations/methylation/incubations2019/BLiMMP_006_per_Me198Hg.png"
+include_graphics(graph.path)
+```
+
+
 Let's also look at it as a change in Me^198^Hg over the experiment.
-One of our algal-amended samples is pretty high in t=0 sample, so looking at it this way might clean it up
+One of our algal-amended samples is pretty high in t=0 sample, so looking at it this way might clean it up.
 
 ``` {r change_in_MeHg_BLiMMP_trip_006, fig.width = 10, fig.height = 4, echo=FALSE, message = FALSE}
 library(patchwork)
@@ -429,8 +486,19 @@ plot.list[[1]] + plot.list[[2]]
 
 ```
 
+I also plotted it, again, as the change in percent MeHg:
+
+```{r change_in_fraction_MeHg_BLiMMP_trip_006, echo = FALSE, out.height= "75%", out.width="75%"}
+
+# Read in a PDF of the document
+graph.path <- "/Users/benjaminpeterson/Documents/research/BLiMMP/results/incubations/methylation/incubations2019/BLiMMP_006_change_in_per_Me198Hg.png"
+include_graphics(graph.path)
+```
+
+
 Some of the findings from our previous incubations are confirmed here.
 First, there is no abiotic MeHg production, but we do see MeHg production at both depths with sulfide accumulations.
+It seems to be higher in the metalimnion, but we only have two replicates and the data is rather noisy.
 We didn't have any anoxic depths without sulfide accumulation to compare, as we did at the other dates.
 It's impossible to say for sure with the small number of samples, but it does look like MeHg production might be a little higher in the upper sample (16.2m), which is consistent with the higher heterotrophic activity at that depth.
 Once again, molybdate addition completely eliminates MeHg production.
@@ -443,6 +511,7 @@ This response is curious.
 
 One potential explanation would be if the injection resulted in a change in the redox status of the bags.
 We didn't inject sterile water into the ambient conditions as a way to control for effects of just injecting anything into the sample, likely as a way for O~2~ to get in, but it is unlikely that this would have that large of an impact.
+Besides, we injected the Hg tracers in using the same method.
 But, just to be sure, I checked the sulfide levels in the bags, below.
 
 ```{r sulfide_data_incubations_BLiMMP_trip_006,  echo=FALSE, message = FALSE, fig.height = 5, fig.width = 10}
@@ -601,6 +670,8 @@ But, it seems that there is a general drop-off in BCP over the course of the inc
 This drop-off was very consistent between the ambient conditions and the starch amendment.
 If anything, the molybdate-amended sample retained more of the ambient heterotrophy, but again, the data is pretty noisey.
 If this analysis is run again, I think the samples need to be sure to be processed ASAP, since it's tough to rule out effects of delayed processing on this (incubation samples were processed the next afternoon).
+
+
 
 
 ## Takeaways:
