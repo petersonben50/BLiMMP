@@ -274,7 +274,38 @@ per.MeHg.data <- full_join(MeHg.198.data,
 write.csv(per.MeHg.data,
           "dataEdited/incubations/MeHg/incubations2019_Me198Hg_percent.csv",
           row.names = FALSE)
-rm(per.MeHg.data, THg.data)
+
+
+
+
+
+
+
+
+
+#### Calculate change in percent Me198Hg ####
+
+# Join percent data with processing time
+per.MeHg.data.change <- per.MeHg.data %>% 
+  spread(key = t,
+         value = per_MeHg_198) %>%
+  left_join(processing.data) %>%
+  # Calculate fraction of 24 hours that the samples were incubated for.
+  mutate(t0_to_t1_time.fraction = (as.numeric(t0_to_t1_time) / (24*60*60))) %>%
+  arrange(incubationID) %>%
+  mutate(change_in_per_MeHg = (t1 - t0)) %>%
+  mutate(change_in_per_MeHg_norm = round((change_in_per_MeHg / t0_to_t1_time.fraction), 3)) %>%
+  select(-c(change_in_per_MeHg, t0_to_t1_time.fraction, t0_to_t1_time, spike_to_kill_0_time, t0, t1))
+
+# Write out percentage MeHg data
+write.csv(per.MeHg.data.change,
+          "dataEdited/incubations/MeHg/incubations2019_Me198Hg_change_in_percent.csv",
+          row.names = FALSE)
+
+rm(list = ls(pattern = "per."),
+   THg.data)
+
+
 
 
 
@@ -417,7 +448,7 @@ write.csv(per.MeHg.data,
 
 
 
-#### Calculate change in percent MeHg ####
+#### Calculate change in percent Me204Hg ####
 
 # Join percent data with processing time
 per.MeHg.data.change <- per.MeHg.data %>% 
