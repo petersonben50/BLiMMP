@@ -13,31 +13,71 @@ library(tidyverse)
 
 cb.translator <- readRDS("/Users/benjaminpeterson/Box/ancillary_science_stuff/colors/colorblind_friendly_colors_R/colorblind_friendly_colors.rds")
 
+empty.plot <- function(x) {
+  plot(x = 0,
+       cex = 0,
+       xaxt = "n",
+       yaxt = "n",
+       xlab = "",
+       bty = "n")
+}
+
 ```
 
 ### Investigation of THg data from incubations
 
-When cleaning the THg data, I noticed that the values were highly, highly variable, much more so that we would expect.
-I wanted to investigate this, and see if I could figure out what was going on.
+First, we'll look at the raw THg values at t0 and t1.
+Here's 198.
+```{r raw T198Hg values, out.width="60%", out.height = "60%", echo=FALSE}
+library(knitr)
+# Read in a PDF of the document
+graph.path <- "/Users/benjaminpeterson/Documents/research/BLiMMP/results/incubations/THg_198_BLiMMP_incubations.png"
+include_graphics(graph.path)
+```
+
+And here's 204.
+
+```{r raw T204Hg values, out.width="60%", out.height = "60%", echo=FALSE}
+
+graph.path <- "/Users/benjaminpeterson/Documents/research/BLiMMP/results/incubations/THg_204_BLiMMP_incubations.png"
+include_graphics(graph.path)
 
 
-So, I wanted to look at the ratios of 204Hg to 198Hg.
+```
+
+
+With both isotopes, we see a relatively consistent decrease in THg levels.
+There are two potential explanations for this:
+
+1. We're losing Hg to the sides of the bags during the incubations.
+This would be a problem in that our rates could be affected by the amount of adsorption of Hg to the container walls.
+
+2. I didn't do a good job of sampling.
+After we spike the bags, I used some sample water to purge the tubing, then "massaged" the bag to mix the sample in.
+However, it's possible that I didn't do a good enough job of mixing, and that the initial higher levels of Hg are due to me not adequately mixing the samples.
+
+If #1 is the case, I would expect that 204 and 198 are not affected equally, since it is unlikely that MeHg and THg are absorbing to the walls at the same rate.
+However, if #2 is the case, I would expect that 204 and 198 would track perfectly, since they were both injected as part of the same solution and, hypothetically, should be mixed equally well (or equally poorly).
+
+#### Ratio of 198 to 204
+
+So, I wanted to look at the ratios of 204Hg to 198Hg, first just at the raw numbers, then the shift between the two time points.
 We'll look at the ratios for each date and depth separately, just to cut down on the noise.
 
 ```{r 198vs204 2019-08-30, fig.width = 15, fig.height = 5, echo=FALSE}
 
-color.vector <- c(cb.translator["black"],
-                      cb.translator["bluishgreen"],
-                      cb.translator["vermillion"],
-                      cb.translator["orange"],
-                      cb.translator["blue"],
-                      cb.translator["reddishpurple"])
-names(color.vector) <- c("unfiltered-molybdate",
-                             "unfiltered-unamended",
-                             "filtered-unamended",
-                             "unfiltered-starch",
-                             "unfiltered-starch-molybdate",
-                             "unfiltered-algal")
+color.vector <- c(cb.translator["vermillion"],
+                  cb.translator["bluishgreen"],
+                  cb.translator["black"],
+                  cb.translator["orange"],
+                  cb.translator["blue"],
+                  cb.translator["reddishpurple"])
+names(color.vector) <- c("filtered-unamended",
+                         "unfiltered-unamended",
+                         "unfiltered-molybdate",
+                         "unfiltered-starch",
+                         "unfiltered-starch-molybdate",
+                         "unfiltered-algal")
 
 shape_vector <- c(17, 19)
 names(shape_vector) <- c("t0", "t1")
@@ -73,13 +113,20 @@ for (date.of.interest in unique(THg.data.all$startDate) %>% sort()) {
   #      labels = THg.data.depth$incubationID)
   abline(0, 1)
 
-}
-# legend("bottomright",
-#        legend =  c("filtered-unamended",
-#                    "unfiltered-unamended",
-#                    "unfiltered-molybdate",
-#                    "t0", "t1"),
-#        pch = c(NA, NA, NA, ))
+  }
+  if (date.of.interest == "2019-10-08") {
+    empty.plot()
+    legend("topright",
+           legend =  names(color.vector),
+           text.col = color.vector,
+           pch = NA,
+           cex = 2)
+    legend("bottomright",
+           legend = names(shape_vector),
+           pch = shape_vector,
+           cex = 2.5)
+
+  }
 }
 
 ```
@@ -108,9 +155,9 @@ Still, need to expain the systematic deviation from t0 to t1 in total Hg.
 I think it's likely due to the mixing of the bag before sampling t0.
 The spread looks better from the October trip than the August one, and I remember being more thorough about mixing before sampling.
 I think I need to ensure that I'm doing a good job of purging the spike out of the rubber tubing before mixing occurs. 
+#### Ratio of loss of 198 to loss of 204
 
-
-
+Let's do one more sanity check on this, and look at the ratio of change between t0 and t1 across the incubations.
 
 
 <!-- Long shot, but maybe it's related to total Hg data? -->
@@ -279,3 +326,9 @@ THg.204.data.delta.plot.Oct <- THg.204.data.delta %>%
 (THg.198.data.delta.plot.Aug + THg.198.data.delta.plot.Oct) / (THg.204.data.delta.plot.Aug + THg.204.data.delta.plot.Oct)
 
 ```
+
+
+
+### Takeaways
+
+1. Take more time to ensure complete mixing of sample after injection of tracer.
