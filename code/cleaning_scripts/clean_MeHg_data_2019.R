@@ -248,6 +248,37 @@ MeHg.198.data <- MeHg.198.data %>%
 write.csv(MeHg.198.data,
           "dataEdited/incubations/MeHg/incubations2019_Me198Hg.csv",
           row.names = FALSE)
+rm(MeHg.198.data)
+
+
+
+
+
+
+
+#### Calculate fraction Me198Hg in each sample collected ####
+
+# Read in THg data
+THg.data <- read.csv("dataEdited/incubations/THg/incubations2019_THg.csv",
+                     stringsAsFactors = FALSE)
+MeHg.198.data <- read.csv("dataEdited/incubations/MeHg/incubations2019_Me198Hg.csv",
+                     stringsAsFactors = FALSE)
+# Calculate percent MeHg
+per.MeHg.data <- full_join(MeHg.198.data,
+                           THg.data) %>%
+  select(tripID, incubationID, startDate, depth, treatment, t, excess_MeHg_198_ng.L, THg_198) %>%
+  mutate(per_MeHg_198 = (excess_MeHg_198_ng.L / THg_198) * 100) %>%
+  select(-c(excess_MeHg_198_ng.L, THg_198))
+
+# Write out percentage MeHg data
+write.csv(per.MeHg.data,
+          "dataEdited/incubations/MeHg/incubations2019_Me198Hg_percent.csv",
+          row.names = FALSE)
+rm(per.MeHg.data, THg.data)
+
+
+
+
 
 
 #### Calculate Me198Hg production over assay ####
