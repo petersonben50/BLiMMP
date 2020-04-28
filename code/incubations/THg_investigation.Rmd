@@ -27,7 +27,8 @@ empty.plot <- function(x) {
 ### Investigation of THg data from incubations
 
 First, we'll look at the raw THg values at t0 and t1.
-Here's 198.
+Here's ^198^Hg.
+
 ```{r raw T198Hg values, out.width="60%", out.height = "60%", echo=FALSE}
 library(knitr)
 # Read in a PDF of the document
@@ -35,7 +36,7 @@ graph.path <- "/Users/benjaminpeterson/Documents/research/BLiMMP/results/incubat
 include_graphics(graph.path)
 ```
 
-And here's 204.
+And here's ^204^Hg.
 
 ```{r raw T204Hg values, out.width="60%", out.height = "60%", echo=FALSE}
 
@@ -61,7 +62,7 @@ However, if #2 is the case, I would expect that 204 and 198 would track perfectl
 
 #### Ratio of 198 to 204
 
-So, I wanted to look at the ratios of 204Hg to 198Hg, first just at the raw numbers, then the shift between the two time points.
+So, I wanted to look at the ratios of ^204^Hg to ^198^Hg, first just at the raw numbers, then the shift between the two time points.
 We'll look at the ratios for each date and depth separately, just to cut down on the noise.
 
 ```{r 198vs204 2019-08-30, fig.width = 15, fig.height = 5, echo=FALSE}
@@ -148,7 +149,7 @@ There's not much more we can say about them, since we didn't see any methylation
 
 Some samples have a systematic deviation from the 1:1 line (see 2019-08-30, 20.1m).
 In these samples, I would expect that we're seeing some sort of loss pathway, since all the pre-incubations were spiked with the same stock (which should be 1:1).
-The line is deviating below the line, suggesting that it's a lost of 204Hg.
+The line is deviating below the line, suggesting that it's a lost of ^204^Hg.
 However, both the t1 and t0 samples fall on a similar line, suggesting that the loss pathway happened before they were even injected into the bags.
 
 Still, need to expain the systematic deviation from t0 to t1 in total Hg.
@@ -233,11 +234,11 @@ for (date.of.interest in unique(THg.data.all$startDate) %>% sort()) {
 For many of the samples, we see the samples toeing the 1:1 line.
 This tells the same story: consistent differences between t0 and t1 in both 204 and 198 isotopes, suggesting that the discrepancy is due to sampling efforts rather than loss to container walls.
 This is particularly evident in both depths from July, 20.1m on the August sampling date, and 19.3m in October.
-At 14m in August and 16.18m in October, there is a noticable dip below the 1:1 line, which suggests that there is greater loss of T204Hg than T198Hg. 
-This is curious, since I would have imagined that the inorganic Hg was "stickier" than MeHg, and the 204Hg was all MeHg.
+At 14m in August and 16.18m in October, there is a noticable dip below the 1:1 line, which suggests that there is greater loss of T^204^Hg than T^198^Hg. 
+This is curious, since I would have imagined that the inorganic Hg was "stickier" than MeHg, and the ^204^Hg was all MeHg.
 Not sure what could cause this.
 At 11.7m in August, 5 of the incubations toe the line.
-The other 4, however, exihibit substantial deviation above the line, suggesting there was a selective loss of 198Hg.
+The other 4, however, exihibit substantial deviation above the line, suggesting there was a selective loss of ^198^Hg.
 I'm not sure why it would have only happened in this subset of incubations only.
 There was no sulfide in the water at this depth, and sulfide was the only redox measurement we collected from these bags, so we have no way of knowing if the redox condition was compromised.
 
@@ -246,3 +247,4 @@ There was no sulfide in the water at this depth, and sulfide was the only redox 
 ### Takeaways
 
 1. Take more time to ensure complete mixing of sample after injection of tracer.
+2. There may be some unexplained loss pathways of both ^198^Hg and Me^204^Hg
