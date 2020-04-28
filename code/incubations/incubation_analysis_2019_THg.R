@@ -53,6 +53,8 @@ plot.THg.time.course.depth <- function(selected.depth,
   trip_data <- trip_data %>%
     select(incubationID, startDate, depth, treatment, t, THg_ng_L)
   
+  sampling.date <- trip_data$startDate[1]
+  
   par(mar=c(3,3,2.5,1), mgp=c(1.5,0.4,0), tck=-0.008)
   
   y_max <- ceiling(max(trip_data$THg_ng_L)*100)/100 + 0.01
@@ -89,7 +91,9 @@ plot.THg.time.course.depth <- function(selected.depth,
        xaxt = "n",
        xlab = "",
        ylab = "",
-       main = paste(selected.depth,
+       main = paste(sampling.date,
+                    ": ",
+                    selected.depth,
                     "m",
                     sep = ""))
   axis(1,
