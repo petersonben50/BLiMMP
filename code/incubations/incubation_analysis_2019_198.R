@@ -548,7 +548,7 @@ plot.per.Me198Hg.time.course.depth <- function(selected.depth,
              col = color.vector[trip_data_depth_segments$treatment[row.num]])
   }
   
-  title(ylab = "Fraction MeHg for 198Hg",
+  title(ylab = "Percent MeHg (for 198Hg)",
         line = 1.75)
   
   legend("topleft",
@@ -599,7 +599,7 @@ plot.per.MeHg.changes <- function(trip.of.interest,
 png("results/incubations/methylation/incubations2019/BLiMMP_003_per_Me198Hg.png",
     units = "in",
     res = 240,
-    width = 8,
+    width = 10,
     height = 5)
 par(mfrow = c(1, 2))
 plot.per.MeHg.changes("BLiMMP_trip_003")
@@ -608,7 +608,7 @@ dev.off()
 png("results/incubations/methylation/incubations2019/BLiMMP_005_per_Me198Hg.png",
     units = "in",
     res = 240,
-    width = 8,
+    width = 10,
     height = 5)
 par(mfrow = c(1, 3))
 plot.per.MeHg.changes("BLiMMP_trip_005")
@@ -617,7 +617,7 @@ dev.off()
 png("results/incubations/methylation/incubations2019/BLiMMP_006_per_Me198Hg.png",
     units = "in",
     res = 240,
-    width = 8,
+    width = 10,
     height = 5)
 par(mfrow = c(1, 2))
 plot.per.MeHg.changes("BLiMMP_trip_006",
@@ -649,7 +649,7 @@ dev.off()
 
 
 
-#### Change in Me198Hg over incubation ####
+#### Change in fraction Me198Hg over incubation ####
 
 Me198Hg.per.change <- read.csv("dataEdited/incubations/MeHg/incubations2019_Me198Hg_change_in_percent.csv",
                                stringsAsFactors = FALSE)
@@ -706,8 +706,8 @@ plot.date.data <- function(date.of.interest,
       scale_color_manual(values = color.vector) +
       theme_classic() +
       theme(legend.position = "none") +
-      ylim(min(per.change.MeHg.data.date$change_in_per_MeHg_norm)-5,
-           max(per.change.MeHg.data.date$change_in_per_MeHg_norm)+5) +
+      ylim(min(per.change.MeHg.data.date$change_in_per_MeHg_norm)-2,
+           max(per.change.MeHg.data.date$change_in_per_MeHg_norm)+2) +
       xlab("") +
       ylab("Change in % Me198Hg") +
       ggtitle(paste(date.of.interest,
