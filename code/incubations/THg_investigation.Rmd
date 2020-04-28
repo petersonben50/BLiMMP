@@ -236,7 +236,7 @@ This tells the same story: consistent differences between t0 and t1 in both 204 
 This is particularly evident in both depths from July, 20.1m on the August sampling date, and 19.3m in October.
 At 14m in August and 16.18m in October, there is a noticable dip below the 1:1 line, which suggests that there is greater loss of T^204^Hg than T^198^Hg. 
 This is curious, since I would have imagined that the inorganic Hg was "stickier" than MeHg, and the ^204^Hg was all MeHg.
-Not sure what could cause this.
+Not sure what could cause this selective loss of MeHg.
 At 11.7m in August, 5 of the incubations toe the line.
 The other 4, however, exihibit substantial deviation above the line, suggesting there was a selective loss of ^198^Hg.
 I'm not sure why it would have only happened in this subset of incubations only.
@@ -247,4 +247,5 @@ There was no sulfide in the water at this depth, and sulfide was the only redox 
 ### Takeaways
 
 1. Take more time to ensure complete mixing of sample after injection of tracer.
-2. There may be some unexplained loss pathways of both ^198^Hg and Me^204^Hg
+2. There may be some unexplained loss pathways of both ^198^Hg and Me^204^Hg.
+3. However, overall, there doesn't seem to be specific loss of ^198^Hg, which is the one I'm most concerned about.
