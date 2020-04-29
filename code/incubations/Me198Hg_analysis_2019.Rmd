@@ -36,13 +36,14 @@ knitr::include_graphics(graph.path)
 
 Also looked at it as percent MeHg of total Hg pool.
 
-``` {r fraction MeHg BLiMMP_trip_003, echo=FALSE, out.width = "50%", out.height = "50%", message = FALSE}
+``` {r fraction MeHg BLiMMP_trip_003, echo=FALSE, out.width = "80%", out.height = "80%", message = FALSE}
 # Read in a PDF of the document
 graph.path <- "/Users/benjaminpeterson/Documents/research/BLiMMP/results/incubations/methylation/incubations2019/BLiMMP_003_per_Me198Hg.png"
 knitr::include_graphics(graph.path)
 
 ```
-Don't really change how it looks.
+
+Doesn't really change how it looks.
 
 Let's also visualize as the change in MeHg from t0 to t1.
 I calculated this as the excess Me^198^Hg at t=1 minus the excess Me^198^Hg at t=0, with no adjustment for samples below DL, then normalized that value to 24 hours of production, since many of these only incubated for 22 hours or so.
@@ -149,14 +150,14 @@ invisible(
 Again, I wanted to look at this as a fraction of total Hg pool.
 So, here we have the change in %MeHg from t0 to t1.
 
-``` {r change in fraction MeHg BLiMMP_trip_003, echo=FALSE, out.width = "50%", out.height = "50%", message = FALSE}
+``` {r change in fraction MeHg BLiMMP_trip_003, echo=FALSE, out.width = "100%", out.height = "100%", message = FALSE}
 # Read in a PDF of the document
 graph.path <- "/Users/benjaminpeterson/Documents/research/BLiMMP/results/incubations/methylation/incubations2019/BLiMMP_003_change_in_per_Me198Hg.png"
 knitr::include_graphics(graph.path)
 
 ```
 
-Doesn't change our interpretation much, if at all.
+Doesn't change our interpretation.
 
 #### Takeaways
 
@@ -175,7 +176,7 @@ The final depth was 20.1m, where sulfide had accumulated to relatively high leve
 Leucine uptake rates were highest at the sample from the oxic-anoxic interface, approximately twice as high as they were at the other two depths.
 Let's look at the Hg data.
 
-```{r MeHg BLiMMP_trip_005, echo = FALSE, out.height= "50%", out.width="60%"}
+```{r MeHg BLiMMP_trip_005, echo = FALSE, out.height= "75%", out.width="75%"}
 
 # Read in the PNG file with the incubation data
 graph.path <- "/Users/benjaminpeterson/Documents/research/BLiMMP/results/incubations/methylation/incubations2019/BLiMMP_trip_005_incubations.png"
@@ -186,11 +187,11 @@ Again, there was no detectable methylation under any condition in the uppermost 
 The two samples in the lower sections of the water column showed no production of MeHg in the filtered incubations.
 They showed approximately similar levels of MeHg production in the unfiltered, unamended sample, but the data was pretty noisy, with both having one replicate that showed little to no MeHg production.
 We'll look at those replicates later.
-Finally, when we added molybdate, the MeHg production shut down again, to pretty much the same levels we saw in the filtered controls.
+Finally, when we added molybdate, the MeHg production shut down, to pretty much the same levels we saw in the filtered controls.
 
 As before, here it is as fraction MeHg:
 
-```{r fraction MeHg BLiMMP_trip_005, echo = FALSE, out.height= "50%", out.width="60%"}
+```{r fraction MeHg BLiMMP_trip_005, echo = FALSE, out.height= "80%", out.width="80%"}
 
 # Read in the PNG file with the incubation data
 graph.path <- "/Users/benjaminpeterson/Documents/research/BLiMMP/results/incubations/methylation/incubations2019/BLiMMP_005_per_Me198Hg.png"
@@ -250,13 +251,14 @@ Viewing the data this way tells pretty much the same story.
 
 And finally, viewing it as change in %MeHg:
 
-```{r change in fraction MeHg BLiMMP_trip_005, echo = FALSE, out.height= "50%", out.width="60%"}
+```{r change in fraction MeHg BLiMMP_trip_005, echo = FALSE, out.height= "100%", out.width="100%"}
 
 # Read in the PNG file with the incubation data
 graph.path <- "/Users/benjaminpeterson/Documents/research/BLiMMP/results/incubations/methylation/incubations2019/BLiMMP_005_change_in_per_Me198Hg.png"
 include_graphics(graph.path)
 ```
 
+Same thing, no methylation at 11.7m, and molybdate shuts it down.
 
 
 Now, let's look at those anamolous incubations with low Me^198^Hg production.
@@ -356,9 +358,12 @@ Could be due to issue with overall levels of Hg in the bags, which I address bel
 
 One general point of concern is that even in the bags with sulfide remaining, the sulfide levels are substantially lower than what was in the water column when we originally collected it.
 If this is leakage of O~2~ into the bags, the sulfide may be acting as a redox buffer, consuming the O~2~, preserving the microbial community and allowing it to continue methylating.
-This would complicate our finding of no methylation occurring in the non-sulfidic incubations, which is obviously problematic.
-I think I can test for this though.
-If it is O~2~ leakage, we would expect the oxidized sulfide to have been converted to sulfate.
+If this is the case, the non-sulfidic samples would have no such redox buffer, and any O~2~ leakage would destroy the redox conditions.
+If this is the case, the lack of methylation in the non-sulfidic samples could simply be due to the oxidation of the water.
+I didn't collect samples for filter-passing vs. particulate Mn, and so can't tell if this was the case.
+
+The other alternative, which has been seen in another study, is that the sulfide is adsorbing to the bag.
+If it is O~2~ leakage, we would expect the oxidized sulfide to have been converted to sulfate, but if it adsorbed to the bag, that sulfide is simply gone.
 Once I can get back in the lab, I'll analyze these samples for sulfate, to see if the sulfide has indeed been oxidized to sulfate.
 
 Another potential reason the MeHg production in BLiMMP_MA_0051 is so low would be if we had lost a bunch of the overall ^198^Hg pool.
@@ -388,7 +393,7 @@ If we get a chance to analyze that, we'll look to that for answers, otherwise we
 
 #### Takeaways
 
-1. Once again, we only see biotic MeHg production in the regions of the water column with detectable sulfide accumulation.
+1. Once again, we only see biotic MeHg production in the regions of the water column with substantial sulfide accumulation.
 2. Errant data can sometimes be explained by the ancillary data we're collecting (BLiMMP_MA_0042), but not necessarily always (BLiMMP_MA_0051).
 3. Molybdate amendment strongly inhibits the production of MeHg.
 
