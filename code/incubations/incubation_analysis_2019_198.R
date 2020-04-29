@@ -6,7 +6,9 @@
 rm(list = ls())
 setwd("/Users/benjaminpeterson/Documents/research/BLiMMP/")
 library(dplyr)
+library(ggplot2)
 library(lubridate)
+library(patchwork)
 library(readxl)
 library(tidyr)
 
@@ -695,7 +697,7 @@ plot.date.data <- function(date.of.interest,
     
     depth.of.interest.m <- paste(depth.of.interest, "m", sep = "")
     
-    plot.list[[depth.number]] <- per.change.MeHg.data.date %>%
+    plot.list[[depth.number]] <<- per.change.MeHg.data.date %>%
       filter(depth == depth.of.interest) %>%
       mutate(treatment = gsub("-", "\n", treatment)) %>%
       mutate(treatment = factor(treatment, levels = names(color.vector))) %>%
@@ -714,15 +716,8 @@ plot.date.data <- function(date.of.interest,
                     ": ",
                     depth.of.interest.m,
                     sep = ""))
-    
   }
-  
-  if (length(plot.list) == 2) {
-    plot.list[[3]] <- ggplot() + theme_void()
-  }
-  
-  plot.list[[1]] + plot.list[[2]] + plot.list[[3]]
-  
+
 }
 
 
@@ -732,31 +727,55 @@ plot.date.data <- function(date.of.interest,
 png("results/incubations/methylation/incubations2019/BLiMMP_003_change_in_per_Me198Hg.png",
     units = "in",
     res = 240,
-    width = 8,
+    width = 6,
     height = 4)
 plot.list <- list()
-plot.date.data("2019-07-30",
+plot.date.data(date.of.interest = "2019-07-30",
                color.vector = color.vector.003)
+if (length(plot.list) == 2) {
+  plot.list[[1]] + plot.list[[2]]
+}
+
+if (length(plot.list) == 3) {
+  plot.list[[1]] + plot.list[[2]] + plot.list[[3]]
+}
+
 dev.off()
 
 png("results/incubations/methylation/incubations2019/BLiMMP_005_change_in_per_Me198Hg.png",
     units = "in",
     res = 240,
-    width = 8,
+    width = 10,
     height = 4)
 plot.list <- list()
 plot.date.data("2019-08-30",
                color.vector = color.vector.005)
+if (length(plot.list) == 2) {
+  plot.list[[1]] + plot.list[[2]]
+}
+
+if (length(plot.list) == 3) {
+  plot.list[[1]] + plot.list[[2]] + plot.list[[3]]
+}
+
 dev.off()
 
 
 png("results/incubations/methylation/incubations2019/BLiMMP_006_change_in_per_Me198Hg.png",
     units = "in",
     res = 240,
-    width = 8,
+    width = 10,
     height = 4)
 plot.list <- list()
 plot.date.data("2019-10-08",
                color.vector = color.vector.006)
+if (length(plot.list) == 2) {
+  plot.list[[1]] + plot.list[[2]]
+}
+
+if (length(plot.list) == 3) {
+  plot.list[[1]] + plot.list[[2]] + plot.list[[3]]
+}
+
 dev.off()
 
