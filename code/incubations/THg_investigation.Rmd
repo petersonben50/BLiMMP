@@ -64,6 +64,7 @@ However, if #2 is the case, I would expect that 204 and 198 would track perfectl
 
 So, I wanted to look at the ratios of ^204^Hg to ^198^Hg, first just at the raw numbers, then the shift between the two time points.
 We'll look at the ratios for each date and depth separately, just to cut down on the noise.
+The solid line is a 1:1 line.
 
 ```{r 198vs204 2019-08-30, fig.width = 15, fig.height = 5, echo=FALSE}
 
@@ -136,7 +137,7 @@ for (date.of.interest in unique(THg.data.all$startDate) %>% sort()) {
 As expected, the ratios fall pretty tightly onto a 1:1 line.
 This is encouraging, since the two isotopes were injected at a 1:1 ratio.
 If we were to see substantial loss of Hg to the sides of the bag, I would think that the ability of the MeHg to absorb to the side of the bag would be substantially different than that of Hg, and we would see some systematic deviation from the 1:1 line.
-Since we don't see that, I'm encouraged that we're not losing a substantial portion of MeHg to the sides of the bag.
+Since we don't see that, I'm encouraged that we're not systematically losing a substantial portion of Hg to the sides of the bag.
 
 However, there are some exceptions here.
 The four most apparent as being divergent are from the same date, depth, and time point, 2019-08-30, 11.7m, and t=1.
@@ -153,9 +154,9 @@ The line is deviating below the line, suggesting that it's a lost of ^204^Hg.
 However, both the t1 and t0 samples fall on a similar line, suggesting that the loss pathway happened before they were even injected into the bags.
 
 Still, need to expain the systematic deviation from t0 to t1 in total Hg.
-I think it's likely due to the mixing of the bag before sampling t0.
-The spread looks better from the October trip than the August one, and I remember being more thorough about mixing before sampling.
-I think I need to ensure that I'm doing a good job of purging the spike out of the rubber tubing before mixing occurs.
+I think it's likely due to poor mixing of the tracer injection into bag before sampling t0.
+The spread looks better from the October trip than the August one, and we were more thorough in October about purging the spike out of the rubber tubing and mixing the tracer into the sample.
+
 
 
 #### Ratio of loss of 198 to loss of 204
@@ -235,7 +236,7 @@ For many of the samples, we see the samples toeing the 1:1 line.
 This tells the same story: consistent differences between t0 and t1 in both 204 and 198 isotopes, suggesting that the discrepancy is due to sampling efforts rather than loss to container walls.
 This is particularly evident in both depths from July, 20.1m on the August sampling date, and 19.3m in October.
 At 14m in August and 16.18m in October, there is a noticable dip below the 1:1 line, which suggests that there is greater loss of T^204^Hg than T^198^Hg. 
-This is curious, since I would have imagined that the inorganic Hg was "stickier" than MeHg, and the ^204^Hg was all MeHg.
+This is curious, since I would have imagined that the inorganic Hg was "stickier" than MeHg, and since the ^204^Hg was all MeHg, that we would have seen selective loss of ^198^Hg.
 Not sure what could cause this selective loss of MeHg.
 At 11.7m in August, 5 of the incubations toe the line.
 The other 4, however, exihibit substantial deviation above the line, suggesting there was a selective loss of ^198^Hg.
