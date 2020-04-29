@@ -503,16 +503,14 @@ include_graphics(graph.path)
 
 Some of the findings from our previous incubations are confirmed here.
 First, there is no abiotic MeHg production, but we do see MeHg production at both depths with sulfide accumulations.
-It seems to be higher in the metalimnion, but we only have two replicates and the data is rather noisy.
 We didn't have any anoxic depths without sulfide accumulation to compare, as we did at the other dates.
-It's impossible to say for sure with the small number of samples, but it does look like MeHg production might be a little higher in the upper sample (16.2m), which is consistent with the higher heterotrophic activity at that depth.
+It's impossible to say for sure with the small number of samples, but it does look like MeHg production might be a little higher in the metalimnetic sample (16.2m), which is consistent with the higher heterotrophic activity at that depth.
 Once again, molybdate addition completely eliminates MeHg production.
 
 Surprisingly, the starch and algal amendments result in a decrease in MeHg production.
 The algal biomass resulted in a greater decrease of methylation than starch at 16.2m.
 At 19.3m, one of the starch-amended incubations had lower MeHg production, but we also saw a complete loss of sulfide in that bag (see below).
 Finally, adding starch and molybdate also completely knocked out methylation.
-This response is curious.
 
 One potential explanation would be if the injection resulted in a change in the redox status of the bags.
 We didn't inject sterile water into the ambient conditions as a way to control for effects of just injecting anything into the sample, likely as a way for O~2~ to get in, but it is unlikely that this would have that large of an impact.
@@ -610,7 +608,7 @@ That incubation was also completely out of sulfide, suggesting some O~2~ intrusi
 
 I had hypothesized that the amendments of starch and algal biomass would have amped up MeHg production due to a ramping up of whole community metabolism, so let's check out the leucine uptake data.
 We'll look at this as µg of bacterial carbon production per liter per hour, which we've calculated based on the leucine uptake rates, same as we did for the water column samples.
-We only did this from incubations at 16.18m on 2019-10-08 (BLiMMP_sample_0034).
+We only did this on a subset of incubations at 16.18m on 2019-10-08 (BLiMMP_sample_0034).
 Let's take the average of the original leucine uptake assay and get an average for it, then find the fractional change between that and each of our samples, just to see how different they really are.
 We took two samples from each incubation, so two dots correspond to one bag.
 
