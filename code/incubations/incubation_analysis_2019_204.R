@@ -272,7 +272,7 @@ plot.per.Me204Hg.time.course.depth <- function(selected.depth,
              col = color.vector[trip_data_depth_segments$treatment[row.num]])
   }
   
-  title(ylab = "Fraction MeHg for 204Hg",
+  title(ylab = "Percent MeHg for 204Hg",
         line = 1.75)
   
   legend("topright",

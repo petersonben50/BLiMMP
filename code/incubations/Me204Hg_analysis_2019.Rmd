@@ -15,7 +15,6 @@ cb.translator <- readRDS("/Users/benjaminpeterson/Box/ancillary_science_stuff/co
 
 
 In this document, I'll go through the Me204Hg data we collected from the 2019 MeHg production assays.
-In here, I'm mostly checking to see if we can get any interesting detectable signatures from the amended MeHg.
 
 First, I just looked at the raw values of Me204Hg across the incubations.
 Note that the scales are consistent at each depth within a sampling date, but are different across the different dates.
@@ -38,7 +37,7 @@ knitr::include_graphics(graph.path)
 ```
 
 Looking at it this way, there's a little more variability, with some concerning values.
-The samples from 2019-07-30 are odd, with MeHg fractions reaching up int 115-140%, which should not be the case, obviously.
+The samples from 2019-07-30 are odd, with MeHg fractions reaching up int 115-140%, which should not be the case.
 We analyzed both MeHg and THg from the same samples, stored in 1% HCl.
 Some sort of preservation issue, with loss of 204Hg over time?
 Not exactly sure what's going on here.
@@ -52,7 +51,7 @@ It is likely the former, since we see a consistent decrease across all condition
 
 We see this again on 2019-10-08.
 At 16.2m , the start values are pretty variable, ranging from ~70% to just under 100%.
-However, it does seem that once the incubation starts, the values remain relatively constant.
+However, once the incubation starts, the values drop slightly.
 At 19.3m, the start values have dropped even more, and we're starting at around 60% MeHg.
 This one seems to have a more consistent drop over time though.
 Let's look at them at a change over the course of the incubation.
@@ -178,6 +177,10 @@ At 14m, there is no different in MeHg change across the different conditions.
 There does seem to be a decrease in the fraction of MeHg across all 3 samples though, but only about 5-10%.
 
 At 20.1m, there is also a general small decrease in MeHg, and is slightly more pronounced in the filtered controls, getting down to 20-30% decrease, as opposed to the ~10% decrease under the other two conditions.
+Wonder if this is due to elimination of biotic MeHg production, so that replenishment of MeHg by methylation in the unfiltered samples means there's less of a demethylation signature?
+But, molybdate knocks out methylation too... so that can't be it...
+
+Finally, the October samples, BLiMMP_006
 
 ```{r change in percent MeHg October, echo=FALSE, fig.width = 9, fig.height = 4, echo=FALSE, message = FALSE}
 
@@ -234,7 +237,7 @@ plot.list[[1]] + plot.list[[2]]
 This data is super noisy.
 Seems to be more drastic decreases in the deepest levels, at 19.3m.
 These are the samples where the fraction MeHg is already super low at the beginning (50-70% or so).
-This drop holds up in the filtered samples, so there is likely an abiotic mechanism at play.
+This drop holds up in the filtered samples, so again, support for it being an abiotic mechanism.
 
 ### Takeaways
 
@@ -242,5 +245,5 @@ Not many.
 There is some demethylation occurring, but it doesn't seem to be biologically mediated, since we see it in the filtered samples too.
 There seems to be increasing amounts of demethylation deeper in the water column, with increased sulfide.
 Additionally, this process can happen quickly and in our preincubation step, since the samples at 19.3m in October had well under 100% MeHg at t0.
-Molybdate-amendment doesn't appear to have a clear impact on MeHg production.
+Molybdate-amendment doesn't appear to have a clear impact on MeHg degradation.
 For the other amendments, there weren't enough reps and the data was too noisy to get a clear signal.
