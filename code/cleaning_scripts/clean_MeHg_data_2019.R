@@ -544,3 +544,33 @@ write.csv(WC.MeHg,
 #### Which samples haven't been analyzed? ####
 
 unanalyzed.samples <- all.metadata$bottleID[which(!(all.metadata$bottleID %in% ambient.MeHg$bottleID))]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#### Read out all data with metadata ####
+
+MeHg.results <- read.csv("dataEdited/incubations/MeHg/incubations2019_MeHg_all.csv",
+                         stringsAsFactors = FALSE)
+
+all.MeHg <- MeHg.results %>%
+  left_join(all.metadata) %>%
+  select(bottleID, incubationID, sampleID, tripID, startDate, depth, treatment, t, amb_MeHg_ng.L, excess_MeHg_198_ng.L, excess_MeHg_204_ng.L, excess_DDL) %>%
+  arrange(t) %>%
+  arrange(treatment) %>%
+  arrange(sampleID)
+write.csv(all.MeHg,
+          "dataEdited/incubations/MeHg/incubations2019_MeHg_all_metadata.csv",
+          row.names = FALSE)
+
