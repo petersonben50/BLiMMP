@@ -83,26 +83,26 @@ However, at 20m, we see appreciable amounts of MeHg being produced.
 Two of the incubations (BLiMMP_MA_0022 and 0023) produce approximately 0.03ng/L of MeHg in 24 hours, but the third incubation (BLiMMP_MA_0021) was substantially lower.
 For this incubation, I had noted in my field notes that I did not mix this bag well between injecting the tracer and retrieving the t0 sample.
 Thus, I likely withdrew most of the tracer before it had time to mix in.
-Let's check out the THg data to see if this is the case.
+Let's check out the T^198^Hg data to see if this is the case.
 
 ``` {r check total Hg from BLiMMP_003, echo=FALSE, message=FALSE}
 Hg.data <- read.csv("/Users/benjaminpeterson/Documents/research/BLiMMP/dataEdited/incubations/THg/incubations2019_THg.csv", stringsAsFactors = FALSE) %>%
   filter(tripID == "BLiMMP_trip_003",
          depth == 20) %>%
   select(incubationID, t, THg_198) %>%
-  mutate(t = paste("THg at ",
+  mutate(t = paste("T^198^Hg at ",
                    t,
                    sep = "")) %>%
   spread(t, THg_198) %>%
   left_join(MeHg.data %>%
               select(incubationID, Me198Hg_production)) %>%
   arrange(incubationID)
-kable(Hg.data, caption = "THg levels in BLiMMPP_003 incubations at 20m")
+kable(Hg.data, caption = "Table 1. T^198^Hg levels in BLiMMPP_003 (July) incubations at 20m")
 
 ```
 
-We can see that the initial THg count is much higher, suggesting that we did in fact not mix things in properly.
-However, it's not that much higher and the final THg value is still pretty high, so unlikely that the lower MeHg production is completely due to pulling out all the ^198^Hg during the t=0 sample.
+We can see that the initial T^198^Hg count is much higher, which might suggested that we did in fact not mix things in properly.
+However, there is still almost 1ng/L of T^198^Hg in the bag at the end of the incubation, so unlikely that the lower MeHg production is completely due to pulling out all the ^198^Hg during the t=0 sample.
 
 Additionally, I noticed that the sulfide levels in this bag at the end of the incubation were substantially lower than in the other bags from this depth.
 I doubt this is related to withdrawing the spike early, more likely just some O~2~ intrusion into the bag, which could also account for the lower Me^198^Hg production. 
@@ -374,14 +374,14 @@ Hg.data <- read.csv("/Users/benjaminpeterson/Documents/research/BLiMMP/dataEdite
   filter(tripID == "BLiMMP_trip_005",
          depth == 20.1) %>%
   select(incubationID, t, treatment, THg_198) %>%
-  mutate(t = paste("THg at ",
+  mutate(t = paste("T^198^Hg at ",
                    t,
                    sep = "")) %>%
   spread(t, THg_198) %>%
   left_join(MeHg.data %>%
               select(incubationID, Me198Hg_production)) %>%
   arrange(incubationID)
-kable(Hg.data, caption = "THg levels in BLiMMPP_003 incubations at 20m")
+kable(Hg.data, caption = "Table 2. T^198^Hg levels in BLiMMPP_005 (August) incubations at 20.1m")
 
 ```
 
