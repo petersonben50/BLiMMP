@@ -186,6 +186,38 @@ write.csv(MeHg.results,
           "dataEdited/incubations/MeHg/incubations2019_MeHg_all.csv",
           row.names = FALSE)
 
+
+#### Read out dataframe with dates of analysis for each sample ####
+for (file.name in list.o.results) {
+  if (file.name == list.o.results[1]) {
+    analysis.date.file <- read.csv(file.name,
+                             stringsAsFactors = FALSE) %>%
+      select(bottleID) %>%
+      mutate(dateAnalyzed = gsub(pattern = "dataEdited/incubations/MeHg/cleaned/incubations2019_",
+                                 replacement = "",
+                                 file.name) %>%
+               gsub(".csv", "", .) %>%
+               ymd())
+  } else {
+    temp.results <- read.csv(file.name,
+                             stringsAsFactors = FALSE) %>%
+      select(bottleID) %>%
+      mutate(dateAnalyzed = gsub(pattern = "dataEdited/incubations/MeHg/cleaned/incubations2019_",
+                                 replacement = "",
+                                 file.name) %>%
+               gsub(".csv", "", .) %>%
+               ymd())
+    analysis.date.file <- rbind(analysis.date.file,
+                                temp.results)
+  }
+  
+}
+
+write.csv(analysis.date.file,
+          "dataEdited/incubations/MeHg/incubations2019_dates_of_analysis.csv",
+          row.names = FALSE)
+
+
 rm(list.o.results,
    file.name)
 
