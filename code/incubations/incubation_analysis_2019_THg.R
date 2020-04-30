@@ -46,6 +46,9 @@ plot.THg.time.course.depth <- function(selected.depth,
   } else if (isotope == 204) {
     trip_data <- trip_data %>%
       rename(THg_ng_L = THg_204)
+  } else if (isotope == "amb") {
+    trip_data <- trip_data %>%
+      rename(THg_ng_L = amb_Hg)
   } else {
     break
   }
@@ -113,11 +116,18 @@ plot.THg.time.course.depth <- function(selected.depth,
              col = color.vector[trip_data_depth_segments$treatment[row.num]])
   }
   
-  title(ylab = paste("Excess T",
-                     isotope,
-                     "Hg (ng/L)",
-                     sep = ""),
-        line = 1.75)
+  if (is.numeric(isotope)) {
+    # Add name 
+    title(ylab = paste("Excess T",
+                       isotope,
+                       "Hg (ng/L)",
+                       sep = ""),
+          line = 1.75)
+  } else if (isotope == "amb") {
+    title(ylab = "Ambient THg (ng/L)",
+          line = 1.75)
+  }
+  
   
   legend("topleft",
          legend =  names(color.vector)[length(color.vector):1],
@@ -303,6 +313,94 @@ sapply(X = sort(unique(trip_data_df$depth)),
                                     trip_data = trip_data_df,
                                     color.vector.input = color.vector.006,
                                     isotope = 204)
+       }
+)
+
+dev.off()
+
+
+
+
+
+
+
+
+
+#### Plot ambient THg data for each depth within a trip ####
+
+png("results/incubations/ambient_Hg/ambient_THg_incubations.png",
+    units = "in",
+    res = 240,
+    height = 10,
+    width = 8)
+par(mfrow = c(3, 3))
+
+
+
+color.vector.003 <- c(cb.translator["bluishgreen"],
+                      cb.translator["vermillion"])
+names(color.vector.003) <- c("unfiltered-unamended",
+                             "filtered-unamended")
+trip.of.interest <- "BLiMMP_trip_003"
+trip_data_df <- THg.data %>%
+  filter(tripID == trip.of.interest)
+sapply(X = sort(unique(trip_data_df$depth)),
+       function(x) {
+         plot.THg.time.course.depth(x,
+                                    trip_data = trip_data_df,
+                                    color.vector.input = color.vector.003,
+                                    isotope = "amb")
+       }
+)
+empty.plot()
+
+
+
+# Trip 005
+
+color.vector.005 <- c(cb.translator["vermillion"],
+                      cb.translator["bluishgreen"],
+                      cb.translator["black"])
+names(color.vector.005) <- c("filtered-unamended",
+                             "unfiltered-unamended",
+                             "unfiltered-molybdate")
+
+trip.of.interest <- "BLiMMP_trip_005"
+trip_data_df <- THg.data %>%
+  filter(tripID == trip.of.interest)
+sapply(X = sort(unique(trip_data_df$depth)),
+       function(x) {
+         plot.THg.time.course.depth(x,
+                                    trip_data = trip_data_df,
+                                    color.vector.input = color.vector.005,
+                                    isotope = "amb")
+       }
+)
+
+
+color.vector.006 <- c(cb.translator["vermillion"],
+                      cb.translator["bluishgreen"],
+                      cb.translator["black"],
+                      cb.translator["orange"],
+                      cb.translator["blue"],
+                      cb.translator["reddishpurple"])
+names(color.vector.006) <- c("filtered-unamended",
+                             "unfiltered-unamended",
+                             "unfiltered-molybdate",
+                             "unfiltered-starch",
+                             "unfiltered-starch-molybdate",
+                             "unfiltered-algal")
+
+trip.of.interest <- "BLiMMP_trip_006"
+trip_data_df <- THg.data %>%
+  filter(tripID == trip.of.interest)
+
+sapply(X = sort(unique(trip_data_df$depth)),
+       function(x) {
+         plot.THg.time.course.depth(x,
+                                    trip_data = trip_data_df,
+                                    color.vector.input = color.vector.006,
+                                    isotope = "amb")
        }
 )
 
