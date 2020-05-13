@@ -38,7 +38,9 @@ empty.plot <- function(x) {
 plot.THg.time.course.depth <- function(selected.depth,
                                        trip_data,
                                        color.vector.input = NULL,
-                                       isotope = 198) {
+                                       isotope = 198,
+                                       unamended.only = FALSE,
+                                       amended.only = FALSE) {
   
   if (isotope == 198) {
     trip_data <- trip_data %>%
@@ -53,9 +55,11 @@ plot.THg.time.course.depth <- function(selected.depth,
     break
   }
   
+  # Isolate data from trip
   trip_data <- trip_data %>%
     select(incubationID, startDate, depth, treatment, t, THg_ng_L)
   
+
   sampling.date <- trip_data$startDate[1]
   
   par(mar=c(3,3,2.5,1), mgp=c(1.5,0.4,0), tck=-0.008)
@@ -66,6 +70,26 @@ plot.THg.time.course.depth <- function(selected.depth,
   # Isolate by depth
   trip_data_depth <- trip_data %>%
     filter(depth == selected.depth)
+  
+  # Do we want amended, unamended, or both?
+  if (unamended.only == TRUE & amended.only == TRUE) {
+    print("Can't have both unamended only and amended only")
+    break()
+  }
+  
+  if (unamended.only == TRUE) {
+    trip_data_depth <- trip_data_depth %>%
+      filter(treatment %in% c("unfiltered-unamended",
+                              "filtered-unamended"))
+  }
+  
+  if (amended.only == TRUE) {
+    trip_data_depth <- trip_data_depth %>%
+      filter(!(treatment %in% c("unfiltered-unamended",
+                                "filtered-unamended")))
+  }
+  
+  
   
   #### Make a color vector ####
   if (is.null(color.vector.input)) {
@@ -401,6 +425,139 @@ sapply(X = sort(unique(trip_data_df$depth)),
                                     trip_data = trip_data_df,
                                     color.vector.input = color.vector.006,
                                     isotope = "amb")
+       }
+)
+
+dev.off()
+
+
+
+
+
+
+
+
+
+#### Plot ambient THg data from unamended incubations only ####
+
+png("results/incubations/ambient_Hg/ambient_THg_incubations_unamended.png",
+    units = "in",
+    res = 240,
+    height = 10,
+    width = 8)
+
+
+# Color vector for unamended incubations
+color.vector.unamend <- c(cb.translator["bluishgreen"],
+                          cb.translator["vermillion"])
+names(color.vector.unamend) <- c("unfiltered-unamended",
+                                 "filtered-unamended")
+par(mfrow = c(3, 3))
+
+# Trip 003
+trip.of.interest <- "BLiMMP_trip_003"
+trip_data_df <- THg.data %>%
+  filter(tripID == trip.of.interest)
+sapply(X = sort(unique(trip_data_df$depth)),
+       function(x) {
+         plot.THg.time.course.depth(x,
+                                    trip_data = trip_data_df,
+                                    color.vector.input = color.vector.unamend,
+                                    isotope = "amb",
+                                    unamended.only = TRUE)
+       }
+)
+empty.plot()
+
+
+# Trip 005
+trip.of.interest <- "BLiMMP_trip_005"
+trip_data_df <- THg.data %>%
+  filter(tripID == trip.of.interest)
+sapply(X = sort(unique(trip_data_df$depth)),
+       function(x) {
+         plot.THg.time.course.depth(x,
+                                    trip_data = trip_data_df,
+                                    color.vector.input = color.vector.unamend,
+                                    isotope = "amb",
+                                    unamended.only = TRUE)
+       }
+)
+
+# Trip 006
+trip.of.interest <- "BLiMMP_trip_006"
+trip_data_df <- THg.data %>%
+  filter(tripID == trip.of.interest)
+
+sapply(X = sort(unique(trip_data_df$depth)),
+       function(x) {
+         plot.THg.time.course.depth(x,
+                                    trip_data = trip_data_df,
+                                    color.vector.input = color.vector.unamend,
+                                    isotope = "amb",
+                                    unamended.only = TRUE)
+       }
+)
+
+dev.off()
+
+
+
+
+
+
+
+
+
+
+#### Plot ambient THg data from amended incubations only ####
+
+png("results/incubations/ambient_Hg/ambient_THg_incubations_amended.png",
+    units = "in",
+    res = 240,
+    height = 10,
+    width = 8)
+
+
+# Color vector for amended incubations
+color.vector.amended <- c(cb.translator["black"],
+                          cb.translator["orange"],
+                          cb.translator["blue"],
+                          cb.translator["reddishpurple"])
+names(color.vector.amended) <- c("unfiltered-molybdate",
+                                 "unfiltered-starch",
+                                 "unfiltered-starch-molybdate",
+                                 "unfiltered-algal")
+
+par(mfrow = c(2, 3))
+
+
+# Trip 005
+trip.of.interest <- "BLiMMP_trip_005"
+trip_data_df <- THg.data %>%
+  filter(tripID == trip.of.interest)
+sapply(X = sort(unique(trip_data_df$depth)),
+       function(x) {
+         plot.THg.time.course.depth(x,
+                                    trip_data = trip_data_df,
+                                    color.vector.input = color.vector.amended,
+                                    isotope = "amb",
+                                    amended.only = TRUE)
+       }
+)
+
+# Trip 006
+trip.of.interest <- "BLiMMP_trip_006"
+trip_data_df <- THg.data %>%
+  filter(tripID == trip.of.interest)
+
+sapply(X = sort(unique(trip_data_df$depth)),
+       function(x) {
+         plot.THg.time.course.depth(x,
+                                    trip_data = trip_data_df,
+                                    color.vector.input = color.vector.amended,
+                                    isotope = "amb",
+                                    amended.only = TRUE)
        }
 )
 

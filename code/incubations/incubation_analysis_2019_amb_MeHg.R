@@ -52,8 +52,10 @@ empty.plot <- function(x) {
 #### Function to plot change in ambient MeHg for each depth on a given trip ####
 
 plot.MeHg.time.course.depth <- function(selected.depth,
-                                           trip_data,
-                                           color.vector.input = NULL) {
+                                        trip_data,
+                                        color.vector.input = NULL,
+                                        unamended.only = FALSE,
+                                        amended.only = FALSE) {
   
   par(mar=c(3,3,2.5,1), mgp=c(1.5,0.4,0), tck=-0.008)
   
@@ -64,6 +66,25 @@ plot.MeHg.time.course.depth <- function(selected.depth,
   # Isolate by depth
   trip_data_depth <- trip_data %>%
     filter(depth == selected.depth)
+  
+  if (unamended.only == TRUE & amended.only == TRUE) {
+    print("Can't have both unamended only and amended only")
+    break()
+  }
+  
+  if (unamended.only == TRUE) {
+    trip_data_depth <- trip_data_depth %>%
+      filter(treatment %in% c("unfiltered-unamended",
+                              "filtered-unamended"))
+  }
+  
+  if (amended.only == TRUE) {
+    trip_data_depth <- trip_data_depth %>%
+      filter(!(treatment %in% c("unfiltered-unamended",
+                              "filtered-unamended")))
+  }
+  
+  
   
   #### Make a color vector ####
   if (is.null(color.vector.input)) {
@@ -131,15 +152,19 @@ plot.MeHg.time.course.depth <- function(selected.depth,
 #### Function to run plotting function over each depth ####
 
 plot.MeHg.changes <- function(trip.of.interest,
-                              color.input = NULL) {
+                              color.input = NULL,
+                              unamended.only.input = FALSE,
+                              amended.only.input = FALSE) {
   trip_data_df <- MeHg.data %>%
     filter(tripID == trip.of.interest) %>%
     select(incubationID, depth, startDate, t, treatment, amb_MeHg_ng.L)
   sapply(unique(trip_data_df$depth) %>% sort(),
          function(depth) {
            plot.MeHg.time.course.depth(selected.depth = depth,
-                                          trip_data = trip_data_df,
-                                          color.vector.input = color.input)
+                                       trip_data = trip_data_df,
+                                       color.vector.input = color.input,
+                                       unamended.only = unamended.only.input,
+                                       amended.only = amended.only.input)
          }
   )
 }
@@ -150,7 +175,7 @@ plot.MeHg.changes <- function(trip.of.interest,
 
 
 
-#### Plot out change in MeHg depths ####
+#### Plot out change in ambient MeHg ####
 
 # For 006
 color.vector.006 <- c(cb.translator["black"],
@@ -183,6 +208,66 @@ empty.plot()
 dev.off()
 
 
-rm(amb_MeHg_ng.L,
-   MeHg.data,
+
+
+
+#### Plot out change in ambient MeHg from unamended samples ####
+
+png("results/incubations/ambient_Hg/ambient_MeHg_incubations_unamended.png",
+    units = "in",
+    res = 240,
+    width = 10,
+    height = 12)
+
+# Color vector for unamended incubations
+color.vector.unamend <- c(cb.translator["bluishgreen"],
+                          cb.translator["vermillion"])
+names(color.vector.unamend) <- c("unfiltered-unamended",
+                             "filtered-unamended")
+par(mfrow = c(3, 3))
+plot.MeHg.changes(trip.of.interest = "BLiMMP_trip_003",
+                  color.input = color.vector.unamend,
+                  unamended.only.input = TRUE)
+empty.plot()
+plot.MeHg.changes(trip.of.interest = "BLiMMP_trip_005",
+                  color.input = color.vector.unamend,
+                  unamended.only.input = TRUE)
+plot.MeHg.changes(trip.of.interest = "BLiMMP_trip_006",
+                  color.input = color.vector.unamend,
+                  unamended.only.input = TRUE)
+dev.off()
+
+
+
+
+
+#### Plot out change in ambient MeHg from amended samples ####
+
+png("results/incubations/ambient_Hg/ambient_MeHg_incubations_amended.png",
+    units = "in",
+    res = 240,
+    width = 10,
+    height = 12)
+
+# Color vector for amended incubations
+color.vector.amended <- c(cb.translator["black"],
+                          cb.translator["orange"],
+                          cb.translator["blue"],
+                          cb.translator["reddishpurple"])
+names(color.vector.amended) <- c("unfiltered-molybdate",
+                                 "unfiltered-starch",
+                                 "unfiltered-starch-molybdate",
+                                 "unfiltered-algal")
+par(mfrow = c(2, 3))
+plot.MeHg.changes(trip.of.interest = "BLiMMP_trip_005",
+                  color.input = color.vector.amended,
+                  amended.only.input = TRUE)
+plot.MeHg.changes(trip.of.interest = "BLiMMP_trip_006",
+                  color.input = color.vector.amended,
+                  amended.only.input = TRUE)
+dev.off()
+
+
+
+rm(MeHg.data,
    plot.MeHg.changes)
