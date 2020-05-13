@@ -13,13 +13,14 @@ This document has my notes on the levels of ambient Hg (both THg and MeHg) in th
 I'm mostly interested in seeing if we have loss of MeHg and or overall THg to the walls over the course of the incubation.
 Note, this metric isn't perfect, because we incubated the sample in the bags for 24 hours before starting the tracer experiment, so we could have had Hg loss to the walls before t0.
 I did collect an ambient Hg sample from most of these dates/depths before incubations, but we have not analyzed them yet, so I don't know what they are.
-With all that said, this should still be informative.
+With that said, this should still be informative.
 
-First I looked at the ambient THg levels:
+First I looked at the ambient THg levels.
+To simplify it a bit, we'll just look at the ambient conditions first (unfiltered and filtered, no metabolic amendments).
 
-```{r THg levels incubations, message=FALSE, echo=FALSE}
+```{r THg levels incubations unamended, message=FALSE, echo=FALSE}
 
-knitr::include_graphics("/Users/benjaminpeterson/Documents/research/BLiMMP/results/incubations/ambient_Hg/ambient_THg_incubations.png")
+knitr::include_graphics("/Users/benjaminpeterson/Documents/research/BLiMMP/results/incubations/ambient_Hg/ambient_THg_incubations_unamended.png")
 
 ```
 
@@ -31,40 +32,70 @@ The August trip is a whole different story though.
 Most of the t0 samples look pretty good.
 They're around 1ng/L at 11.7m and 14m, which is maybe a little high for what we would expect at 11.7m, but pretty reasonable, and 1.5-2.0 ng/L at 20.1m.
 However, at t1, most of these skyrocket, increasing by as much as 2ng/L. It's not consistent though, some incubations see only a small increase (0.2ng/L).
-These samples were all analyzed on different days, which makes me think that it isn't due to analysis error or contamination during analysis prep, but during the sampling.
+In October, the results calm down a little bit.
+There's one high t0 sample at the lowest depth.
+
+I then looked at the amended incubations.
+
+```{r THg levels incubations amended, message=FALSE, echo=FALSE}
+
+knitr::include_graphics("/Users/benjaminpeterson/Documents/research/BLiMMP/results/incubations/ambient_Hg/ambient_THg_incubations_amended.png")
+
+```
+
+Same story in August, some really high values at t1, but a few that are more normal.
+In October, there's more evidence for contamination during the t0 sampling event, with a few samples hovering around the 3-4ng/l range, which is much too high.
+The t1 samples don't look to be affected though.
+So what gives?
+
+The high samples were all analyzed on different days, which makes me think that it isn't due to analysis error or contamination during analysis prep, but contamination during the sampling.
 I feel like I used a mix of syringes during t1 sampling in August, and some of those were used in t0 sampling in October, where we also see several samples waaaayyyy too high in THg.
 Could be other causes too... maybe contaminated PETG bottles?
-Either way, should be sure to be extra careful about where I'm getting my sampling supplies this year, and make sure I keep it consistent.
+Either way, should be sure to be extra careful about where I'm getting my sampling supplies this year, test them out, and make sure I keep it consistent across all incubations.
+Of the samples without outrageous t0 or t1 samples, it doesn't look like we're having systematic Hg loss, but it's impossible to tell with all the contamination.
 
-In October, as mentioned before, we see some contaminated samples at t0, but none in t1.
-Of the samples without outrageous t0 or t1 samples, it doesn't look like we're having systematic Hg loss, but it's impossible to tell what's contaminated and what isn't.
-Gotta be more careful about this next year.
+
+
+
+#### Ambient MeHg levels
 
 Let's look at MeHg.
-Note, while the loss of THg would probably indicate evasion of Hg to the walls, loss of MeHg could simply be due to demethylation.
+Note, the loss of ambient MeHg could be due to either demethylation in the bags or evasion to the walls.
+With the THg contamination, we can't really determine which one is the case.
+Again, we'll look at just the filtered controls and ambient conditions first.
 
-```{r MeHg levels incubations, message=FALSE, echo=FALSE}
+```{r MeHg levels incubations unamended, message=FALSE, echo=FALSE}
 
-knitr::include_graphics("/Users/benjaminpeterson/Documents/research/BLiMMP/results/incubations/ambient_Hg/ambient_MeHg_incubations.png")
+knitr::include_graphics("/Users/benjaminpeterson/Documents/research/BLiMMP/results/incubations/ambient_Hg/ambient_MeHg_incubations_unamended.png")
 
 ```
 
 Again, looks pretty good for the July trip!
 Essentially no MeHg at the uppermost depth, so no chance for a decrease.
-At 20m, see a minor decrease on average, but not much.
+At 20m, we see a minor decrease on average, but not much.
 
 In August, we have a little more of mixed bag.
 Several bottles, both in t1 and t0, have large abnormalities compared to the other bottles.
 However, many of these are higher than we would expect, rather than lower.
 Other than that, we do tend to see a minor drop in MeHg over the incubation, but usually only around 0.1ng/L.
-Would be nice to know what the starting MeHg concentrations were, so we'll have to analyze those samples when we get back to it.
+Would be nice to know what the MeHg concentrations were in the water column, so we'll have to analyze those samples when we get back to it.
 
 In October, the decreases in MeHg are a little more steep.
-Here, we're definitely seeing evidence for MeHg loss to the bag walls.
-The spread on the data here is also more significant than it is on the other two dates.
+Here, we're definitely seeing evidence for MeHg loss.
+The spread on the data here is also much more substantial than it is on the other two dates.
+
+And in the amended samples:
+
+```{r MeHg levels incubations amended, message=FALSE, echo=FALSE}
+
+knitr::include_graphics("/Users/benjaminpeterson/Documents/research/BLiMMP/results/incubations/ambient_Hg/ambient_MeHg_incubations_amended.png")
+
+```
+
+Not too different, pretty much the same story as with the unamended samples, in that the loss of MeHg is most pronounced in the October incubations.
 
 #### Takeways:
 
-1. We can't tell if there is loss of ambient MeHg or THg to the bag walls during the first 24 hours in the bag, since we haven't get analyzed the water column samples we collected.
-2. Contamination in the THg samples limits our interpretation of these results. While there seems to be no loss of THg in the apparently uncontaminated bags, there could be minor contamination there, since it's so wide-spread through the rest of the incubations.
-3. There does seem to be consistent loss of MeHg through the incubations, but it's relatively minor. Could either be due to loss to walls or demethylation.
+1. We can't tell if there is loss of ambient Hg to the bag walls during the first 24 hours in the bag, since we haven't get analyzed the water column samples we collected yet.
+2. Contamination in the THg samples limits our interpretation of these results. While there seems to be no loss of THg in the apparently uncontaminated bags, it's hard to say so with any confidence due to the known contamination issue.
+3. There does seem to be consistent loss of MeHg through the incubations, but it's relatively minor. Could either be due to loss to walls or demethylation. This loss becomes more prominent in October.
