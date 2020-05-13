@@ -47,7 +47,8 @@ At both t0 and t1, the values hover around 100%, within approximately 10% or so.
 Seems to be a slight trend in decreasing MeHg in at 14m, but pretty slight.
 For some reason, at 20.1m, the MeHg values start at a lower fraction, hovering around 70%.
 The best explanation for this I can think of is a rapid abiotic demethylation route in the pre-incubation step, or a rapid demethylation upon injection into the bags.
-It is likely the former, since we see a consistent decrease across all conditions (even the filtered bags), and the preincubations are just filtered sample water, so if it is abiotic it could occur just as easily in the pre-incubations.
+It is likely the former, since we see a consistent decrease across all conditions (even the filtered bags), and the preincubations are just filtered sample water.
+If it can happen in the filtered control incubation, it can happen in the pre-equilibration step.
 
 We see this again on 2019-10-08.
 At 16.2m , the start values are pretty variable, ranging from ~70% to just under 100%.
