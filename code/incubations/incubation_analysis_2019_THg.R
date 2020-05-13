@@ -515,7 +515,7 @@ dev.off()
 png("results/incubations/ambient_Hg/ambient_THg_incubations_amended.png",
     units = "in",
     res = 240,
-    height = 10,
+    height = 6,
     width = 8)
 
 

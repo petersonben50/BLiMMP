@@ -247,7 +247,7 @@ png("results/incubations/ambient_Hg/ambient_MeHg_incubations_amended.png",
     units = "in",
     res = 240,
     width = 10,
-    height = 12)
+    height = 8)
 
 # Color vector for amended incubations
 color.vector.amended <- c(cb.translator["black"],
