@@ -6,7 +6,7 @@
 #### Get ready, and fly! ####
 
 rm(list = ls())
-setwd("~/Box/BLiMMP/")
+setwd("~/Documents/research/BLiMMP/")
 library(dplyr)
 library(lubridate)
 library(tidyr)
@@ -92,7 +92,7 @@ good.data.location <- "dataEdited/waterChemistry/sulfide/dataForReview/"
 
 #### Data processing function ####
 
-#data_file <- "dataRaw/waterChemistry/sulfide/sulfide_20191210.xlsx"
+#data_file <- "dataRaw/waterChemistry/sulfide/sulfide_20200818.xlsx"
 #override = "pass"
 
 # Define the function
@@ -130,10 +130,10 @@ data_processing_function <- function(data_file,
   date.of.analysis <- data_file %>%
     strsplit("sulfide_") %>%
     sapply("[", 2) %>%
-    strsplit(".csv") %>%
+    strsplit(".xlsx") %>%
     sapply("[", 1) %>%
     ymd()
-                              
+    
 
   #### Prep blank data ####
   blank.data <- data.spreadsheet.raw %>%
@@ -341,7 +341,7 @@ data_processing_function <- function(data_file,
       print("Standard is high, and we're all good on QC.")
       
       data.spreadsheet.passing <- data.spreadsheet %>%
-        mutate(in_curve = S_conc_uM > 40) %>% 
+        mutate(in_curve = S_conc_uM >= 20) %>% 
         filter(in_curve == TRUE) %>%
         select(-in_curve)
       write.csv(file = good_data_location,
@@ -351,7 +351,7 @@ data_processing_function <- function(data_file,
       
       if (dim(data.spreadsheet.passing)[1] != dim(data.spreadsheet)[1]) {
         data.spreadsheet.failing <- data.spreadsheet %>%
-          mutate(in_curve = S_conc_uM > 40) %>% 
+          mutate(in_curve = S_conc_uM >= 20) %>% 
           filter(in_curve == FALSE) %>%
           select(-in_curve)
         write.csv(file = bad_data_location,
@@ -364,7 +364,7 @@ data_processing_function <- function(data_file,
       print("Standard is low, and we're all good on QC.")
       
       data.spreadsheet.passing <- data.spreadsheet %>%
-        mutate(in_curve = S_conc_uM < 40) %>% 
+        mutate(in_curve = S_conc_uM <= 50) %>% 
         filter(in_curve == TRUE) %>%
         select(-in_curve)
       write.csv(file = good_data_location,
@@ -374,7 +374,7 @@ data_processing_function <- function(data_file,
       
       if (dim(data.spreadsheet.passing)[1] != dim(data.spreadsheet)[1]) {
         data.spreadsheet.failing <- data.spreadsheet %>%
-          mutate(in_curve = S_conc_uM < 40) %>% 
+          mutate(in_curve = S_conc_uM <= 50) %>% 
           filter(in_curve == FALSE) %>%
           select(-in_curve)
         write.csv(file = bad_data_location,
@@ -504,6 +504,11 @@ data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20191210.xlsx")
 # that will be transferred to the good_data folder. 
 
 
+data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20200818.xlsx")
+# Curve looks good
+# Two samples were below 20µM and will need to be run on the low curve
+# when I get a chance. Other than that, looks great.
+
 
 #### Clean up before combining all samples ####
 
@@ -559,7 +564,7 @@ write.csv(WC.results,
 
 
 
-#### Incubation samples to analyze yet ####
+#### Samples to analyze yet ####
 
 # Make a vector with unanalyzed samples that 
 # will not be analyzed
