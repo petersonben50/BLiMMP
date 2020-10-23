@@ -44,11 +44,11 @@ write.csv(WC.metadata,
 
 MA.metadata <- S.metadata %>%
   filter(!(incubationID == "NA")) %>%
-  select(sulfurID, incubationID) %>%
+  select(sulfurID, incubationID, incubationTimePoint) %>%
   left_join(incubation_IDs) %>%
   left_join(sample_IDs) %>%
   left_join(trip_IDs) %>%
-  select(sulfurID, incubationID, sampleID, tripID, depth, startDate, dateCollected, filtered, amendment)
+  select(sulfurID, incubationID, sampleID, tripID, depth, startDate, dateCollected, filtered, amendment, incubationTimePoint)
 
 # Add treatment column with all treatment information
 filtered.vector <- c("filtered", "unfiltered")
@@ -92,13 +92,17 @@ good.data.location <- "dataEdited/waterChemistry/sulfide/dataForReview/"
 
 #### Data processing function ####
 
-#data_file <- "dataRaw/waterChemistry/sulfide/sulfide_20200818.xlsx"
+#data_file <- "dataRaw/waterChemistry/sulfide/sulfide_20200909.xlsx"
 #override = "pass"
+#accept.shitty.curve = FALSE
+#remove.these.samples = "H_2"
 
 # Define the function
 data_processing_function <- function(data_file,
                                      override = "off",
-                                     accept.shitty.curve = FALSE) {
+                                     accept.shitty.curve = FALSE,
+                                     remove.these.samples = NULL,
+                                     output.file.name = NULL) {
 
   keeper.status <- "pass"
   
@@ -107,7 +111,14 @@ data_processing_function <- function(data_file,
   # Read in raw data
   data.spreadsheet.raw <- read_xlsx(data_file,
                                 sheet = "raw_results") %>%
-    as.data.frame()
+    filter(!is.na(sulfurID)) %>%
+    as.data.frame() 
+  
+  if (length(remove.these.samples) > 0) {
+    data.spreadsheet.raw <- data.spreadsheet.raw %>%
+      filter(!(sulfurID %in% remove.these.samples))
+    print(paste("Removing samples", remove.these.samples))
+  }
   
   # Read in run info
   run.info <- read_xlsx(data_file,
@@ -168,14 +179,26 @@ data_processing_function <- function(data_file,
     std.curve.qc <- "pass"
   }
   
+  if (accept.shitty.curve == TRUE) {
+    std.curve.qc <- "crappy_but_we_passing"
+  }
+  
   if (std.curve.qc == "pass" | accept.shitty.curve == TRUE) {
     
     print("Curve looks good")
     # Read out image of curve
-    pdf.of.curve <- paste(report.location,
-                          date.of.analysis,
-                          "_curve.pdf",
-                          sep = "")
+    if (is.null(output.file.name)) {
+      pdf.of.curve <- paste(report.location,
+                            date.of.analysis,
+                            "_curve.pdf",
+                            sep = "")
+    } else {
+      pdf.of.curve <- paste(report.location,
+                            output.file.name,
+                            "_curve.pdf",
+                            sep = "")
+    }
+    
     pdf(pdf.of.curve,
         height = 5,
         width = 5)
@@ -327,14 +350,37 @@ data_processing_function <- function(data_file,
     
     #### Read out data files ####
     
-    good_data_location = paste(good.data.location,
-                               date.of.analysis,
-                               "_sulfide.csv",
-                               sep = "")
-    bad_data_location = paste(bad.data.location,
-                              date.of.analysis,
-                              "_sulfide_bad.csv",
-                              sep = "")
+    if (is.null(output.file.name)) {
+      good_data_location = paste(good.data.location,
+                                 date.of.analysis,
+                                 "_sulfide.csv",
+                                 sep = "")
+      bad_data_location = paste(bad.data.location,
+                                date.of.analysis,
+                                "_sulfide_bad.csv",
+                                sep = "")
+      
+      report_file = paste(report.location,
+                          date.of.analysis,
+                          "_sulfide_data_report.txt",
+                          sep = "")
+    } else {
+      print(paste("Supplied the output file name prefix as",
+                  output.file.name))
+      good_data_location = paste(good.data.location,
+                                 output.file.name,
+                                 "_sulfide.csv",
+                                 sep = "")
+      bad_data_location = paste(bad.data.location,
+                                output.file.name,
+                                "_sulfide_bad.csv",
+                                sep = "")
+      report_file = paste(report.location,
+                          output.file.name,
+                          "_sulfide_data_report.txt",
+                          sep = "")
+    }
+    
     
     if (run.info.vector["standard_curve"] == "high" && keeper.status == "pass") {
       
@@ -395,12 +441,7 @@ data_processing_function <- function(data_file,
     
     
     #### Read out report file ####
-    
-    report_file <- paste(report.location,
-                         date.of.analysis,
-                         "_sulfide_data_report.txt",
-                         sep = "")
-    
+
     fileConn <- file(report_file)
     writeLines(c(paste("Analysis run on: ",
                        date.of.analysis),
@@ -509,6 +550,56 @@ data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20200818.xlsx")
 # Two samples were below 20µM and will need to be run on the low curve
 # when I get a chance. Other than that, looks great.
 
+data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20200909.xlsx",
+                         remove.these.samples = "H_2")
+
+data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20200914a.xlsx",
+                         output.file.name = "2020-09-14a",
+                         remove.these.samples = "H_1")
+
+data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20200914b.xlsx",
+                         output.file.name = "2020-09-14b")
+# Looking good here!
+ 
+data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20200917a.xlsx",
+                         output.file.name = "2020-09-17a",
+                         override = "pass")
+# The replicates are failing here because the samples are so low.
+# We're gonna go ahead and pass it.
+
+data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20200917b.xlsx",
+                         output.file.name = "2020-09-17b")
+# This looks good
+
+data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20200917c.xlsx",
+                         output.file.name = "2020-09-17c")
+# This looks good
+
+data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20201019.xlsx",
+                         output.file.name = "2020-10-19",
+                         remove.these.samples = "H_1")
+# Starting to look like H_1 is not linear with the rest of the bunch in the high curve.
+# Wonder if it's saturating at that high of an absorbance.
+# Let's refrain from including this one in the future. 
+
+data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20201021a.xlsx",
+                         output.file.name = "2020-10-21a",
+                         remove.these.samples = "H_1")
+# This one looks good. Kept H_1 out as decided before.
+# Two samples below curve, will need to rerun those on low curve.
+
+data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20201021b.xlsx",
+                         output.file.name = "2020-10-21b",
+                         remove.these.samples = "H_1")
+# Looks good! All samples within curve.
+
+data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20201021c.xlsx",
+                         output.file.name = "2020-10-21c",
+                         remove.these.samples = "H_1",
+                         override = "pass")
+# CCV is -10.17%. I'm going to count that as a pass, since the other checks look good.
+# These are all incubation samples anyways.
+
 
 #### Clean up before combining all samples ####
 
@@ -516,7 +607,7 @@ rm(list = ls())
 
 
 # Load up all incubation data
-list.o.results <- list.files(path = "dataEdited/waterChemistry/sulfide/goodData/",
+list.o.results <- list.files(path = "dataEdited/waterChemistry/sulfide/goodData",
                              pattern = "_sulfide.csv",
                              full.names = TRUE)
 for (file.name in list.o.results) {
@@ -557,6 +648,8 @@ WC.results <- S.results %>%
   inner_join(WC.metadata) %>%
   arrange(sulfurID)
 
+
+
 write.csv(WC.results,
           "dataEdited/waterChemistry/sulfide/WC_data.csv",
           row.names = FALSE,
@@ -570,19 +663,27 @@ write.csv(WC.results,
 # will not be analyzed
 samples.to.skip <- c("BLiMMP_INC_S_007",
                      "BLiMMP_INC_S_008",
-                     "BLiMMP_INC_S_009")
+                     "BLiMMP_INC_S_009",
+                     "BLI20_TS_001",
+                     "BLI20_TS_002",
+                     "BLI20_TS_003",
+                     "BLI20_TS_043",
+                     "BLI20_TS_044",
+                     "BLI20_TS_045")
 
 unanalyzed.MA.samples <- MA.metadata %>%
   filter(!(sulfurID %in% MA.results$sulfurID)) %>%
-  filter(!(sulfurID %in% samples.to.skip))
+  filter(!(sulfurID %in% samples.to.skip)) %>%
+  arrange(sulfurID)
 write.csv(unanalyzed.MA.samples,
-          file = "protocols/sulfideCline_protocol/MA_incubation_samples_to_analyze.csv",
+          file = "dataEdited/waterChemistry/sulfide/MA_incubation_samples_to_analyze.csv",
           row.names = FALSE)
 
 unanalyzed.WC.samples <- WC.metadata %>%
   filter(!(sulfurID %in% WC.results$sulfurID)) %>%
-  filter(!(sulfurID %in% samples.to.skip))
+  filter(!(sulfurID %in% samples.to.skip)) %>%
+  arrange(sulfurID)
 write.csv(unanalyzed.WC.samples,
-          file = "protocols/sulfideCline_protocol/WC_incubation_samples_to_analyze.csv",
+          file = "dataEdited/waterChemistry/sulfide/WC_incubation_samples_to_analyze.csv",
           row.names = FALSE)
 
