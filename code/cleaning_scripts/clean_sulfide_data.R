@@ -473,10 +473,7 @@ data_processing_function <- function(data_file,
                  paste("Matrix Spike recovery:", MS.recovery),
                  paste(""),
                  paste(""),
-                 paste("Replicate data:"),
-                 paste(rep.data),
-                 paste("QC on replicates:", rep.qc),
-                 paste("")),
+                 paste("QC on replicates:", rep.qc)),
                fileConn)
     close(fileConn)
     write.table(rep.data,
@@ -601,6 +598,43 @@ data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_202
 # These are all incubation samples anyways.
 
 
+
+data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20201027a.xlsx",
+                         output.file.name = "2020-10-27a")
+# Passes with flying colors
+
+data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20201027b.xlsx",
+                         output.file.name = "2020-10-27b",
+                         remove.these.samples = "L_1")
+# Used L_3 for CCV, had to manually change the sulfurID
+# in the raw data file.
+# This run also looks great.
+
+data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20201027c.xlsx",
+                         output.file.name = "2020-10-27c",
+                         remove.these.samples = c("H_1"),
+                         override = "pass")
+# Forgot to add matrix spike to this sample...
+# Other QC looks good though, so we'll pass it.
+
+data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20201110c.xlsx",
+                         output.file.name = "2020-11-10c",
+                         remove.these.samples = c("L_1"))
+# Looks good here
+
+data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20201110a.xlsx",
+                         output.file.name = "2020-11-10a",
+                         remove.these.samples = c("H_1"))
+# Looks good here
+
+
+
+
+
+
+
+
+
 #### Clean up before combining all samples ####
 
 rm(list = ls())
@@ -644,9 +678,21 @@ write.csv(MA.results,
 
 WC.metadata <- read.csv("metadata/processedMetadata/sulfide_WC.csv",
                         stringsAsFactors = FALSE)
+
+waterDepth = 24
+
 WC.results <- S.results %>%
   inner_join(WC.metadata) %>%
-  arrange(sulfurID)
+  arrange(sulfurID) %>%
+  mutate(depthOriginal = depth) %>%
+  mutate(corewater = grepl(pattern = "-",
+                           x = depthOriginal))
+WC.results[WC.results$corewater, ] <- WC.results[WC.results$corewater, ] %>%
+  mutate(depth = paste("-",
+                       strsplit(depth, "-") %>% sapply("[", 2),
+                       sep = "") %>%
+           as.numeric() / 100) %>%
+  mutate(depth = depth + (waterDepth * corewater))
 
 
 
