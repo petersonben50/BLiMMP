@@ -30,6 +30,7 @@ clean.HgT.data.from <- function(file.name.input,
                                  "excess_HgT_DDL")
   file.data.clean <- file.data.clean %>%
     filter(sampleType == "SAM") %>%
+    select(-sampleType) %>%
     mutate(dateAnalyzed_HgT = date.of.analysis)
   
   # Remove unwanted samples by barcode
