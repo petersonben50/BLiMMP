@@ -95,7 +95,7 @@ MeHg.meta.data <- left_join(MeHg.results,
   select(bottleID, incubationID, tripID, depth, t, durationInDays,
          dateKilled, timeKilled, filtered, amendment, treatment,
          amb_MeHg_ng.L, excess_MeHg_198_ng.L, excess_MeHg_204_ng.L,
-         above_DDL_MeHg, dateAnalyzed_MeHg)
+         above_DDL_MeHg_198, above_DDL_MeHg_204, dateAnalyzed_MeHg)
 
 
 

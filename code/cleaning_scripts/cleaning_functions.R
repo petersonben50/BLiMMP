@@ -115,7 +115,8 @@ clean.MeHg.data.from <- function(file.name.input,
     round(digits = 3)
   
   file.data.clean <- file.data.clean %>%
-    mutate(above_DDL_MeHg = (excess_MeHg_198_ng.L > excess_MeHg_DDL)) %>%
+    mutate(above_DDL_MeHg_198 = (excess_MeHg_198_ng.L > excess_MeHg_DDL),
+           above_DDL_MeHg_204 = (excess_MeHg_204_ng.L > excess_MeHg_DDL)) %>%
     mutate(dateAnalyzed_MeHg = date.of.analysis)
   
   
