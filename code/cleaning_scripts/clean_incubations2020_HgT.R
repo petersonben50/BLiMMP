@@ -96,8 +96,8 @@ for (file.name in list.o.results) {
 #### Look for samples below DL ####
 # We really shouldn't have any of these...
 HgT.results.below.DDL <- HgT.results %>%
-  filter(above_DDL_198 == FALSE |
-           above_DDL_204 == FALSE)
+  filter(above_DDL_HgT_198 == FALSE |
+           above_DDL_HgT_204 == FALSE)
 
 #### Check duplicated samples ####
 HgT.results %>%
@@ -126,9 +126,9 @@ Hg.results.metadata <- left_join(MeHg.data,
 
 #### Check fraction of HgT as MeHg ####
 Hg.results.metadata <- Hg.results.metadata %>%
-  mutate(fraction_MeHg_198 = excess_MeHg_198_ng.L / excess_HgT_198_ng.L * 100,
-         fraction_MeHg_204 = excess_MeHg_204_ng.L / excess_HgT_204_ng.L * 100)
-
+  mutate(fraction_MeHg_amb = amb_MeHg_ng.L / amb_HgT_ng.L,
+         fraction_MeHg_198 = excess_MeHg_198_ng.L / excess_HgT_198_ng.L,
+         fraction_MeHg_204 = excess_MeHg_204_ng.L / excess_HgT_204_ng.L)
 
 
 #### Check spike samples ####
