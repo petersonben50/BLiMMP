@@ -1,10 +1,7 @@
 #### code/cleaning_scripts/clean_sulfide_data.R ####
 # Benjamin D. Peterson
 
-
-
 #### Get ready, and fly! ####
-
 rm(list = ls())
 setwd("~/Documents/research/BLiMMP/")
 library(dplyr)
@@ -13,74 +10,17 @@ library(tidyr)
 library(readxl)
 
 
-
 #### Prepare metadata ####
-
 S.metadata <- read_xlsx("metadata/chem_S.xlsx") %>%
   select(-notes)
-sample_IDs <- read_xlsx("metadata/2_sample_IDs.xlsx")
-incubation_IDs <- read_xlsx("metadata/4_MA_ID.xlsx") %>%
-  select(-notes)
-trip_IDs <- read_xlsx("metadata/1_trip_IDs.xlsx") %>%
-  select(-notes)
-
-
-
-#### Save out water column data ####
-
-WC.metadata <- S.metadata %>%
-  filter(!(sampleID == "NA")) %>%
-  left_join(sample_IDs) %>%
-  left_join(trip_IDs) %>%
-  select(sulfurID, sampleID, tripID, depth, startDate)
-write.csv(WC.metadata,
-          file = "metadata/processedMetadata/sulfide_WC.csv",
-          row.names = FALSE,
-          quote = FALSE)
-
-
-
-#### Save out incubation data ####
-
-MA.metadata <- S.metadata %>%
-  filter(!(incubationID == "NA")) %>%
-  select(sulfurID, incubationID, incubationTimePoint) %>%
-  left_join(incubation_IDs) %>%
-  left_join(sample_IDs) %>%
-  left_join(trip_IDs) %>%
-  select(sulfurID, incubationID, sampleID, tripID, depth, startDate, dateCollected, filtered, amendment, incubationTimePoint)
-
-# Add treatment column with all treatment information
-filtered.vector <- c("filtered", "unfiltered")
-names(filtered.vector) <- c("yes", "no")
-MA.metadata <- MA.metadata %>%
-  mutate(treatment = paste(filtered.vector[filtered],
-                           amendment,
-                           sep = "-")) %>%
-  as.data.frame()
-write.csv(MA.metadata,
-          file = "metadata/processedMetadata/sulfide_MA.csv",
-          row.names = FALSE,
-          quote = FALSE)
-
 
 
 #### Generate needed processing metadata ####
-
 processing.metadata <- S.metadata %>%
   select(sulfurID, mass, tare, preservativeVol) %>%
   mutate_at(.vars = c("mass", "tare", "preservativeVol"),
             as.numeric)
-  
-
-  
-# Combine incubation data
-
-rm(S.metadata,
-   incubation_IDs,
-   sample_IDs,
-   trip_IDs)
-
+rm(S.metadata)
 
 
 #### Define output locations ####
@@ -89,9 +29,7 @@ bad.data.location <- "dataEdited/waterChemistry/sulfide/badData/"
 good.data.location <- "dataEdited/waterChemistry/sulfide/dataForReview/"
 
 
-
 #### Data processing function ####
-
 #data_file <- "dataRaw/waterChemistry/sulfide/sulfide_20200909.xlsx"
 #override = "pass"
 #accept.shitty.curve = FALSE
@@ -234,8 +172,8 @@ data_processing_function <- function(data_file,
     
     #### Calculate detection limit: NOT DONE FOR SULFIDE ####
     
-    # LOD.fluorescence <- inter.coeff + 3*summary(std.curve.regression)$coefficients[2,2]
-    # LOD.mass <- (LOD.fluorescence - std.curve.regression$coefficients[1]) / std.curve.regression$coefficients[2]
+    LOD.fluorescence <- inter.coeff + 3*summary(std.curve.regression)$coefficients[2,2]
+    LOD.mass <- (LOD.fluorescence - std.curve.regression$coefficients[1]) / std.curve.regression$coefficients[2]
     
     
     #### QC: Ensure CCVs are within 10% ####
@@ -453,7 +391,7 @@ data_processing_function <- function(data_file,
                  paste("QC on R^2:", std.curve.qc),
                  paste(""),
                  paste(""),
-                 # paste("Limit of Detection:", LOD.mass),
+                 paste("Limit of Detection:", LOD.mass),
                  paste("Calculated from intercept of curve and standard error of regression"),
                  paste(""),
                  paste(""),
