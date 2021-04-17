@@ -1,9 +1,9 @@
 
-file.name.input <- "dataRaw/incubations/HgT/2020_incubations/I020321 BENDOTA WATER.xlsx"
-output.file.name <- "dataEdited/incubations/HgT/2020_incubations/20210203.csv"
-all.metadata.2020 <- read.csv("metadata/processedMetadata/incubation_Hg_metadata_2020.csv",
-                              stringsAsFactors = FALSE)
-
+# file.name.input <- "dataRaw/incubations/HgT/2020_incubations/I020321 BENDOTA WATER.xlsx"
+# output.file.name <- "dataEdited/incubations/HgT/2020_incubations/20210203.csv"
+# all.metadata.2020 <- read.csv("metadata/processedMetadata/incubation_Hg_metadata_2020.csv",
+#                               stringsAsFactors = FALSE)
+# 
 
 
 #### Clean HgT data ####
@@ -133,3 +133,53 @@ clean.MeHg.data.from <- function(file.name.input,
 
 
 
+
+
+
+
+#### Clean sulfate data ####
+clean.sulfate.data.from <- function(data.file.name,
+                                    processing.metadata.df = processing.metadata,
+                                    samples.to.remove,
+                                    output.file.name) {
+  # Read in headers for Excel dataframe
+  sulfate.headers <- read_xlsx(data.file.name,
+                               sheet = "headers",
+                               n_max = 1,
+                               col_names = FALSE) %>%
+    unlist(use.names = FALSE)
+  
+  # Read in sulfate data
+  sulfate.data <- read_xlsx(data.file.name,
+                            sheet = "raw_results",
+                            skip = 4,
+                            col_names = sulfate.headers) %>%
+    filter(injectionID != "NA",
+           concentration != "n.a.") %>%
+    rename(sulfurID = injectionID,
+           rawConcentration = concentration) %>%
+    mutate(rawConcentration = as.numeric(rawConcentration))
+  
+  # Read in analytical prep data
+  prep.data <- read_xlsx(data.file.name,
+                         sheet = "sample_prep") %>%
+    rename(sulfurID = injectionID)
+  
+  # Combine data and adjust concentration for dilution
+  sample.data <- inner_join(processing.metadata,
+                            sulfate.data %>% select(sulfurID, rawConcentration)) %>%
+    left_join(prep.data) %>%
+    mutate(concentration = rawConcentration * dilution) %>%
+    mutate(preservativeDilutionFactor = ((mass - tare) / (mass - tare - preservativeVol))) %>%
+    mutate(concentration = concentration * preservativeDilutionFactor) %>%
+    select(sulfurID, concentration)
+  
+  
+  
+  # Write out data
+  write.csv(sample.data,
+            output.file.name,
+            row.names = FALSE,
+            quote = FALSE)
+  
+}
