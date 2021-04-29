@@ -55,6 +55,7 @@ These will give us some metrics for how much sequencing data we actually have an
 *Assemblies by metaSPAdes*
 
 I did all the assemblies for this project using metaSPAdes.
+I used SPAdes v3.14.1.
 Because I wanted to do a coassembly and since I hope to use duplicate metagenomes in 2021, I used a script (`assembly_by_group.py`) to run the assemblies using the needed metagenomes.
 As usual, I used these kmers for assembly: 21,33,55,77,99,127.
 I ran it using 24 cores with a memory limit of 1 Tb.
