@@ -327,7 +327,7 @@ for file in *report.txt
 do
   tail -n +2 $file >> all_assemblies_stats.txt
 done
-# rm BLI*_report.txt
+rm BLI*_report.txt
 
 # Clean up the report file
 awk -F '\t' '{ print $1 }' ~/BLiMMP/metadata/assembly_list.txt | while read assembly
