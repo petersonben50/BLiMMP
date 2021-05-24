@@ -100,7 +100,8 @@ WC.metals.metadata <- metals.metadata %>%
   left_join(sample_IDs) %>%
   left_join(trip_IDs) %>%
   select(metalID, sampleID, tripID, startDate, depth, tare,
-         mass, preservativeID, preservativeVol, filteredInField)
+         mass, replicate, preservativeID, preservativeVol,
+         filteredInField)
 write.csv(WC.metals.metadata,
           file = "metadata/processedMetadata/metals_WC.csv",
           row.names = FALSE,
