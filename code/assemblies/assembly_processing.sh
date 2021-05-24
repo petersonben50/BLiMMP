@@ -135,7 +135,7 @@ cd ~/BLiMMP/dataRaw/metagenomes
 read_storage=~/BLiMMP/dataEdited/metagenomes
 ancillary_info=~/BLiMMP/dataEdited/metagenomes/reports
 echo -e "metagenomeID\tforwardReads\treverseReads\tsingleReads\tmergedReads" > $ancillary_info/metagenome_read_count.tsv
-cat ~/BLiMMP/metadata/metagenome_list.txt | while read metagenomeID
+awk -F '\t' '{ print $1 }' ~/BLiMMP/metadata/metagenome_list.txt | while read metagenomeID
 do
   echo "Working on" $metagenomeID
   forwardCount=$(zgrep -c "^@" $read_storage/$metagenomeID\_R1.fastq.gz)
@@ -217,7 +217,7 @@ output=~/BLiMMP/dataEdited/assemblies/assembly_files
 
 #chmod +x $code/assembly_by_group.py
 
-cat ~/BLiMMP/metadata/assembly_list.txt | while read assembly
+awk -F '\t' '{ print $1 }' ~/BLiMMP/metadata/assembly_list.txt | while read assembly
 do
   if [ ! -d $output/$assembly ]; then
     mkdir $output/$assembly
@@ -248,7 +248,7 @@ cd ~/BLiMMP/dataEdited/assemblies
 mkdir scaffolds
 mkdir scaffolds/renaming_reports
 
-cat ~/BLiMMP/metadata/assembly_list.txt | while read assembly
+awk -F '\t' '{ print $1 }' ~/BLiMMP/metadata/assembly_list.txt | while read assembly
 do
   if [ -e assembly_files/$assembly/scaffolds.fasta ]; then
     echo $assembly "is done assembling. Let's clean it."
@@ -305,7 +305,7 @@ code=~/BLiMMP/code
 cp ~/HellsCanyon/code/assembly_processing/abyss-fac.pl $code/
 
 # Use abyss-fac to check stats
-cat ~/BLiMMP/metadata/assembly_list.txt | while read assembly
+awk -F '\t' '{ print $1 }' ~/BLiMMP/metadata/assembly_list.txt | while read assembly
 do
   if [ -e scaffolds/$assembly\_assembly.fna ]; then
     echo $assembly "has been cleaned. Let's get some stats on it."
@@ -330,7 +330,7 @@ done
 # rm BLI*_report.txt
 
 # Clean up the report file
-cat ~/BLiMMP/metadata/assembly_list.txt | while read assembly
+awk -F '\t' '{ print $1 }' ~/BLiMMP/metadata/assembly_list.txt | while read assembly
 do
   sed "s/scaffolds\/$assembly\_assembly.fna/$assembly/" all_assemblies_stats.txt \
     > all_assemblies_stats.txt_edited
@@ -341,7 +341,7 @@ done
 # Count ORFs
 cd ~/BLiMMP/dataEdited/assemblies
 echo -e 'assemblyID\tORF_count' > reports/ORF_counts.tsv
-cat ~/BLiMMP/metadata/assembly_list.txt | while read assembly
+awk -F '\t' '{ print $1 }' ~/BLiMMP/metadata/assembly_list.txt | while read assembly
 do
   if [ -e ORFs/$assembly.faa ]; then
     echo "Count ORFs in" $assembly
