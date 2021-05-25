@@ -1,0 +1,25 @@
+##################
+# read_mapping_assemblies.sub
+# Submission script for mapping metagenomic
+# reads to the appropriate assemblies.
+# It also cleans and processes the output
+# using samtools.
+
+# Benjamin D. Peterson
+##################
+
+request_cpus = 12
+request_memory = 120GB
+
+executable = /home/GLBRCORG/bpeterson26/BLiMMP/code/read_mapping_assemblies.sh
+
+environment = "assembly=$(assembly) \
+                metagenome=$(metagenome) \
+                read_storage=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/metagenomes \
+                scaffolds=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/assemblies/scaffolds \
+                output=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/mapping"
+output = /home/GLBRCORG/bpeterson26/BLiMMP/reports/readMappingAssemblies/outs/mapping_$(metagenome)_to_$(assembly).out
+error = /home/GLBRCORG/bpeterson26/BLiMMP/reports/readMappingAssemblies/errs/mapping_$(metagenome)_to_$(assembly).err
+log = /home/GLBRCORG/bpeterson26/BLiMMP/reports/readMappingAssemblies/logs/mapping_$(metagenome)_to_$(assembly).log
+
+queue metagenome,assembly from /home/GLBRCORG/bpeterson26/BLiMMP/metadata/mapping_key_pairsRemaining.tsv
