@@ -288,8 +288,17 @@ mkdir /home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/assemblies/ORFs
 chmod +x /home/GLBRCORG/bpeterson26/BLiMMP/code/ORF_prediction_assemblies.sh
 condor_submit /home/GLBRCORG/bpeterson26/BLiMMP/code/ORF_prediction_assemblies.sub
 
-
-
+# Clean up ORF files
+cd ~/BLiMMP/dataEdited/assemblies/ORFs
+code=~/BLiMMP/code
+awk -F '\t' '{ print $1 }' ~/BLiMMP/metadata/assembly_list.txt | while read assembly
+do
+  echo "Working on cleaning ORFs from" $assembly
+  python $code/cleanFASTA.py $assembly.faa
+  mv -f $assembly.faa_temp.fasta $assembly.faa
+  python $code/cleanFASTA.py $assembly.fna
+  mv -f $assembly.fna_temp.fasta $assembly.fna
+done
 
 
 ############################################

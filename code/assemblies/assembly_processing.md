@@ -70,6 +70,7 @@ I also simplified the scaffold names.
 
 I then used a submission script to run the ORF predictions, using the same methods as used for 5M, EG, and HCC studies.
 I used Prodigal (V2.6.3) on the `meta` mode and saved out fna, faa, and gff files.
+I then cleaned up the ORF files (the faa and fna ones) using the `cleanFASTA.py` script.
 
 
 **Get assembly stats**
