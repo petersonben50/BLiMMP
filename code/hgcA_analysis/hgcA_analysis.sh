@@ -327,3 +327,101 @@ $cdhit/cd-hit -g 1 \
               -d 0
 $cdhit/clstr2txt.pl dereplication/hgcA_good_acrossYear.faa.clstr \
   > dereplication/hgcA_good_acrossYear.tsv
+
+
+
+
+
+############################################
+############################################
+# Phylogenetic analysis of hgcA
+############################################
+############################################
+
+#########################
+# Generate rough tree with Hg-MATE seqs using FastTree
+#########################
+
+screen -S BLI_hgcA_tree
+cd ~/BLiMMP/dataEdited/hgcA_analysis
+workingDirectory=~/BLiMMP/dataEdited/hgcA_analysis/phylogeny
+scripts=~/BLiMMP/code/generalUse
+references=~/BLiMMP/references/hgcA
+mkdir $workingDirectory
+
+# Pull out sequences for phylogenetic analysis.
+cd ~/BLiMMP/dataEdited/hgcA_analysis/
+rm -f phylogeny/hgcA_for_phylogeny.faa
+cat hgcA_final_list.txt | while read hgcA
+do
+  echo "Including" $hgcA "in phylogenetic analysis"
+  grep -A 1 $hgcA identification/hgcA_good.faa >> phylogeny/hgcA_for_phylogeny.faa
+done
+
+# Generate alignment of hgcA sequences from this study
+cd $workingDirectory
+source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
+conda activate bioinformatics
+PYTHONPATH=""
+PERL5LIB=''
+muscle -in hgcA_for_phylogeny.faa \
+        -out hgcA_for_phylogeny.afa
+
+# Generate consensus alignment
+muscle -profile \
+        -in1 hgcA_for_phylogeny.afa \
+        -in2 $references/Hg-MATE-Db.v1.ISOCELMAG_HgcA_full.refpkg/Hg-MATE-Db.v1.ISOCELMAG_HgcA_full_align-bmge.fasta \
+        -out hgcA_for_phylogeny_ref.afa
+
+# Generate rough tree
+FastTree hgcA_for_phylogeny_ref.afa \
+    > rough_hgcA.tree
+# Download this to my local computer.
+
+#########################
+# Generate good tree with Hg-MATE seqs using RAxML
+#########################
+
+# Done locally
+BLiMMP
+cp /Users/benjaminpeterson/Documents/research/Hg_MATE/versions/v1.01142021/Hg-MATE-Db.v1.01142021_ISOCELMAG_Hgc.fas \
+    references
+cd ~/BLiMMP/dataEdited/hgcA_analysis/phylogeny
+rm -f dataEdited/hgcA_analysis/phylogeny/HgMate_reference_seqs_to_use.faa
+cut -d"_" -f1-3 dataEdited/hgcA_analysis/phylogeny/reference_names_to_use.txt | while read reference_name
+do
+  grep -A 1 \
+    $reference_name \
+    references/Hg-MATE-Db.v1.01142021_ISOCELMAG_Hgc.fas \
+    >> dataEdited/hgcA_analysis/phylogeny/HgMate_reference_seqs_to_use.faa
+done
+
+
+# Done on GLBRC
+screen -S BLI_hgcA_tree
+source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
+conda activate bioinformatics
+PYTHONPATH=""
+PERL5LIB=''
+cd ~/BLiMMP/dataEdited/hgcA_analysis/phylogeny/raxml
+# Upload needed references
+cat 5M_bin_seqs.faa \
+    HgMate_reference_seqs_to_use.faa \
+    jones_hgcA_seqs.faa \
+    ../hgcA_for_phylogeny.faa \
+    > hgcA_for_tree.faa
+
+muscle -in hgcA_for_tree.faa \
+        -out hgcA_for_tree.afa
+
+# Upload masked alignment
+
+raxml=/opt/bifxapps/raxml-8.2.11/raxmlHPC-PTHREADS
+$raxml -f a \
+        -p 283976 \
+        -m PROTGAMMAAUTO \
+        -N autoMRE \
+        -x 2381 \
+        -T 20 \
+        -s hgcA_for_tree_masked.afa \
+        -n hgcA

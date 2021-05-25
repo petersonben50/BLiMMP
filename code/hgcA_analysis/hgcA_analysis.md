@@ -121,3 +121,43 @@ Here, I combined the hgcB data, the classification info, and the dereplication i
 
 I uploaded `hgcA_final_list.txt` and `hgcA_final_abundance_list.txt` to the main `hgcA_analysis` folder on GLBRC.
 We'll use these for the phylogenetic tree and the abundance calculation, respectively.
+
+
+**Phylogenetic analysis of hgcA**
+
+Next I wanted to generate a good phylogenetic tree.
+
+*Generate rough tree with Hg-MATE seqs using FastTree*
+
+First, I wanted to just get a sense for it using the Hg-MATE database with FastTree.
+I pulled out the hgcA representatives from my data set, aligned them, then generated a consensus alignment with the Hg-MATE database.
+I used FastTree with the default settings to make a ML tree.
+
+I downloaded this tree to my local computer, then looked at in R.
+Scripts are here: `tree_hgcA_FastTree.R`.
+Wow, this is really dominated by PVC microbes, many of them close to what we found last time.
+They're even more numerically dominant than in the 2017 data, I think.
+So cool!
+
+
+*Generate good tree with Hg-MATE seqs using RAxML*
+
+They're concentrated enough into a few smaller clades that we can probably just manually select sequences to use for a RAxML tree.
+I'll also include all the hgcA sequences from the initial 2017 study (so I won't pull any of those out of the FastTree tree).
+Hg-MATE names of references to be used can be found here: `dataEdited/hgcA_analysis/phylogeny/reference_names_to_use.txt`.
+I used this list to pull out the sequences I needed, locally.
+Needed to do a couple of iterations, since there were a few sequences that were in the refpackage but not in the database.
+I think Caitlin had updated the refpackage separately or something.
+Either way, good to go now.
+I uploaded the references to GLBRC.
+
+I also pulled the references from my study and from Jones et al, 2019.
+I had to do a bit of curation on my sequences, man was I bad at keeping records.
+I got the Jones sequences from the 5M study references.
+I concatanated all these sequences and aligned them using MUSCLE.
+I downloaded the alignment and inspected it in Geneious to ensure it looks good.
+Which it does.
+I then masked the alignment at 50% gaps, which seems to work well.
+I exported it (`hgcA_for_tree_masked.afa`) and uploaded it to the GLBRC.
+I then ran RAxML (v8.2.11) on it to generate a ML tree.
+I used rapid bootstrapping with automatic detection of limits and autodetection of the mutation model.
