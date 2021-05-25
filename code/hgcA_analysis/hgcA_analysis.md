@@ -66,3 +66,58 @@ Two of these genes, BLI20_assembly004_000000016181_3 and BLI20_coassembly_000000
 The trailing sequence was identical between the two and are from two different assemblies, so it might be from the same organism.
 This trailing sequence includes a segment that had a hit for a thioredoxin motif using MotifFinder, but the score is very low.
 Not sure what this is here, but we'll include it for now.
+
+Okay, we'll just keep all the hgcB hits.
+Now, let's take a closer look at the genes that didn't have a hit downstream.
+- BLI20_assembly004_000000034765_5: Looks like this might actually be an hgcB sequence, as it has the CIGCGMCA motif. Yeah, going to include this as likely hgcB. Very short.
+- BLI20_assembly004_000000075580_2: No motifs found. This gene is on the opposite strand from the hgcA, and is truncated. Ends 13 bp down from the end of the hgcA. Classified as no hgcB.
+- BLI20_assembly004_000000098923_1: Also very short (MSPLPTLRYIETAVTLQLDP) and has no hits in MOTIF. Overlaps with hgcA. Not out of the question that this is hgcB actually based on the similarity to the hgcB alignments. I would say this one is small enough that we could say the downstream gene is truncated and therefore can't comment on presence of hgcB.
+- BLI20_coassembly_000000053122_2: Big gene here. Elongation factor Tu GTP binding domain. Starts 200 bp downstream of hgcA. Unlikely that there's an unseen hgcB in there, but worth looking.
+
+*Isolate gene neighborhoods*
+
+Now, let's look at the gene neighborhoods, see if we can learn anything more from that.
+I isolated the scaffold containing hgcA with 5000 bp upstream of the start and 5000 bp downstream of the end using a custom script that I adopted from a script that Tyler Barnum sent me.
+I downloaded the fasta file and GFF and loaded it into Geneious.
+Let's take a look.
+
+First I looked at the four genes we looked at above, that had a gene downstream that wasn't a hit for hgcB.
+BLI20_assembly004_000000034765 does indeed end with the downstream gene being cut off, as does BLI20_assembly004_000000098923.
+
+BLI20_assembly004_000000075580 does a gene that's reversed.
+I did a nucleotide blast of the downstream DNA using blastn on the NCBI website.
+Shares ~75-78% identity with Dehalobacter or Geobacter genomes, but no specific genes.
+Tried running blastx, using the following as an entry:
+- AAGCTTTCATTACCTGCGTAATGGTTCGAGCCTGGTGGTGGATGCCGGGCGCTGTACTGGCTGCTTGGCCTGTCTGGAGGTGTGCCCGCACGGCGTTCTGGCGGCGGATGGGCCGCCGGTTGCCGGTGGTGGTTCCGGTAGCCGGTTGGCGGTGCTGGTAGCCGACCGGCCGGCCTGCATGGAATGCGGCGCCTGCGCCCGTAATTGTCCCGCCGGGGCGATTAGTGTGCGCAGCGGTGTGGGCTGCGCGTACGCCATTATCCGGGGCAAGTTGCGCGGTACGGCTCCGGATTGTTCGTGCGGCTGCGGTACGCAGTCCGGTTGTTGGTGACTGGTGGCCCCAGGCGGCGCGCTTG
+
+This actually hit against some ferrodoxins.
+In Geneious, I extracted this sequence.
+I then did a 6 frame translation and aligned all those translations to the hgcB alignment.
+One of them matched well (BLI20_assembly004_000000075580 extraction translation frame 2).
+It has the expected motif, so yes, I included this one as having a downstream hgcB.
+
+For BLI20_coassembly_000000053122, I skipped straight to doing the translation of the downstream nucleotides in Geneious.
+Surprisingly enough, this also spawned a hit to the hgcB alignment, including the necessary motif (BLI20_coassembly_000000053122 extraction translation frame 1).
+
+So, I'm just going to count all 4 of these as likely having a downstream hgcB gene.
+So that's 42 with a downstream gene.
+The other 15 hgcA seqs didn't have a downstream gene, so we'll assume those scaffolds were truncated.
+While I will list all 42 as having downstream hgcB genes, I'll only include the hgcB sequences from those that were properly predicted as hgcB in the final hgcB.faa file that gets posted.
+To make this easier, I'll use the `downstream_genes_present.txt` as the list for hgcB genes.
+
+**Dereplication**
+
+Next I wanted to dereplicate these sequences across the different assemblies.
+For now, I only have data from 2020, but eventually I'll be analyzing 2020 and 2021 together.
+So, I'll try to write it so that I can easily transition to that when I have to redo the analysis, but for now will focus on doing the analysis for 2020.
+I used CD-HIT (v4.6) to cluster the hgcA sequences at 97% identity, with the default cutoff of 50% alignment.
+Using a cut-off of 95% also results in 32 clusters (out of 57 sequences), but dropping to 93% drops it to 30 clusters.
+We'll stick with the 97% cutoff here.
+
+I then downloaded the `hgcA_good_acrossYear.tsv` file to my local computer and read it into R (`code/hgcA_analysis/hgcA_dereplication.R`).
+Here, I combined the hgcB data, the classification info, and the dereplication info.
+
+**When I do this with the 2021 data for a final version of this to be published, I'll need to look more closely at which hgcA seqs we're using for phylogenetic analysis. For now, we'll roll with the auto derep data, to save time that is going to be duplicated down the line.**
+
+I uploaded `hgcA_final_list.txt` and `hgcA_final_abundance_list.txt` to the main `hgcA_analysis` folder on GLBRC.
+We'll use these for the phylogenetic tree and the abundance calculation, respectively.

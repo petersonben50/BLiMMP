@@ -216,6 +216,8 @@ do
         $ORFs/$assemblyName.faa \
       >> hgcB/downstream_genes.faa
 done
+grep '>' hgcB/downstream_genes.faa | \
+  sed 's/>//' > hgcB/downstream_genes_present.txt
 
 # Search adjacent genes with hgcB HMM
 cd ~/BLiMMP/dataEdited/hgcA_analysis
@@ -260,16 +262,13 @@ grep '>' hgcB.faa | \
 
 # Pull out non-hgcB downstream genes
 cd ~/BLiMMP/dataEdited/hgcA_analysis/hgcB
-cat downstream_gene_list.txt hgcB.txt | \
+cat downstream_genes_present.txt hgcB.txt | \
   sort | \
   uniq -u
-grep -A 1 'fall2017cluster6_000000000428_49' downstream_genes.faa
-grep -A 1 'fall2017coassembly_000000448578_3' downstream_genes.faa
-grep -A 1 'fall2017coassembly_000001334838_1' downstream_genes.faa
-grep -A 1 'HC18HY300_000000013755_6' downstream_genes.faa
-grep -A 1 'HC18ME02_000000018262_3' downstream_genes.faa
-grep -A 1 'KMBP004F_000000216801_1' downstream_genes.faa
-grep -A 1 'KMBP009B_000000084934_2' downstream_genes.faa
+grep -A 1 'BLI20_assembly004_000000034765_5' downstream_genes.faa
+grep -A 1 'BLI20_assembly004_000000075580_2' downstream_genes.faa
+grep -A 1 'BLI20_assembly004_000000098923_1' downstream_genes.faa
+grep -A 1 'BLI20_coassembly_000000053122_2' downstream_genes.faa
 
 
 
@@ -283,31 +282,48 @@ cd ~/BLiMMP/dataEdited/hgcA_analysis
 source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
 conda activate py_viz
 PYTHONPATH=''
-IFS=$'\n'
-scripts=~/BLiMMP/code/generalUse
+scripts=~/BLiMMP/code
 
-grep '>' identification/hgcA_raw.faa | \
-    sed 's/>//' | \
-    while read hgcA_id
-    do
-      echo "Working on" $hgcA_id
-      scaffold_id=$(echo $hgcA_id | cut -d '_' -f 1-2)
-      awk -F '\t' -v scaffold_id="$scaffold_id" '$1 == scaffold_id { print $0 }' scaffolds/hgcA_scaffolds.gff > scaffolds/temp_scaffolds.gff
-      gene_id=$(echo $hgcA_id | \
-                  cut -d '_' -f 2-3 | \
-                  sed 's/^0*//g')
-      echo "Searching for" $gene_id
-      python $scripts/gene_neighborhood_extraction.py scaffolds/temp_scaffolds.gff \
-                                                      scaffolds/hgcA_scaffolds.fna \
-                                                      $gene_id \
-                                                      5000 \
-                                                      scaffolds/temp_$gene_id
+cat identification/hgcA_good.txt | while read hgcA_id
+do
+  scaffold_id=$(echo $hgcA_id | cut -d '_' -f 1-3)
+  echo "Working on" $hgcA_id", on scaffold" $scaffold_id
+  awk -F '\t' -v scaffold_id="$scaffold_id" '$1 == scaffold_id { print $0 }' scaffolds/hgcA_scaffolds.gff > scaffolds/temp_scaffolds.gff
+  gene_id=$(echo $hgcA_id | \
+              cut -d '_' -f 3-4 | \
+              sed 's/^0*//g')
+  echo "Searching for" $gene_id
+  python $scripts/gene_neighborhood_extraction.py scaffolds/temp_scaffolds.gff \
+                                                  scaffolds/hgcA_scaffolds.fna \
+                                                  $gene_id \
+                                                  5000 \
+                                                  scaffolds/temp_$gene_id
 
-      rm -f scaffolds/temp_scaffolds.gff
-    done
+  rm -f scaffolds/temp_scaffolds.gff
+done
 
 cd scaffolds
-rm -f hgcA_geneNeighborhood.gff hgcA_geneNeighborhood.fna
 cat temp_*.gff > hgcA_geneNeighborhood_raw.gff
 cat temp_*.fna > hgcA_geneNeighborhood_raw.fna
 rm -f *_neighborhood.*
+
+
+
+
+############################################
+############################################
+# Dereplication
+############################################
+############################################
+
+cd ~/BLiMMP/dataEdited/hgcA_analysis
+mkdir dereplication
+cdhit=~/programs/cdhit-master
+$cdhit/cd-hit -g 1 \
+              -i identification/hgcA_good.faa \
+              -o dereplication/hgcA_good_acrossYear.faa \
+              -c 0.97 \
+              -n 5 \
+              -d 0
+$cdhit/clstr2txt.pl dereplication/hgcA_good_acrossYear.faa.clstr \
+  > dereplication/hgcA_good_acrossYear.tsv
