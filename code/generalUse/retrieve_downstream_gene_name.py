@@ -39,6 +39,6 @@ with open(output, 'w') as outFile:
             print(idRaw + " is on the forward strand")
             hgcbLocation = int(geneNumber) + 1
         # Get downstream gene name
-        hgcBgeneID = fullScaffoldID + "_" + str(hgcbLocation)
+        hgcBgeneID = scaffold + "_" + str(hgcbLocation)
         print(hgcBgeneID)
         outFile.write(hgcBgeneID + '\n')
