@@ -425,3 +425,42 @@ $raxml -f a \
         -T 20 \
         -s hgcA_for_tree_masked.afa \
         -n hgcA
+
+
+
+############################################
+############################################
+# Pull out depth of hgcA+ scaffolds
+############################################
+############################################
+
+screen -S BLI_hgcA_depth
+cd ~/BLiMMP/dataEdited/hgcA_analysis
+mkdir depth
+source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
+conda activate bioinformatics
+PERL5LIB=""
+PYTHONPATH=""
+
+awk -F '\t' '{ print $1 }' ~/BLiMMP/metadata/metagenome_list.txt | while read metagenome
+do
+  cat hgcA_final_abundance_list.txt | while read gene
+  do
+    scaffold=$(echo $gene | awk -F '_' '{ print $1"_"$2"_"$3 }')
+    assembly=$(echo $gene | awk -F '_' '{ print $1"_"$2 }')
+    if [ -e ~/BLiMMP/dataEdited/mapping/$metagenome\_to_$assembly.bam ]; then
+      echo "Calculating coverage of" $metagenome "over" $scaffold
+      samtools depth -a -r $scaffold ~/BLiMMP/dataEdited/mapping/$metagenome\_to_$assembly.bam \
+          >> depth/$metagenome\_hgcA_depth_raw.tsv
+    else
+      echo $metagenome "not from same year as" $assembly "and" $gene "won't be found there"
+    fi
+  done
+
+  echo "Aggregating hgcA depth information for" $metagenome
+  python ~/BLiMMP/code/calculate_depth_length_contigs.py \
+            depth/$metagenome\_hgcA_depth_raw.tsv \
+            150 \
+            depth/$metagenome\_hgcA_depth.tsv
+  rm -f depth/$metagenome\_hgcA_depth_raw.tsv
+done

@@ -161,3 +161,14 @@ I then masked the alignment at 50% gaps, which seems to work well.
 I exported it (`hgcA_for_tree_masked.afa`) and uploaded it to the GLBRC.
 I then ran RAxML (v8.2.11) on it to generate a ML tree.
 I used rapid bootstrapping with automatic detection of limits and autodetection of the mutation model.
+
+
+**Pull out depth of hgcA+ scaffolds**
+
+I then pulled out the depths of the hgcA+ scaffolds.
+This was set up to run with multiple years if need be, so once we get 2021 metagenomes I'll be set to run this.
+I calculated the depth as the average coverage over each nucleotide in the scaffold except for the nucleotides within 150 bp of either end of the scaffold.
+
+I downloaded the aggregated depths to my local computer.
+Then I aggregated the data using a R script: `code/hgcA_analysis/clean_hgcA_coverage.R`.
+This data was normalized to the SCG coverage I calculated for each metagenome.
