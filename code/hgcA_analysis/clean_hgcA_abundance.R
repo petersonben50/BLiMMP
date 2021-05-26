@@ -13,9 +13,7 @@ library(tidyverse)
 
 #### Read in normalization vector ####
 # Normalized by SCG coverage
-# normalized.coverage.vector <- readRDS("dataEdited/scg_abundance/scg_normalization_vector.rds")
-# normalized to 10 million reads
-# normalized.coverage.vector <- readRDS("dataEdited/metagenomes/reports/metagenome_normalization_vector.rds")
+normalized.coverage.vector <- readRDS("dataEdited/scg_abundance/scg_normalization_vector.rds")
 
 
 #### List of file names with depth info ####
