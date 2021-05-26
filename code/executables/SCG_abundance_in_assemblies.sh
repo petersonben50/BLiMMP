@@ -78,10 +78,9 @@ done
 # Dereplicate SCGs across assemblies within years
 #########################
 rm -f *_raw.faa
-cat $assembly_list | while read line
+awk -F '\t' '{ print $1 }' $assembly_list | while read assembly
 do
-  assembly=`echo $line | awk -F '\t' '{ print $1 }'`
-  year=`echo $line | awk -F '\t' '{ print $2 }'`
+  year=$(awk -v assembly="$assembly" ' $1 == assembly { print $2 }' $assembly_list)
   echo $assembly "is from" $year
   cat $assembly\_$geneName\_*.faa >> $geneName\_$year\_raw.faa
 done
