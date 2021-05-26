@@ -26,10 +26,3 @@ condor_submit /home/GLBRCORG/bpeterson26/BLiMMP/code/SCG_abundance_in_assemblies
 ######################
 cd ~/BLiMMP/dataEdited/scg_abundance
 cat *_scg_coverage.tsv > scg_coverage.tsv
-
-
-######################
-# Clean up
-######################
-cd ~/BLiMMP/metadata/lists
-rm -f assembly_list.txt metagenome_list.txt
