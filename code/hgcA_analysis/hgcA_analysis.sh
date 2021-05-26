@@ -386,14 +386,13 @@ FastTree hgcA_for_phylogeny_ref.afa \
 BLiMMP
 cp /Users/benjaminpeterson/Documents/research/Hg_MATE/versions/v1.01142021/Hg-MATE-Db.v1.01142021_ISOCELMAG_Hgc.fas \
     references
-cd ~/BLiMMP/dataEdited/hgcA_analysis/phylogeny
-rm -f dataEdited/hgcA_analysis/phylogeny/HgMate_reference_seqs_to_use.faa
-cut -d"_" -f1-3 dataEdited/hgcA_analysis/phylogeny/reference_names_to_use.txt | while read reference_name
+rm -f dataEdited/hgcA_analysis/phylogeny/raxml/HgMate_reference_seqs_to_use.faa
+cut -d"_" -f1-3 dataEdited/hgcA_analysis/phylogeny/raxml/reference_names_to_use.txt | while read reference_name
 do
   grep -A 1 \
     $reference_name \
     references/Hg-MATE-Db.v1.01142021_ISOCELMAG_Hgc.fas \
-    >> dataEdited/hgcA_analysis/phylogeny/HgMate_reference_seqs_to_use.faa
+    >> dataEdited/hgcA_analysis/phylogeny/raxml/HgMate_reference_seqs_to_use.faa
 done
 
 
@@ -409,13 +408,15 @@ cat 5M_bin_seqs.faa \
     HgMate_reference_seqs_to_use.faa \
     jones_hgcA_seqs.faa \
     ../hgcA_for_phylogeny.faa \
+    hgcA_paralogs_for_rooting.faa \
     > hgcA_for_tree.faa
 
+# Generate alignment
 muscle -in hgcA_for_tree.faa \
         -out hgcA_for_tree.afa
 
 # Upload masked alignment
-
+# Then run RAxML to generate tree
 raxml=/opt/bifxapps/raxml-8.2.11/raxmlHPC-PTHREADS
 $raxml -f a \
         -p 283976 \

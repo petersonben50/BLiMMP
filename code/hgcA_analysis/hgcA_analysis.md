@@ -154,6 +154,7 @@ I uploaded the references to GLBRC.
 I also pulled the references from my study and from Jones et al, 2019.
 I had to do a bit of curation on my sequences, man was I bad at keeping records.
 I got the Jones sequences from the 5M study references.
+I also added two hgcA paralogs, to use in rooting the tree.
 I concatanated all these sequences and aligned them using MUSCLE.
 I downloaded the alignment and inspected it in Geneious to ensure it looks good.
 Which it does.
