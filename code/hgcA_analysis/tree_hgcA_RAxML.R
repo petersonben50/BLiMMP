@@ -32,12 +32,12 @@ rm(tree.name)
 
 
 #### Root tree ####
-# hgcA.tree <- root(phy = hgcA.tree.unrooted,
-#                   outgroup = c("paralog_Thermosulfurimonas_dismutans",
-#                                "paralog_Candidatus_Omnitrophica"),
-#                   edgelabel = TRUE)
-hgcA.tree <- midpoint(hgcA.tree.unrooted,
-                      edgelabel = TRUE)
+hgcA.tree <- root(phy = hgcA.tree.unrooted,
+                  outgroup = c("paralog_Thermosulfurimonas_dismutans_HIE33071.1",
+                               "paralog_Candidatus_Omnitrophica_bacterium_CG1_02_41_171_OIO34496.1"),
+                  edgelabel = TRUE)
+# hgcA.tree <- midpoint(hgcA.tree.unrooted,
+#                       edgelabel = TRUE)
 
 #### Read in hgcA to bin info ####
 # hgcA.to.bin <- read.table("dataEdited/binning/hgcA/hgcA_to_bin.tsv",
@@ -106,12 +106,12 @@ color.vector[this.study.indices] <- cb.translator["vermillion"]
 color.vector[reference.indices.jones] <- cb.translator["skyblue"]
 
 # Visualize tree
-pdf("results/hgcA_analysis/hgcA_tree_RAxML_rooted.pdf",
+pdf("dataEdited/hgcA_analysis/phylogeny/raxml/hgcA_tree_RAxML_rooted.pdf",
     height = 16,
     width = 5)
 ggtree(hgcA.tree,
        aes(x = 0,
-           xend = 6)) + 
+           xend = 10)) + 
   geom_tiplab(size=2.5,
               align = TRUE,
               col = color.vector) + 
