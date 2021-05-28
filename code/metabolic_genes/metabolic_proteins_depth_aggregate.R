@@ -56,7 +56,7 @@ depth.df <- do.call(rbind,
 
 #### Add in metadata ####
 all.data <- metabolic.gene.key %>%
-  full_join(depth.df) %>%
+  left_join(depth.df) %>%
   left_join(metadata.df)
 
 
@@ -72,9 +72,8 @@ dsrA.scaffolds <- paste(dsrA.list %>% strsplit("_") %>% sapply("[", 1),
                         dsrA.list %>% strsplit("_") %>% sapply("[", 3),
                         sep = "_")
 all.data[which((all.data$scaffoldID %in% rdsrA.scaffolds) & (all.data$geneName == 'dsrA')), "geneName"] <- "rdsrA"
-all.data[which((all.data$scaffoldID %in% dsrA.scaffolds) & (all.data$geneName == 'dsrA')), "geneName"]
 
 
-#### Write out file
+#### Write out file ####
 saveRDS(all.data,
         "dataEdited/metabolic_analyses/depth/metabolicProtein_depth_clean.rds")
