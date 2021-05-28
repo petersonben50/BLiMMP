@@ -449,17 +449,6 @@ trimal -in nitrate_reductases_references.afa \
         -gt 0.5
 FastTree nitrate_reductases_references_masked.afa > nitrate_reductases_moor.tree
 
-raxml=/opt/bifxapps/raxml-8.2.11/raxmlHPC-PTHREADS
-$raxml -f a \
-        -p 283976 \
-        -m PROTGAMMAAUTO \
-        -N autoMRE \
-        -x 2381 \
-        -T 20 \
-        -s putative_MoORs_ref_1_masked.afa \
-        -n hgcA
-
-
 
 ############################################
 ############################################
