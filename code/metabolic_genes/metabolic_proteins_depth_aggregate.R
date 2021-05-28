@@ -77,3 +77,9 @@ all.data[which((all.data$scaffoldID %in% rdsrA.scaffolds) & (all.data$geneName =
 #### Write out file ####
 saveRDS(all.data,
         "dataEdited/metabolic_analyses/depth/metabolicProtein_depth_clean.rds")
+
+
+#### Just to see... ####
+all.data.just.to.see <- all.data %>%
+  group_by(geneName, metagenomeID) %>%
+  summarise(coverage = sum(coverage))
