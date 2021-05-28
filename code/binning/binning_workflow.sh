@@ -71,13 +71,16 @@ condor_submit binning_mapping.sub
 ####################################################
 mkdir /home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/binning/manualBinning
 mkdir /home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/binning/manualBinning/anvioDBs
+mkdir ~/BLiMMP/reports/anvioDBprep
+cd ~/BLiMMP/reports/anvioDBprep
+mkdir outs errs logs
 
 ##########################
 # Generate contig databases
 ##########################
 cd /home/GLBRCORG/bpeterson26/BLiMMP/code/
-chmod +x executables/anvio_DB_prep.sh
-condor_submit submission/anvio_DB_prep.sub
+chmod +x anvio_DB_prep.sh
+condor_submit anvio_DB_prep.sub
 
 
           ##########################
