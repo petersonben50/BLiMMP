@@ -1,4 +1,4 @@
-#### code/incubations/profiles_geochem.R ####
+#### code/geochem/profiles_geochem.R ####
 # Benjamin D. Peterson
 
 
