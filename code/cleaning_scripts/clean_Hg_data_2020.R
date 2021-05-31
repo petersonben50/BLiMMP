@@ -58,14 +58,16 @@ clean.Hg.data.for(dataSheet = "dataRaw/Hg/MENDOTA_results_2020-11-03.csv",
 clean.Hg.data.for(dataSheet = "dataRaw/Hg/MENDOTA_results_2021-01-19.csv",
                   waterDepth = 24,
                   output = "dataEdited/Hg/2020/clean_Hg_data_20210119.csv")
+clean.Hg.data.for(dataSheet = "dataRaw/Hg/MENDOTA_results_2021-05-06_editedHeaders_noIncubationSamples.csv",
+                  waterDepth = 24,
+                  output = "dataEdited/Hg/2020/clean_Hg_data_20210506.csv")
 
 
-
-
-#### Aggregate all cleaned data files for 2020 ####
 
 rm(list = ls())
 
+
+#### Aggregate all cleaned data files for 2020 ####
 list.o.files <- list.files(path = "./dataEdited/Hg/2020",
                            pattern = "clean_Hg_data",
                            full.names = TRUE)
@@ -77,6 +79,29 @@ Hg.data <- do.call(rbind,
                           }))
 
 
+#### Prep inorganic Hg data ####
+clean.Hg.data <- Hg.data %>%
+  mutate(constituent = paste(constituent, "_", unit,
+                             sep = "") %>%
+           gsub("/", ".", .)) %>%
+  group_by(sampleDate, depth, constituent, corewater) %>%
+  summarize(concentration = mean(concentration)) %>%
+  spread(key = constituent,
+         value = concentration) %>%
+  mutate(FiHg_NG.L = FTHG_NG.L - FMHG_NG.L,
+         PiHg_NG.L = PTHG_NG.L - PMHG_NG.L) %>%
+  gather(key = constituent,
+         value = concentration,
+         -c(1:3)) %>%
+  filter(!is.na(concentration))
+  
+
+
+
+
+#### Read out data ####
 write.csv(Hg.data,
           file = "dataEdited/Hg/Hg_data_2020.csv",
           row.names = FALSE)
+
+
