@@ -19,6 +19,7 @@ plot.exo.data("2020-10-10",
               points.of.sampling = c(15.7, 20.9))
 plot.redox.profile(trip = "BLiMMP_trip_013",
                    sulfide.data.location = "dataEdited/waterChemistry/sulfide/WC_data.csv",
+                   sulfate.data.location = "dataEdited/waterChemistry/sulfate/WC_data.csv",
                    ICP.data.name = "dataEdited/waterChemistry/ICP/2020_WC_data.rds")
 plot.Hg.profile(tripDates = c("2020-10-10", "2020-10-11"),
                 Hg.data.location = "dataEdited/Hg/Hg_data_2020.csv")
