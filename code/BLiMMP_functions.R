@@ -87,7 +87,7 @@ plot.exo.data <- function(date.of.sampling,
            cex = 2,
            col = cb.translator["bluishgreen"])
     legend("topright",
-           legend = c("Temperature", "DO", "Turbidity", "Sampling Points"),
+           legend = c("Temperature", "DO", "Turbidity", "Incubations"),
            col = c(cb.translator["blue"], cb.translator["black"], cb.translator["reddishpurple"], cb.translator["bluishgreen"]),
            lwd = c(3, 3, 3, NA),
            lty = c(1, 4, 3, NA),
@@ -347,7 +347,7 @@ plot.Hg.profile <- function(tripDates,
   
   #### Add labels ####
   # Add label for percent MeHg
-  title(xlab = "Percent MeHg",
+  title(xlab = "Fraction MeHg",
         line = 4.5)
   # Add label for depth
   title(ylab = "Depth (m)",
