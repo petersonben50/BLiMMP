@@ -140,7 +140,7 @@ clean.MeHg.data.from <- function(file.name.input,
 #### Clean sulfate data ####
 clean.sulfate.data.from <- function(data.file.name,
                                     processing.metadata.df = processing.metadata,
-                                    samples.to.remove,
+                                    samples.to.remove = NULL,
                                     output.file.name) {
   # Read in headers for Excel dataframe
   sulfate.headers <- read_xlsx(data.file.name,
@@ -172,8 +172,13 @@ clean.sulfate.data.from <- function(data.file.name,
     mutate(concentration = rawConcentration * dilution) %>%
     mutate(preservativeDilutionFactor = ((mass - tare) / (mass - tare - preservativeVol))) %>%
     mutate(concentration = concentration * preservativeDilutionFactor) %>%
-    select(sulfurID, concentration)
-
+    select(sulfurID, concentration) 
+  if (!is.null(samples.to.remove)) {
+    sample.data <- sample.data %>%
+      filter(!(sulfurID %in% samples.to.remove))
+    
+  }
+  
 
 
   # Write out data
