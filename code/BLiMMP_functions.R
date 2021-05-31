@@ -118,32 +118,42 @@ plot.redox.profile <- function(trip,
   sulfide.data.date <- read.csv(sulfide.data.location,
                                 stringsAsFactors = FALSE) %>%
     filter(tripID == trip) %>%
-    mutate(depth = as.numeric(depth))
+    mutate(depth = as.numeric(depth)) %>%
+    arrange(depth)
   
   # Read in sulfate data
   sulfate.data.date <- read.csv(sulfate.data.location,
                                 stringsAsFactors = FALSE) %>%
     filter(tripID == trip) %>%
-    mutate(depth = as.numeric(depth))
+    mutate(depth = as.numeric(depth)) %>%
+    arrange(depth)
   
   # Read in ICP data
   Mn.data.date <- readRDS(ICP.data.name) %>%
     filter(tripID == trip,
            constituent == "dissolved_Mn_ppb") %>%
-    mutate(diss_conc_uM = concentration/ 54.938)
+    mutate(diss_conc_uM = concentration/ 54.938) %>%
+    mutate(depth = as.numeric(depth)) %>%
+    arrange(depth)
   Mn.part.data.date <- readRDS(ICP.data.name) %>%
     filter(tripID == trip,
            constituent == "particulate_Mn_ppb") %>%
-    mutate(part_conc_uM = concentration/ 54.938)
+    mutate(part_conc_uM = concentration/ 54.938) %>%
+    mutate(depth = as.numeric(depth)) %>%
+    arrange(depth)
 
   Fe.data.date <- readRDS(ICP.data.name) %>%
     filter(tripID == trip,
            constituent == "dissolved_Fe_ppb") %>%
-    mutate(diss_conc_uM = concentration/ 55.85)
+    mutate(diss_conc_uM = concentration/ 55.85) %>%
+    mutate(depth = as.numeric(depth)) %>%
+    arrange(depth)
   Fe.part.data.date <- readRDS(ICP.data.name) %>%
     filter(tripID == trip,
            constituent == "particulate_Fe_ppb") %>%
-    mutate(diss_conc_uM = concentration/ 55.85)
+    mutate(diss_conc_uM = concentration/ 55.85) %>%
+    mutate(depth = as.numeric(depth)) %>%
+    arrange(depth)
   
   # Generate plot, add sulfide data points
   sulfide.adjustment.for.plotting <- 0.1
