@@ -127,7 +127,6 @@ plot.redox.profile <- function(trip,
     mutate(depth = as.numeric(depth))
   
   # Read in ICP data
-
   Mn.data.date <- readRDS(ICP.data.name) %>%
     filter(tripID == trip,
            constituent == "dissolved_Mn_ppb") %>%
@@ -145,8 +144,6 @@ plot.redox.profile <- function(trip,
     filter(tripID == trip,
            constituent == "particulate_Fe_ppb") %>%
     mutate(diss_conc_uM = concentration/ 55.85)
-  
-
   
   # Generate plot, add sulfide data points
   sulfide.adjustment.for.plotting <- 0.1
@@ -227,8 +224,8 @@ plot.redox.profile <- function(trip,
   
   # Add axis for sulfide
   axis(1,
-       at = seq(0, 20, by = 4),
-       labels = seq(0, 20, by = 4)/sulfide.adjustment.for.plotting)
+       at = seq(0, 20, by = 5),
+       labels = seq(0, 20, by = 5)/sulfide.adjustment.for.plotting)
   
   # Add axis for Mn
   axis(1,
@@ -241,7 +238,7 @@ plot.redox.profile <- function(trip,
         line = 1.5)
   
   # Add label for sulfide
-  title(xlab = "Sulfide (uM)",
+  title(xlab = "Sulfide/sulfate (uM)",
         line = 1.5)
   
   # Add label for Mn
@@ -251,13 +248,15 @@ plot.redox.profile <- function(trip,
   # Add legend
   legend("topright",
          legend = c("Sulfide",
+                    "Sulfate",
                     "Dissolved Mn",
                     "Particulate Mn"),
          col = c(cb.translator["blue"],
+                 cb.translator["blue"],
                  cb.translator["orange"],
                  cb.translator["orange"]),
-         pch = c(16, 18, 5),
-         pt.cex = c(1.75, 1.75, 1.25),
+         pch = c(16, 1, 18, 5),
+         pt.cex = c(1.75, 1.75, 1.75, 1.25),
          bty = "n")
 }
 
