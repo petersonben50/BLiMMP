@@ -100,7 +100,7 @@ clean.Hg.data <- Hg.data %>%
 
 
 #### Read out data ####
-write.csv(Hg.data,
+write.csv(clean.Hg.data,
           file = "dataEdited/Hg/Hg_data_2020.csv",
           row.names = FALSE)
 
