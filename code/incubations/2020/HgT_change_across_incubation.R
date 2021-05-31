@@ -1,4 +1,4 @@
-#### code/incubations/2020/initial_injection_concentration.R ####
+#### code/incubations/2020/HgT_change_across_incubation.R ####
 # Written for BLiMMP project
 # Benjamin D. Peterson
 
@@ -13,7 +13,6 @@ library(lubridate)
 library(patchwork)
 library(tidyverse)
 cb.translator <- readRDS("/Users/benjaminpeterson/Box/ancillary_science_stuff/colors/colorblind_friendly_colors_R/colorblind_friendly_colors.rds")
-# source("code/BLiMMP_functions.R")
 
 
 #### Treatment renaming vector ####
@@ -32,7 +31,7 @@ Hg.data <- read.csv("dataEdited/incubations/2020incubations_Hg_data.csv") %>%
 
 
 
-#### Prepare data for plotting
+#### Prepare data for plotting ####
 Hg.data$monthOfIncubations <- "October"
 Hg.data$monthOfIncubations[which(Hg.data$tripID == "BLiMMP_trip_010")] = "September"
 Hg.data.plotting <- Hg.data %>%
