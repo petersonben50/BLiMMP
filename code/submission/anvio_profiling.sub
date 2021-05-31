@@ -1,0 +1,23 @@
+##################
+# anvio_profiling.sub
+# Submission script for profiling
+# metagenomic reads mapped to an
+# assembly into an anvi'o database.
+
+# Benjamin D. Peterson
+##################
+
+request_cpus = 12
+request_memory = 120GB
+
+executable = /home/GLBRCORG/bpeterson26/BLiMMP/code/anvio_profiling.sh
+
+environment = "assembly=$(assembly) \
+              output=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/binning/manualBinning/anvioDBs \
+              mappingKey=/home/GLBRCORG/bpeterson26/BLiMMP/metadata/mapping_key.tsv \
+              mappingLocation=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/binning/mapping"
+output = /home/GLBRCORG/bpeterson26/BLiMMP/reports/anvioProfiling/outs/$(assembly).out
+error = /home/GLBRCORG/bpeterson26/BLiMMP/reports/anvioProfiling/errs/$(assembly).err
+log = /home/GLBRCORG/bpeterson26/BLiMMP/reports/anvioProfiling/logs/$(assembly).log
+
+queue assembly from /home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/binning/assembly_list_to_use.txt

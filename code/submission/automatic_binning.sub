@@ -1,0 +1,27 @@
+##################
+# automatic_binning.sub
+# Submission script for running automatic
+# binning algorithms on scaffolds.
+
+# Benjamin D. Peterson
+##################
+
+request_cpus = 12
+request_memory = 120GB
+
+executable = /home/GLBRCORG/bpeterson26/BLiMMP/code/automatic_binning.sh
+
+environment = "assembly=$(assembly) \
+              metabatOutput=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/binning/autoBinning/metabat2 \
+              maxbinOutput=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/binning/autoBinning/maxbin2 \
+              dasToolOutput=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/binning/autoBinning/dasTool \
+              finalBinsOutput=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/binning/autoBinning/finalBins \
+              mappingKey=/home/GLBRCORG/bpeterson26/BLiMMP/metadata/mapping_key.tsv \
+              mappingLocation=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/binning/mapping \
+              scaffoldsLocation=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/binning/scaffolds \
+              scripts=/home/GLBRCORG/bpeterson26/BLiMMP/code"
+output = /home/GLBRCORG/bpeterson26/BLiMMP/reports/autoBinning/outs/$(assembly).out
+error = /home/GLBRCORG/bpeterson26/BLiMMP/reports/autoBinning/errs/$(assembly).err
+log = /home/GLBRCORG/bpeterson26/BLiMMP/reports/autoBinning/logs/$(assembly).log
+
+queue assembly from /home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/binning/assembly_list_to_use.txt

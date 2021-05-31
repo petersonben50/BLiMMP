@@ -1,0 +1,20 @@
+##################
+# generate_large_bin_clusters_anvio.sub
+# Submission script for running automatic
+# binning algorithms on scaffolds.
+
+# Benjamin D. Peterson
+##################
+
+request_cpus = 12
+request_memory = 120GB
+
+executable = /home/GLBRCORG/bpeterson26/BLiMMP/code/generate_large_bin_clusters_anvio.sh
+
+environment = "assembly=$(assembly) \
+              anvioFolder=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/binning/manualBinning/anvioDBs"
+output = /home/GLBRCORG/bpeterson26/BLiMMP/reports/concoctBinning/outs/$(assembly).out
+error = /home/GLBRCORG/bpeterson26/BLiMMP/reports/concoctBinning/errs/$(assembly).err
+log = /home/GLBRCORG/bpeterson26/BLiMMP/reports/concoctBinning/logs/$(assembly).log
+
+queue assembly from /home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/binning/assembly_list_to_use.txt
