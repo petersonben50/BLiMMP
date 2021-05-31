@@ -66,6 +66,24 @@ condor_submit binning_mapping.sub
 
 ####################################################
 ####################################################
+# Run automatic binning algorithms
+####################################################
+####################################################
+mkdir ~/BLiMMP/dataEdited/binning/autoBinning
+cd ~/BLiMMP/dataEdited/binning/autoBinning
+mkdir metabat2 maxbin2 dasTool finalBins
+cd ~/BLiMMP/reports
+mkdir autoBinning
+cd autoBinning
+mkdir outs errs logs
+
+cd /home/GLBRCORG/bpeterson26/BLiMMP/code/
+chmod +x automatic_binning.sh
+condor_submit automatic_binning.sub
+
+
+####################################################
+####################################################
 # Prepare anvi'o databases for manual binning
 ####################################################
 ####################################################
@@ -83,74 +101,63 @@ chmod +x anvio_DB_prep.sh
 condor_submit anvio_DB_prep.sub
 
 
-          ##########################
-          # Generate read profiles
-          ##########################
-          cd /home/GLBRCORG/bpeterson26/BLiMMP/code/
-          chmod +x executables/anvio_profiling.sh
-          condor_submit submission/anvio_profiling.sub
+##########################
+# Generate read profiles
+##########################
+mkdir ~/BLiMMP/reports/anvioProfiling
+cd ~/BLiMMP/reports/anvioProfiling
+mkdir outs errs logs
+cd /home/GLBRCORG/bpeterson26/BLiMMP/code/
+chmod +x anvio_profiling.sh
+condor_submit anvio_profiling.sub
 
 
-          ##########################
-          # Run CONCOCT binning
-          ##########################
-          cd ~/BLiMMP/reports
-          rm -f */*_autoBinning*
-          mkdir /home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/binning/manualBinning/anvioDBs/original_summaries
-          cd /home/GLBRCORG/bpeterson26/BLiMMP/code/
-          chmod +x executables/generate_large_bin_clusters_anvio.sh
-          condor_submit submission/generate_large_bin_clusters_anvio.sub
+##########################
+# Run CONCOCT binning
+##########################
+mkdir /home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/binning/manualBinning/anvioDBs/original_summaries
+mkdir ~/BLiMMP/reports/concoctBinning
+cd ~/BLiMMP/reports/concoctBinning
+mkdir outs errs logs
+cd /home/GLBRCORG/bpeterson26/BLiMMP/code/
+chmod +x generate_large_bin_clusters_anvio.sh
+condor_submit generate_large_bin_clusters_anvio.sub
 
 
-          ##########################
-          # Search bins for hgcA
-          ##########################
-          screen -S HCC_binning
-          conda activate anvio6.2
-          cd /home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/binning/manualBinning/anvioDBs
-          mkdir original_summaries/hgcA_search
-          echo -e "assembly\tbin" >> original_summaries/hgcA_search/original_hgcA_bin_list.txt
+##########################
+# Search bins for hgcA
+##########################
+screen -S BLI_binning
+source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
+conda activate anvio6.2
+PYTHONPATH=''
+assembly_list=~/BLiMMP/metadata/assembly_list.txt
+cd /home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/binning/manualBinning/anvioDBs
+mkdir original_summaries/hgcA_search
+echo -e "assembly\tbin" > original_summaries/hgcA_search/original_hgcA_bin_list.txt
 
-          cat /home/GLBRCORG/bpeterson26/BLiMMP/metadata/lists/assembly_list.txt | while read assembly
-          do
-            if [ ! -e original_summaries/uncurated_bins_from_$assembly ]; then
-              echo "Summarizing binning from" $assembly
-              anvi-summarize -c $assembly.db \
-                              -p $assembly.merged/PROFILE.db \
-                              -C CONCOCT \
-                              -o original_summaries/uncurated_bins_from_$assembly
+awk -F '\t' '{ print $1 }' $assembly_list | while read assembly
+do
+  if [ ! -e original_summaries/uncurated_bins_from_$assembly ]; then
+    echo "Summarizing binning from" $assembly
+    anvi-summarize -c $assembly.db \
+                    -p $assembly.merged/PROFILE.db \
+                    -C CONCOCT \
+                    -o original_summaries/uncurated_bins_from_$assembly
 
-              ls original_summaries/uncurated_bins_from_$assembly/bin_by_bin | sed 's/\///' \
-                  > original_summaries/$assembly\_original_bin_list.txt
-              cat original_summaries/$assembly\_original_bin_list.txt | while read bin
-              do
-                if [ -s original_summaries/uncurated_bins_from_$assembly/bin_by_bin/$bin/$bin-hgcaAnvio-hmm-sequences.txt ]; then
-                  echo $assembly$'\t'$bin >> original_summaries/hgcA_search/original_hgcA_bin_list.txt
-                fi
-              done
-            else
-              echo $assembly "already summarized"
-            fi
-          done
+    ls original_summaries/uncurated_bins_from_$assembly/bin_by_bin | sed 's/\///' \
+        > original_summaries/$assembly\_original_bin_list.txt
+    cat original_summaries/$assembly\_original_bin_list.txt | while read bin
+    do
+      if [ -s original_summaries/uncurated_bins_from_$assembly/bin_by_bin/$bin/$bin-hgcaAnvio-hmm-sequences.txt ]; then
+        echo $assembly$'\t'$bin >> original_summaries/hgcA_search/original_hgcA_bin_list.txt
+      fi
+    done
+  else
+    echo $assembly "already summarized"
+  fi
+done
 
-
-
-          ####################################################
-          ####################################################
-          # Run automatic binning algorithms
-          ####################################################
-          ####################################################
-
-          screen -S HCC_auto_binning
-          mkdir ~/BLiMMP/dataEdited/binning/autoBinning
-          cd ~/BLiMMP/dataEdited/binning/autoBinning
-          mkdir metabat2 maxbin2 dasTool finalBins
-          cd ~/BLiMMP/reports
-          rm -f */*_autoBinning*
-
-          cd /home/GLBRCORG/bpeterson26/BLiMMP/code/
-          chmod +x executables/automatic_binning.sh
-          condor_submit submission/automatic_binning.sub
 
 
           ####################################################
@@ -159,7 +166,7 @@ condor_submit anvio_DB_prep.sub
           ####################################################
           ####################################################
 
-          screen -S HCC_anvioDBs_add_autoBins
+          screen -S BLI_anvioDBs_add_autoBins
           source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
           conda activate anvio6.2
           PYTHONPATH=""
@@ -211,7 +218,7 @@ condor_submit anvio_DB_prep.sub
           ################################################
           ################################################
 
-          screen -S HCC_anvioDBs_binning
+          screen -S BLI_anvioDBs_binning
           source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
           conda activate anvio6.2
           PYTHONPATH=""
@@ -240,7 +247,7 @@ condor_submit anvio_DB_prep.sub
           ##########################
           # Rename and summarize bins
           ##########################
-          screen -S HCC_binsPostProcessing
+          screen -S BLI_binsPostProcessing
           source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
           conda activate anvio6.2
           PYTHONPATH=""
@@ -363,7 +370,7 @@ condor_submit anvio_DB_prep.sub
           # Completeness/redundancy estimates from CheckM
           ##########################
 
-          screen -S HCC_checkM
+          screen -S BLI_checkM
           source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
           PYTHONPATH=""
           conda activate bioinformatics
@@ -435,7 +442,7 @@ condor_submit anvio_DB_prep.sub
           ####################################################
           ####################################################
 
-          screen -S HCC_GTDB
+          screen -S BLI_GTDB
           source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
           PYTHONPATH=""
           conda activate gtdbtk
@@ -508,7 +515,7 @@ condor_submit anvio_DB_prep.sub
           ####################################################
           ####################################################
 
-          screen -S HCC_binsORFS
+          screen -S BLI_binsORFS
           source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
           conda activate bioinformatics
           PYTHONPATH=""
@@ -573,8 +580,8 @@ condor_submit anvio_DB_prep.sub
           wget https://ani.jgi-psf.org/download_files/ANIcalculator_v1.tgz
           tar -xzvf ANIcalculator_v1.tgz
           git clone https://github.com/sstevens2/ani_compare_dag.git
-          mv ani_compare_dag HCC_bins_ANI
-          cd HCC_bins_ANI/
+          mv ani_compare_dag BLI_bins_ANI
+          cd BLI_bins_ANI/
           mkdir goodBins
 
 
@@ -584,7 +591,7 @@ condor_submit anvio_DB_prep.sub
           echo 'goodBins' > groupslist.txt
           # Change path of executable and
           # transfer_input_files lines
-          #executable = /home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/binning/manualBinning/binsGood/ANI_comparison/HCC_bins_ANI/group.sh
+          #executable = /home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/binning/manualBinning/binsGood/ANI_comparison/BLI_bins_ANI/group.sh
           #transfer_input_files = /home/GLBRCORG/bpeterson26/Everglades/dataEdited/2019_binning/binning_initial/binsGood/ANI_comparison/ANIcalculator_v1/ANIcalculator,/home/GLBRCORG/bpeterson26/Everglades/dataEdited/2019_binning/binning_initial/binsGood/ANI_comparison/ANIcalculator_v1/nsimscan,$(spllist),$(totransfer)
           condor_submit_dag runAllANIcompare.dag
           # Download output file (goodBins.all.ani.out.cleaned)
@@ -616,7 +623,7 @@ condor_submit anvio_DB_prep.sub
           # Custom set of metabolic HMMs
           ##########################
 
-          screen -S HCC_metabolic_HMMs
+          screen -S BLI_metabolic_HMMs
           source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
           conda activate batch_HMMs
           PYTHONPATH=''
@@ -784,7 +791,7 @@ condor_submit anvio_DB_prep.sub
 
 
           # Retrieve reference information on local computer
-          HCC
+          BLI
           cd dataEdited/binning/metabolism/PCC
           epost -db protein -input blast_pcc_omp_uniq_list.txt | \
               esummary | \
@@ -817,7 +824,7 @@ condor_submit anvio_DB_prep.sub
           #########################
           # Confirm dsrA phylogeny
           #########################
-          screen -S HCC_dsrA_tree
+          screen -S BLI_dsrA_tree
           source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
           conda activate bioinformatics
           PYTHONPATH=""
@@ -962,7 +969,7 @@ condor_submit anvio_DB_prep.sub
           cp ~/5M/references/MoORs/MoOR.HMM ~/BLiMMP/references/custom_hmms
           cp ~/5M/references/MoORs/MoOR_final_reference.afa ~/BLiMMP/references/custom_hmms/MoOR_reference.afa
           # Search bins for MoORs
-          screen -S HCC_MoORs
+          screen -S BLI_MoORs
           cd ~/BLiMMP/dataEdited/binning/manualBinning/binsGood
           source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
           conda activate bioinformatics
@@ -1028,7 +1035,7 @@ condor_submit anvio_DB_prep.sub
           ####################################################
           ####################################################
 
-          screen -S HCC_hgcA_bins
+          screen -S BLI_hgcA_bins
           source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
           conda activate bioinformatics
           PYTHONPATH=''
@@ -1064,7 +1071,7 @@ condor_submit anvio_DB_prep.sub
           ####################################################
           ####################################################
 
-          screen -S HCC_bin_coverage
+          screen -S BLI_bin_coverage
           binsGood=~/BLiMMP/dataEdited/binning/manualBinning/binsGood
           mkdir $binsGood/depth
           cd /home/GLBRCORG/bpeterson26/BLiMMP/code/
