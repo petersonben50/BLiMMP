@@ -79,3 +79,20 @@ Hg.data.plotting %>%
   theme(axis.text.x = element_blank(),
         axis.ticks.x = element_blank())
 
+
+#### Check mean, SD ####
+max(Hg.data.plotting$excess_HgT_198_ng.L)
+min(Hg.data.plotting$excess_HgT_198_ng.L)
+mean(Hg.data.plotting$excess_HgT_198_ng.L)
+sd(Hg.data.plotting$excess_HgT_198_ng.L)
+
+sd(Hg.data.plotting$excess_HgT_198_ng.L) / mean(Hg.data.plotting$excess_HgT_198_ng.L)
+
+
+#### Check mean, SD for each depth ####
+Hg.data.plotting %>%
+  group_by(sampleInfo) %>%
+  summarise(mean = mean(excess_HgT_198_ng.L),
+            sd = sd(excess_HgT_198_ng.L),
+            min = min(excess_HgT_198_ng.L),
+            max = max(excess_HgT_198_ng.L))
