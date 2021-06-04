@@ -136,6 +136,12 @@ HgT.results %>%
   filter(!(bottleID %in% MeHg.data$bottleID))
 
 
+#### Remove errant incubations from October metalimnion dataset ####
+Hg.results.metadata <- Hg.results.metadata %>%
+  filter(!(incubationID %in% c("BLI20_MA_050",
+                               "BLI20_MA_051")))
+
+
 #### Write out Hg data ####
 write.csv(Hg.results.metadata,
           "dataEdited/incubations/2020incubations_Hg_data.csv",
