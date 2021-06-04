@@ -815,18 +815,18 @@ KEGG-decoder --input $KOFAM_output/output_forDecoder.tsv \
 #########################
 # Search bins for MoORs
 screen -S BLI_MoORs
-cd ~/BLiMMP/dataEdited/binning/manualBinning/binsGood
+cd ~/BLiMMP/dataEdited/binning/manualBinning/binsFinal
 source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
 conda activate bioinformatics
 PYTHONPATH=''
 PERL5LIB=''
 scripts=~/BLiMMP/code/
 
-          mkdir metabolism/MoORs
-          hmmsearch --tblout metabolism/MoORs/MoOR.out \
-                    -T 50 \
-                    ~/BLiMMP/references/custom_hmms/MoOR.HMM \
-                    ORFs.faa
+mkdir metabolism/MoORs
+hmmsearch --tblout metabolism/MoORs/MoOR.out \
+          -T 50 \
+          ~/BLiMMP/references/custom_hmms/MoOR.HMM \
+          ORFs.faa
 
           # Pull out the gene names, use this to find correct portion of G2B file.
           cd metabolism/MoORs/
@@ -910,15 +910,21 @@ scripts=~/BLiMMP/code/
 
 
 
-          ####################################################
-          ####################################################
-          # Pull out coverage information from bam files
-          ####################################################
-          ####################################################
+####################################################
+####################################################
+# Pull out coverage information from bam files
+####################################################
+####################################################
 
-          screen -S BLI_bin_coverage
-          binsGood=~/BLiMMP/dataEdited/binning/manualBinning/binsGood
-          mkdir $binsGood/depth
-          cd /home/GLBRCORG/bpeterson26/BLiMMP/code/
-          chmod +x executables/aggregate_depth_bins.sh
-          condor_submit submission/aggregate_depth_bins.sub
+binsFinal=~/BLiMMP/dataEdited/binning/manualBinning/binsFinal
+cd $binsFinal
+mkdir depth
+awk -F '\t' '{ print $1 }' /home/GLBRCORG/bpeterson26/BLiMMP/metadata/metagenome_list.txt > metagenomes_to_use.txt
+cd ~/BLiMMP/reports
+mkdir aggregate_depth_bins
+cd aggregate_depth_bins
+mkdir outs logs errs
+cd /home/GLBRCORG/bpeterson26/BLiMMP/code
+chmod +x aggregate_depth_bins.sh
+chmod +x calculate_depth_of_bins.py
+condor_submit aggregate_depth_bins.sub

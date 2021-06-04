@@ -1,0 +1,25 @@
+##################
+# code/submission/aggregate_depth_proteins.sub
+# Submission script for calculating the depth
+# of a given set of scaffolds in a given set
+# of metagenomes
+
+# Benjamin D. Peterson
+##################
+
+request_cpus = 6
+request_memory = 30GB
+
+executable = /home/GLBRCORG/bpeterson26/BLiMMP/code/aggregate_depth_bins.sh
+
+environment = "metagenome=$(metagenome) \
+              depthDirectory=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/binning/manualBinning/binsFinal/depth \
+              S2B_file=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/binning/manualBinning/binsFinal/binsFinal_G2B.tsv \
+              mappingFolder=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/binning/mapping \
+              scripts=/home/GLBRCORG/bpeterson26/BLiMMP/code"
+
+output = /home/GLBRCORG/bpeterson26/BLiMMP/reports/aggregate_depth_bins/outs/$(metagenome).out
+error = /home/GLBRCORG/bpeterson26/BLiMMP/reports/aggregate_depth_bins/errs/$(metagenome).err
+log = /home/GLBRCORG/bpeterson26/BLiMMP/reports/aggregate_depth_bins/logs/$(metagenome).log
+
+queue metagenome from /home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/binning/manualBinning/binsFinal/metagenomes_to_use.txt
