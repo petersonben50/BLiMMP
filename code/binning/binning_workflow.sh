@@ -614,6 +614,13 @@ $scripts/Fasta_to_Scaffolds2Bin.sh -e faa \
                                     > binsFinal_G2B.tsv
 cat ORFs/*faa > ORFs.faa
 
+cd ~/BLiMMP/dataEdited/binning/manualBinning/binsFinal
+$scripts/Fasta_to_Scaffolds2Bin.sh -e fna \
+                                    -i DNA \
+                                    > binsFinal_S2B.tsv
+cat DNA/*fna > DNA.fna
+
+
 
 
 ####################################################

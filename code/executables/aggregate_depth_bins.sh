@@ -31,7 +31,7 @@ rm -f $depthDirectory/$metagenome\_depth_raw.tsv
 #########################
 awk -F '\t' '{ print $1 }' $S2B_file | while read scaffold
 do
-  assembly=$(echo $scaffold | awk -F '_' '{ print $1 }')
+  assembly=$(echo $scaffold | awk -F '_' '{ print $1"_"$2 }')
   if [ -e $mappingFolder/$metagenome\_to_$assembly.bam ]; then
     echo "Calculating coverage of" $metagenome "over" $scaffold
     samtools depth -a -r $scaffold $mappingFolder/$metagenome\_to_$assembly.bam \
