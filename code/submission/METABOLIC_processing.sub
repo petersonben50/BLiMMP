@@ -1,0 +1,39 @@
+##########
+#Specify the HTCondor docker universe and the repo link to the sppider docker image
+##########
+universe = docker
+docker_image = repo.glbrc.org/htcondor/metabolic_docker_htcondor
+
+##########
+#Redirect the standard output and error streams to files, as well the htcondor log
+##########
+output = /home/GLBRCORG/bpeterson26/BLiMMP/reports/metabolic_docker_htcondor_out.txt
+error = /home/GLBRCORG/bpeterson26/BLiMMP/reports/metabolic_docker_htcondor_err.txt
+log = /home/GLBRCORG/bpeterson26/BLiMMP/reports/metabolic_docker_htcondor_log.txt
+
+
+##########
+#Instruct HTCondor to transfer input files into the docker container and output files back.
+#"transfer_input_files" can contain one or multiple FASTA files, separated by commas
+#"transfer_output_files" must be "metabolic_output.zip" - the archive will contain all the output from the program in one file.
+##########
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_input_files = /home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/binning/manualBinning/binsFinal/metabolism/forMETABOLIC/BLI20_hgcA_006.fasta,/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/binning/manualBinning/binsFinal/metabolism/forMETABOLIC/BLI20_hgcA_015.fasta,/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/binning/manualBinning/binsFinal/metabolism/forMETABOLIC/BLI20_hgcA_017.fasta
+transfer_output_files = metabolic_output.zip
+
+
+##########
+#Arguments/parameters work in the same way as when running the standalone version of METABOLIC
+##########
+arguments = $(request_cpus)
+
+
+#####
+#Make sure to adjust the memory and disk requirements tp the size of all the files that you are analyzing
+#####
+request_memory = 60G
+request_cpus = 6
+request_disk = 64GB
+
+queue
