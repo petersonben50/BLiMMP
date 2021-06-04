@@ -31,7 +31,7 @@ names(color.vector) <- c("filtered-unamended",
 
 #### Read in data ####
 Hg.data <- read.csv("dataEdited/incubations/2020incubations_Hg_data.csv") %>%
-  mutate(depth = paste(depth, "meters")) %>%
+  mutate(depth = paste(depth, "m", sep = "")) %>%
   filter(treatment %in% names(color.vector))
 Hg.data$monthOfIncubations <- "October"
 Hg.data$monthOfIncubations[which(Hg.data$tripID == "BLiMMP_trip_010")] = "September"
@@ -41,9 +41,9 @@ Hg.data$monthOfIncubations <- relevel(as.factor(Hg.data$monthOfIncubations),
 
 #### Plot HgT for 198 and 204 at each time point ####
 # Plot HgT levels for 198
-pdf(file = "results/incubations/2020incubations/198HgT_2020incubations.pdf",
-    width = 8,
-    height = 6)
+#pdf(file = "results/incubations/2020incubations/198HgT_2020incubations.pdf",
+#    width = 8,
+#    height = 6)
 Hg.data %>%
   ggplot(aes(x = t,
              y = excess_HgT_198_ng.L,
@@ -54,12 +54,12 @@ Hg.data %>%
   facet_wrap(~monthOfIncubations + depth, nrow = 2) +
   theme_classic() +
   ylim(c(0, 1.1))
-dev.off()
+#dev.off()
 
 # Plot HgT levels for 204
-pdf(file = "results/incubations/2020incubations/204HgT_levels/204HgT_2020incubations.pdf",
-    width = 8,
-    height = 6)
+# pdf(file = "results/incubations/2020incubations/204HgT_levels/204HgT_2020incubations.pdf",
+#     width = 8,
+#     height = 6)
 Hg.data %>%
   ggplot(aes(x = t,
              y = excess_HgT_204_ng.L,
@@ -72,11 +72,11 @@ Hg.data %>%
   ylim(c(0, 1.4)) +
   ylab("Excess 204HgT (ng/L)") +
   xlab("Time point")
-dev.off()
-# Look at MeHg fraction of 204HgT 
-pdf(file = "results/incubations/2020incubations/204HgT_levels/Me204Hg_fraction_2020incubations.pdf",
-    width = 8,
-    height = 6)
+# dev.off()
+# Look at MeHg fraction of 204HgT
+# pdf(file = "results/incubations/2020incubations/204HgT_levels/Me204Hg_fraction_2020incubations.pdf",
+#     width = 8,
+#     height = 6)
 Hg.data %>%
   ggplot(aes(x = t,
              y = fraction_MeHg_204,
@@ -89,11 +89,11 @@ Hg.data %>%
   xlab("Time point") +
   ylab("Fraction Me204Hg") +
   ylim(c(0, 1.4))
-dev.off()
+# dev.off()
 # Look at excess Me204Hg levels
-pdf(file = "results/incubations/2020incubations/204HgT_levels/Me204Hg_2020incubations.pdf",
-    width = 8,
-    height = 6)
+# pdf(file = "results/incubations/2020incubations/204HgT_levels/Me204Hg_2020incubations.pdf",
+#     width = 8,
+#     height = 6)
 Hg.data %>%
   ggplot(aes(x = t,
              y = excess_MeHg_204_ng.L,
@@ -106,7 +106,7 @@ Hg.data %>%
   xlab("Time point") +
   ylab("Excess Me204Hg (ng/L)") +
   ylim(c(0, 1.4))
-dev.off()
+# dev.off()
 
 
 #### Calculate loss of HgT in 198 and 204 over each time point ####
@@ -222,6 +222,9 @@ Hg.data %>%
   xlab("Days") +
   ylab("Excess Me198Hg (ng/L)")
 # Plot 198 as fraction MeHg
+# pdf(file = "results/incubations/2020incubations_MeHg_production.pdf",
+#     width = 8,
+#     height = 6)
 Hg.data %>%
   ggplot(aes(x = durationInDays,
              y = fraction_MeHg_198,
@@ -234,6 +237,7 @@ Hg.data %>%
   ylim(c(-0.01, 0.7)) +
   xlab("Days") +
   ylab("Fraction Me198Hg")
+# dev.off()
 # Plot 204 as fraction MeHg
 Hg.data %>%
   ggplot(aes(x = durationInDays,
@@ -338,7 +342,7 @@ all.MeHg.delta.data %>%
   facet_wrap(~monthOfIncubations + depth, nrow = 2) +
   theme_classic() +
   ylim(c(-0.01, 0.2))
-# MeHg fraction 
+# MeHg fraction
 all.MeHg.delta.data %>%
   ggplot(aes(x = t,
              y = net_Me198Hg_fraction.day,
