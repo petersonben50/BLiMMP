@@ -835,40 +835,40 @@ hmmsearch --tblout metabolism/MoORs/MoOR.out \
           ~/BLiMMP/references/custom_hmms/MoOR.HMM \
           ORFs.faa
 
-          # Pull out the gene names, use this to find correct portion of G2B file.
-          cd metabolism/MoORs/
+# Pull out the gene names, use this to find correct portion of G2B file.
+cd metabolism/MoORs/
+rm -f MoOR_G2B.tsv
+rm -f putative_MoORs.faa
+grep -v '#' MoOR.out | \
+  awk '{ print $1 }' | while read gene
+  do
+    awk -F '\t' -v gene="$gene" '$1 == gene { print $0 }' ../../binsFinal_G2B.tsv >> MoOR_G2B.tsv
+    grep -A 1 $gene\$ ../../ORFs.faa >> putative_MoORs.faa
+    tail -n 1 MoOR_G2B.tsv
+  done
+sed -i 's/*//g' putative_MoORs.faa
 
-          rm -f MoOR_G2B.tsv
-          rm -f putative_MoORs.faa
+# Align the putative MoORs to the references
+hmmalign -o putative_MoORs.sto \
+          ~/BLiMMP/references/custom_hmms/MoOR.HMM \
+          putative_MoORs.faa
+$scripts/convert_stockhold_to_fasta.py putative_MoORs.sto
+# Check this in Geneious
+# Removed sequences with fewer than 400 aligned residues
+muscle -profile \
+        -in1 putative_MoORs_trimmed.afa \
+        -in2 ~/BLiMMP/references/custom_hmms/MoOR_reference.afa \
+        -out putative_MoORs_ref_1.afa
 
-          grep -v '#' MoOR.out | \
-            awk '{ print $1 }' | while read gene
-            do
-              awk -F '\t' -v gene="$gene" '$1 == gene { print $0 }' ../../binsGood_G2B.tsv >> MoOR_G2B.tsv
-              grep -A 1 $gene\$ ../../ORFs.faa >> putative_MoORs.faa
-              tail -n 1 MoOR_G2B.tsv
-            done
-          sed -i 's/*//g' putative_MoORs.faa
+python $scripts/cleanFASTA.py putative_MoORs_ref_1.afa
+mv -f putative_MoORs_ref_1.afa_temp.fasta putative_MoORs_ref_1.afa
+#sed 's/-//g' putative_MoORs_ref_1.afa > putative_MoORs_ref_1.faa
 
-          hmmalign -o putative_MoORs.sto \
-                    ~/BLiMMP/references/custom_hmms/MoOR.HMM \
-                    putative_MoORs.faa
-          $scripts/convert_stockhold_to_fasta.py putative_MoORs.sto
-          # Edit this in Geneious
-          muscle -profile \
-                  -in1 putative_MoORs_cut.afa \
-                  -in2 ~/BLiMMP/references/custom_hmms/MoOR_reference.afa \
-                  -out putative_MoORs_ref_1.afa
-
-          python $scripts/cleanFASTA.py putative_MoORs_ref_1.afa
-          mv putative_MoORs_ref_1.afa_temp.fasta putative_MoORs_ref_1.afa
-          sed 's/-//g' putative_MoORs_ref_1.afa > putative_MoORs_ref_1.faa
-
-          # Mask the alignment at 50% gaps
-          trimal -in putative_MoORs_ref_1.afa \
-                  -out putative_MoORs_ref_1_masked.afa \
-                  -gt 0.5
-          FastTree putative_MoORs_ref_1_masked.afa > putative_MoORs_1.tree
+# Mask the alignment at 50% gaps
+trimal -in putative_MoORs_ref_1.afa \
+        -out putative_MoORs_ref_1_masked.afa \
+        -gt 0.5
+FastTree putative_MoORs_ref_1_masked.afa > putative_MoORs_1.tree
 
           raxml=/opt/bifxapps/raxml-8.2.11/raxmlHPC-PTHREADS
           $raxml -f a \
@@ -912,7 +912,7 @@ hmmsearch --tblout metabolism/MoORs/MoOR.out \
           echo -e 'hgcA_ID\tbinID' > hgcA_to_bin.tsv
           cat hgcA_list.txt | while read hgcA
           do
-            awk -F '\t' -v hgcA="$hgcA" '$1 == hgcA { print $0 }' $binsGood/binsGood_G2B.tsv >> hgcA_to_bin.tsv
+            awk -F '\t' -v hgcA="$hgcA" '$1 == hgcA { print $0 }' $binsGood/binsFinal_G2B.tsv >> hgcA_to_bin.tsv
           done
 
 
