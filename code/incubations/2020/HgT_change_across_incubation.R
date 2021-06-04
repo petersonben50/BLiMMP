@@ -168,14 +168,22 @@ all.HgT.delta.data %>%
   group_by(t) %>%
   summarise(net_198HgT_ng.L.day.mean = mean(net_198HgT_ng.L.day),
             net_198HgT_ng.L.day.sd = sd(net_198HgT_ng.L.day),
+            net_198HgT_ng.L.day.max = max(net_198HgT_ng.L.day),
+            net_198HgT_ng.L.day.min = min(net_198HgT_ng.L.day),
             net_204HgT_ng.L.day.mean = mean(net_204HgT_ng.L.day),
-            net_204HgT_ng.L.day.sd = sd(net_204HgT_ng.L.day))
+            net_204HgT_ng.L.day.sd = sd(net_204HgT_ng.L.day),
+            net_204HgT_ng.L.day.max = max(net_204HgT_ng.L.day),
+            net_204HgT_ng.L.day.min = min(net_204HgT_ng.L.day))
 mean.data <- all.HgT.delta.data %>%
   group_by(t, sampleInfo, treatment) %>%
   summarise(net_198HgT_ng.L.day.mean = mean(net_198HgT_ng.L.day),
             net_198HgT_ng.L.day.sd = sd(net_198HgT_ng.L.day),
+            net_198HgT_ng.L.day.max = max(net_198HgT_ng.L.day),
+            net_198HgT_ng.L.day.min = min(net_198HgT_ng.L.day),
             net_204HgT_ng.L.day.mean = mean(net_204HgT_ng.L.day),
-            net_204HgT_ng.L.day.sd = sd(net_204HgT_ng.L.day))
+            net_204HgT_ng.L.day.sd = sd(net_204HgT_ng.L.day),
+            net_204HgT_ng.L.day.max = max(net_204HgT_ng.L.day),
+            net_204HgT_ng.L.day.min = min(net_204HgT_ng.L.day))
 rm(mean.data)
 
 
