@@ -428,6 +428,18 @@ $raxml -f a \
         -n hgcA
 
 
+# Check out sequence similarity of study seqs to references
+cd ~/BLiMMP/dataEdited/hgcA_analysis
+mkdir derep_references
+cdhit=~/programs/cdhit-master
+$cdhit/cd-hit -g 1 \
+              -i phylogeny/raxml/hgcA_for_tree.faa \
+              -o derep_references/hgcA_ref.faa \
+              -c 0.97 \
+              -n 5 \
+              -d 0
+
+
 
 ############################################
 ############################################
