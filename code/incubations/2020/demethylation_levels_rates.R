@@ -69,7 +69,7 @@ all.MeHg.delta.data <- read.csv("dataEdited/incubations/2020incubations_MeHg_del
                                     "October-15.7m", "October-20.9m")))
 
 
-#### Plot change in Me198Hg over each time point ####
+#### Plot change in Me204Hg over each time point ####
 all.MeHg.delta.data %>%
   ggplot(aes(x = t,
              y = net_Me204Hg_fraction.day,
@@ -116,7 +116,7 @@ all.MeHg.delta.data %>%
 #### Calculate methylation rate constants ####
 starting.HgT <- Hg.data %>%
   filter(t == "t0") %>%
-  rename(HgT_start = excess_HgT_198_ng.L) %>%
+  rename(HgT_start = excess_HgT_204_ng.L) %>%
   select(incubationID, HgT_start)
 
 meth.rate.constant <- all.MeHg.delta.data %>%
@@ -128,7 +128,7 @@ meth.rate.constant <- all.MeHg.delta.data %>%
 
 
 #### Plot methylation rate constants ####
-pdf("results/incubations/2020incubations/methylation/Kmet.pdf",
+pdf("results/incubations/2020incubations/methylation/Kdem.pdf",
     width = 8,
     height = 4)
 meth.rate.constant %>%

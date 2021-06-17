@@ -158,11 +158,14 @@ starting.HgT <- Hg.data %>%
 
 meth.rate.constant <- all.MeHg.delta.data %>%
   filter(t == "t1") %>%
-  select(incubationID, sampleInfo, treatment,
-         net_Me198Hg_ng.L.day) %>%
+  select(incubationID, sampleInfo, depth,
+         monthOfIncubations, treatment, net_Me198Hg_ng.L.day) %>%
   left_join(starting.HgT) %>%
   mutate(Kmet = net_Me198Hg_ng.L.day / HgT_start)
-
+# Save out Kmet values
+write.csv(meth.rate.constant,
+          "dataEdited/incubations/2020incubations_Kmet.csv",
+          row.names = FALSE)
 
 
 #### Plot methylation rate constants ####
