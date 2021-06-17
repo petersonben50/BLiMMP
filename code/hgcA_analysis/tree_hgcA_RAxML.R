@@ -51,7 +51,7 @@ hgcA.tree <- root(phy = hgcA.tree.unrooted,
 
 
 #### Read in Hg-MATE seq info ####
-hgcA.tree$tip.label[grep("MATE_", hgcA.tree$tip.label)] <- 
+hgcA.tree$tip.label[grep("MATE_", hgcA.tree$tip.label)] <-
   paste(hgcA.tree$tip.label[grep("MATE_", hgcA.tree$tip.label)] %>% strsplit("_") %>% sapply("[", 1),
         hgcA.tree$tip.label[grep("MATE_", hgcA.tree$tip.label)] %>% strsplit("_") %>% sapply("[", 2),
         hgcA.tree$tip.label[grep("MATE_", hgcA.tree$tip.label)] %>% strsplit("_") %>% sapply("[", 3),
@@ -81,7 +81,6 @@ jones.metadata <- read.table("references/jones_bin_names.tsv",
                        sep = '\t',
                        col.names = c("geneID", "binID"))) %>%
   mutate(binName = paste(gsub("Unclassified", "", binName),
-                         " (Jones et al, 2019)",
                          sep = ""))
 jones.renaming.vector <- jones.metadata$binName
 names(jones.renaming.vector) <- jones.metadata$geneID
@@ -111,10 +110,10 @@ pdf("dataEdited/hgcA_analysis/phylogeny/raxml/hgcA_tree_RAxML_rooted.pdf",
     width = 5)
 ggtree(hgcA.tree,
        aes(x = 0,
-           xend = 10)) + 
+           xend = 10)) +
   geom_tiplab(size=2.5,
               align = TRUE,
-              col = color.vector) + 
+              colour = color.vector) +
   geom_nodelab(aes(x = branch),
                vjust = -.3,
                size = 2)
@@ -131,3 +130,40 @@ saveRDS(hgcA.tree,
 #### Save out color vector ####
 saveRDS(color.vector,
         "dataEdited/hgcA_analysis/phylogeny/hgcA_clean_tree_color_vector.rds")
+
+
+
+#### Remove root ####
+
+hgcA.tree.rootless <- drop.tip(hgcA.tree,
+                               grep("paralog", hgcA.tree$tip.label))
+
+
+reference.indices.mate <- which(hgcA.tree.rootless$tip.label %in% MATE.renaming.vector)
+reference.indices.jones <- which(hgcA.tree.rootless$tip.label %in% jones.renaming.vector)
+this.study.indices <- which(hgcA.tree.rootless$tip.label %in% hgcA.list)
+
+#### Set color vector ####
+color.vector.to.use <- rep(cb.translator["bluishgreen"], length(hgcA.tree.rootless$tip.label))
+color.vector.to.use[reference.indices.mate] <- cb.translator["black"]
+color.vector.to.use[this.study.indices] <- cb.translator["vermillion"]
+color.vector.to.use[reference.indices.jones] <- cb.translator["skyblue"]
+
+
+#### Make image of tree without root ####
+pdf("results/hgcA_analysis/hgcA_tree_RAxML_rootRemoved.pdf",
+    height = 16,
+    width = 10)
+ggtree(hgcA.tree.rootless,
+       aes(x = 0,
+           xend = 6)) +
+  geom_tiplab(size=2.5,
+              align = TRUE,
+              colour = color.vector.to.use) +
+  geom_nodelab(aes(x = branch),
+               vjust = -.3,
+               size = 2) +
+  geom_treescale(x = 0.05,
+                 y = 80,
+                 width = 0.5)
+dev.off()
