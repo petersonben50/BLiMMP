@@ -155,7 +155,24 @@ hgcA.tax.October <- all.data %>%
         legend.title = element_blank())
 
 
+#### Arrange plots ####
 grid.arrange(hgcA.September, hgcA.tax.September,
              hgcA.October, hgcA.tax.October,
              heights = c(3,2),
              widths = c(1, 2))
+
+
+
+#### Relative abundance of different taxa ####
+total.hgcA.depth <- all.data %>%
+  group_by(depth.date) %>%
+  summarize(total.coverage = sum(coverage))
+
+all.data %>%
+  group_by(depth.date, manual_classification_for_colors) %>%
+  summarise(coverage = sum(coverage)) %>%
+  full_join(total.hgcA.depth) %>%
+  mutate(fraction.abundance = coverage / total.coverage * 100) %>%
+  select(-c(coverage, total.coverage)) %>%
+  spread(key = depth.date,
+         value = fraction.abundance)
