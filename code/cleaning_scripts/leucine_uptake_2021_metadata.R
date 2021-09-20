@@ -25,11 +25,11 @@ tripID.metadata <- read_xlsx("metadata/1_trip_IDs.xlsx") %>%
   select(-notes)
 
 # Clean up water column data
-metadata.WC <- leucine.incubations %>%
+leu.metadata <- leucine.incubations %>%
   left_join(leucine.syringes) %>%
   left_join(sampleID.metadata) %>%
   left_join(tripID.metadata) %>%
   select(uptakeID, sampleID, depth, startDate, treatment, timePoint)
-write.csv(metadata.WC,
+write.csv(leu.metadata,
           "metadata/processedMetadata/LEU_2021.csv",
           row.names = FALSE)
