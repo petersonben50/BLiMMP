@@ -160,3 +160,20 @@ clean.exo.data(file.name = "exo_profile_ME20201010_profile.xlsx",
                output.name = "2020-10-10_profile.csv",
                pH.sensor.present = FALSE,
                depth.adjustment = 0.6)
+
+
+
+
+#### 2021 data ####
+rm(list = ls())
+source("code/cleaning_scripts/cleaning_functions.R")
+
+custom.header.names.vector = c("date", "time", "time_fraction", "site_name", "fault_code", "Battery_V",
+                               "Cable_Pwr_V", "ODO_sat", "ODO_conc", "fDOM_RFU", "fDOM_QSU", "Temp_C",
+                               "Cond_µS.cm", "SpCond_µS.cm", "Sal_psu", "nLF_Cond_µS.cm", "TDS_mg.L", 
+                               "Turbidity_FNU", "TSS_mg.L", "Chlorophyll_RFU", "Chlorophyll_µg.L",
+                               "BGA-PC_RFU", "BGA-PC_µg.L", "Press_psi_a", "depth")
+clean.exo.data(file.name = "EXO_SD_FLAME_13E101468_091021_150339.xlsx",
+               output.name = "2021-09-10_profile.csv",
+               custom.header.names = custom.header.names.vector,
+               pH.sensor.present = FALSE)

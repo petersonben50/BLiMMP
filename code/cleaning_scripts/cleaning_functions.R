@@ -195,12 +195,14 @@ clean.sulfate.data.from <- function(data.file.name,
 clean.exo.data <- function(file.name = file.name.of.interest,
                            output.name = output.name.of.interest,
                            pH.sensor.present = TRUE,
-                           depth.adjustment = 0) {
+                           custom.header.names = NULL,
+                           depth.adjustment = 0,
+                           lines.to.skip = 24) {
   # Read in data
   exo.data <- read_xlsx(paste("dataRaw/exo/",
                               file.name,
                               sep = ""),
-                        skip = 24) %>%
+                        skip = lines.to.skip) %>%
     as.data.frame()
 
   # Clean up datafile
@@ -217,6 +219,11 @@ clean.exo.data <- function(file.name = file.name.of.interest,
                      "nLF_Cond_µS.cm", "TDS_mg.L", "ODO_sat", "ODO_conc", "fDOM_RFU", "fDOM_QSU",
                      "Turbidity_FNU", "TSS_mg.L", "Chlorophyll_RFU", "Chlorophyll_µg.L",
                      "BGA-PC_RFU", "BGA-PC_µg.L", "Press_psi_a", "depth")
+  }
+  
+  if (!is.null(custom.header.names)) {
+    print("Using custom header names.")
+    sonde.names <- custom.header.names
   }
   # Add names, clean the data
   colnames(exo.data) <- sonde.names
