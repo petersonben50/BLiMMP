@@ -177,3 +177,7 @@ clean.exo.data(file.name = "EXO_SD_FLAME_13E101468_091021_150339.xlsx",
                output.name = "2021-09-10_profile.csv",
                custom.header.names = custom.header.names.vector,
                pH.sensor.present = FALSE)
+clean.exo.data(file.name = "EXO_SD_FLAME_13E101468_101421_153815.xlsx",
+               output.name = "2021-10-14_profile.csv",
+               custom.header.names = custom.header.names.vector,
+               pH.sensor.present = FALSE)
