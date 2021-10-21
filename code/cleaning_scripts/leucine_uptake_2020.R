@@ -85,7 +85,7 @@ convert_leuUptake_to_C <- function(datafile = testdatafile,
     mutate(CPMA = CPMA - blank.values["CPMA_blank"],
            CPMB = CPMB - blank.values["CPMB_blank"])
   
-
+  
   # We'll divide the number of counts that we got to calculate 
   # the overall efficiency of the counts, which in this case 
   # means the counts that we get per leucine in solution.
@@ -94,25 +94,25 @@ convert_leuUptake_to_C <- function(datafile = testdatafile,
   # This CF value will be in units of counts per pmol of leucine.
   
   CF.calcs <- full_join(spike.info,
-            efficiency.data) %>%
+                        efficiency.data) %>%
     mutate(CF_A = CPMA / (final_leu_stock_uM * volume_ul)) %>%
     mutate(CF_B = CPMB / (final_leu_stock_uM * volume_ul)) %>%
     group_by(leucineID) %>%
     summarise(CF_A = median(CF_A),
               CF_B = median(CF_B))
   
-
+  
   
   
   # Then we'll read in the raw data and join it with the CF
   # calculations
   leucine.data <- read_xlsx(datafile,
-                                 sheet = "results") %>%
+                            sheet = "results") %>%
     mutate(CPMA = CPMA - blank.values["CPMA_blank"],
            CPMB = CPMB - blank.values["CPMB_blank"]) %>%
     full_join(CF.calcs)
   
- 
+  
   # Now for the calculations.
   # For both A and B counting channels, we'll first take the counts and subtract out the blank values.
   # Then we'll divide the counts by the efficiency data, to calculate the pmol of leucine that have been
@@ -136,7 +136,7 @@ convert_leuUptake_to_C <- function(datafile = testdatafile,
     # The last conversion to make is from protein biomass to overall carbon biomass.
     mutate(µgBCP_per_L_hr = µgBPP_per_L_hr * cell_C_to_protein) %>%
     select(c(uptakeID, Leu_uptake_pM_A, µgBPP_per_L_hr, µgBCP_per_L_hr))
-
+  
   # Combine data with metadata
   C.incorporation <- C.incorporation %>%
     left_join(metadata.of.interest)
@@ -154,12 +154,12 @@ convert_leuUptake_to_C <- function(datafile = testdatafile,
   
   C.incorporation <- C.incorporation %>%
     left_join(amendment.info)
-
+  
   # Write out csv file
   write.csv(C.incorporation,
             output.file,
             row.names = FALSE)  
-
+  
 }
 
 
