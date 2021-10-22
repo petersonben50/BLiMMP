@@ -113,3 +113,6 @@ convert_leuUptake_to_C("dataRaw/leucineUptake/20210916_leucine.xlsx",
 convert_leuUptake_to_C("dataRaw/leucineUptake/20210917_leucine.xlsx",
                        multiple.amendments = TRUE,
                        output.file = "dataEdited/leucineUptake/20210917_leucine.csv")
+convert_leuUptake_to_C("dataRaw/leucineUptake/20211018_leucine.xlsx",
+                       multiple.amendments = TRUE,
+                       output.file = "dataEdited/leucineUptake/20211018_leucine.csv")

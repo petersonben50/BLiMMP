@@ -29,7 +29,7 @@ leu.metadata <- leucine.incubations %>%
   left_join(leucine.syringes) %>%
   left_join(sampleID.metadata) %>%
   left_join(tripID.metadata) %>%
-  select(uptakeID, sampleID, depth, startDate, treatment, timePoint)
+  select(uptakeID, sampleID, depth, startDate, treatment, timePoint, replicate)
 write.csv(leu.metadata,
           "metadata/processedMetadata/LEU_2021.csv",
           row.names = FALSE)
