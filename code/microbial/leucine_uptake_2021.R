@@ -119,3 +119,52 @@ ggarrange(leu.uptake.8hr.plot,
           labels = c("A. September 10th, 2021",
                      "B. October 14th, 2021"))
 dev.off()
+
+
+
+#### Zoom in on plots in deep euxinic regions ####
+# September
+leu.uptake.sept.deep.plot <- leu.uptake.sept.8hr %>%
+  filter(depth == 19.9) %>%
+  filter(treatment != "filtered") %>%
+  mutate(depth = as.factor(depth)) %>%
+  ggplot(aes(y = µgBCP_per_L_hr,
+             x = treatment,
+             col = treatment)) +
+  geom_boxplot() +
+  geom_point() +
+  facet_wrap(~depth) +
+  scale_color_manual(values = color.vector) +
+  ylim(c(0, 5)) +
+  ylab("Bacterial carbon production (µgC/L/hr)") +
+  theme_bw() +
+  theme(legend.position = c(0.8, 0.8))
+# October
+leu.uptake.oct.deep.plot <- leu.uptake.oct %>%
+  filter(depth == 19.9) %>%
+  mutate(depth = as.factor(paste(depth,
+                                 "m"))) %>%
+  ggplot(aes(y = µgBCP_per_L_hr,
+             x = treatment,
+             col = treatment)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(width = 0.1) +
+  facet_wrap(~depth) +
+  scale_color_manual(values = color.vector) +
+  ylim(c(0, 10)) +
+  ylab("Bacterial carbon production (µgC/L/hr)") +
+  theme_bw() +
+  theme(legend.position = c(0.8, 0.8))
+
+
+#### Visualize both sets of plots ####
+pdf("results/microbial/leucine_uptake_zoomed_deep.pdf",
+    width = 3,
+    height = 6)
+ggarrange(leu.uptake.sept.deep.plot,
+          leu.uptake.oct.deep.plot,
+          ncol = 1,
+          labels = c("A. September 10th, 2021",
+                     "B. October 14th, 2021"))
+dev.off()
+
