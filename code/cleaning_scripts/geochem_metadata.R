@@ -68,18 +68,18 @@ rm(list = ls())
 
 
 
-#### Prepare metadata for 2020 metals ####
+#### Prepare metadata for metals ####
 filtered.metals.metadata <- read_xlsx("metadata/chem_FM.xlsx") %>%
   select(-notes) %>%
   mutate(filteredInField = "yes") %>%
   rename(metalID = MFID) %>%
-  filter(grepl("BLI20",
+  filter(grepl("BLI2",
                metalID))
 unfiltered.metals.metadata <- read_xlsx("metadata/chem_UM.xlsx") %>%
   select(-notes) %>%
   mutate(filteredInField = "no") %>%
   rename(metalID = MUID) %>%
-  filter(grepl("BLI20",
+  filter(grepl("BLI2",
                metalID))
 metals.metadata <- rbind(unfiltered.metals.metadata,
                          filtered.metals.metadata)
@@ -94,7 +94,7 @@ trip_IDs <- read_xlsx("metadata/1_trip_IDs.xlsx") %>%
 
 
 
-#### Save out water column data for 2020 ####
+#### Save out water column data for metals ####
 WC.metals.metadata <- metals.metadata %>%
   filter(!(sampleID == "NA")) %>%
   left_join(sample_IDs) %>%
