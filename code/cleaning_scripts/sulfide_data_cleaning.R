@@ -1,18 +1,21 @@
 #### code/cleaning_scripts/clean_sulfide_data.R ####
 # Benjamin D. Peterson
 
+
 #### Get ready, and fly! ####
 rm(list = ls())
 setwd("~/Documents/research/BLiMMP/")
 library(dplyr)
 library(lubridate)
-library(tidyr)
+library(tidyverse)
 library(readxl)
 
 
 #### Prepare metadata ####
-S.metadata <- read_xlsx("metadata/chem_S.xlsx") %>%
-  select(-notes)
+S.metadata <- read_xlsx("metadata/chem_S.xlsx",
+                        sheet = "Sheet1") %>%
+  select(-notes) %>%
+  filter(!is.na(sampleID) & !is.na(incubationID))
 
 
 #### Generate needed processing metadata ####
@@ -20,7 +23,7 @@ processing.metadata <- S.metadata %>%
   select(sulfurID, mass, tare, preservativeVol) %>%
   mutate_at(.vars = c("mass", "tare", "preservativeVol"),
             as.numeric)
-rm(S.metadata)
+# rm(S.metadata)
 
 
 #### Define output locations ####
@@ -30,17 +33,19 @@ good.data.location <- "dataEdited/waterChemistry/sulfide/dataForReview/"
 
 
 #### Data processing function ####
-#data_file <- "dataRaw/waterChemistry/sulfide/sulfide_20200909.xlsx"
-#override = "pass"
-#accept.shitty.curve = FALSE
-#remove.these.samples = "H_2"
-
+# data_file <- "dataRaw/waterChemistry/sulfide/sulfide_20211123a.xlsx"
+# override = "off"
+# accept.shitty.curve = FALSE
+# remove.these.samples = c("H_1")
+# output.file.name = NULL
 # Define the function
 data_processing_function <- function(data_file,
                                      override = "off",
                                      accept.shitty.curve = FALSE,
                                      remove.these.samples = NULL,
-                                     output.file.name = NULL) {
+                                     output.file.name = NULL,
+                                     high_curve_cutoff = 20,
+                                     low_curve_cutoff = 30) {
 
   keeper.status <- "pass"
   
@@ -48,9 +53,10 @@ data_processing_function <- function(data_file,
   
   # Read in raw data
   data.spreadsheet.raw <- read_xlsx(data_file,
-                                sheet = "raw_results") %>%
+                                    sheet = "raw_results") %>%
     filter(!is.na(sulfurID)) %>%
-    as.data.frame() 
+    mutate(Absorbance_667 = Absorbance_667 / dilutionFactor) %>%
+    as.data.frame()
   
   if (length(remove.these.samples) > 0) {
     data.spreadsheet.raw <- data.spreadsheet.raw %>%
@@ -121,33 +127,34 @@ data_processing_function <- function(data_file,
     std.curve.qc <- "crappy_but_we_passing"
   }
   
+  # Read out image of curve
+  if (is.null(output.file.name)) {
+    pdf.of.curve <- paste(report.location,
+                          date.of.analysis,
+                          "_curve.pdf",
+                          sep = "")
+  } else {
+    pdf.of.curve <- paste(report.location,
+                          output.file.name,
+                          "_curve.pdf",
+                          sep = "")
+  }
+  
+  pdf(pdf.of.curve,
+      height = 5,
+      width = 5)
+  par(mar = c(4.5, 4.5, 3, 1))
+  plot(x = curve.data$sulfide_uM,
+       y = curve.data$Ab667,
+       ylab = "Absorbance (667nm)",
+       xlab = "Sulfide (µM)",
+       main = date.of.analysis)
+  abline(std.curve.regression)
+  dev.off()
+  
   if (std.curve.qc == "pass" | accept.shitty.curve == TRUE) {
     
     print("Curve looks good")
-    # Read out image of curve
-    if (is.null(output.file.name)) {
-      pdf.of.curve <- paste(report.location,
-                            date.of.analysis,
-                            "_curve.pdf",
-                            sep = "")
-    } else {
-      pdf.of.curve <- paste(report.location,
-                            output.file.name,
-                            "_curve.pdf",
-                            sep = "")
-    }
-    
-    pdf(pdf.of.curve,
-        height = 5,
-        width = 5)
-    par(mar = c(4.5, 4.5, 3, 1))
-    plot(x = curve.data$sulfide_uM,
-         y = curve.data$Ab667,
-         ylab = "Absorbance (667nm)",
-         xlab = "Sulfide (µM)",
-         main = date.of.analysis)
-    abline(std.curve.regression)
-    dev.off()
     
     #### QC: Check blanks ####
     
@@ -170,14 +177,14 @@ data_processing_function <- function(data_file,
     # If sample calculated to be less than 0µM, make it 0
     data.spreadsheet$S_conc_uM[which(data.spreadsheet$S_conc_uM < 0)] <- 0
     
-    #### Calculate detection limit: NOT DONE FOR SULFIDE ####
+    #### Calculate detection limit ####
     
     LOD.fluorescence <- inter.coeff + 3*summary(std.curve.regression)$coefficients[2,2]
     LOD.mass <- (LOD.fluorescence - std.curve.regression$coefficients[1]) / std.curve.regression$coefficients[2]
     
     
     #### QC: Ensure CCVs are within 10% ####
-    # Known concentration is 6mg/L
+    
     CCV.values <- data.spreadsheet %>%
       filter(analysisType == "CCV") %>%
       left_join(curve.data) %>%
@@ -225,7 +232,7 @@ data_processing_function <- function(data_file,
     data.spreadsheet <- data.spreadsheet %>%
       filter(analysisType != "MS")
     
-    # Check replicates are within 15%
+    # Check MS is within 20%
     if (MS.recovery > 120 | MS.recovery < 80) {
       ms.qc <- "fail"
     } else {
@@ -276,10 +283,9 @@ data_processing_function <- function(data_file,
     }
     
     
-    
     #### Adjust for dilution with ZnAc ####
-    data.spreadsheet <- data.spreadsheet %>%
-      left_join(processing.metadata) %>%
+    data.spreadsheet <- processing.metadata %>%
+      right_join(data.spreadsheet) %>%
       mutate(S_conc_uM = S_conc_uM * ((mass - tare)/(mass - tare - preservativeVol))) %>%
       select(sulfurID, S_conc_uM) %>%
       mutate(S_conc_uM = signif(S_conc_uM, 3)) %>%
@@ -319,13 +325,13 @@ data_processing_function <- function(data_file,
                           sep = "")
     }
     
-    
+    #### Check if samples are within the cut-offs we set ####
     if (run.info.vector["standard_curve"] == "high" && keeper.status == "pass") {
       
       print("Standard is high, and we're all good on QC.")
       
       data.spreadsheet.passing <- data.spreadsheet %>%
-        mutate(in_curve = S_conc_uM >= 20) %>% 
+        mutate(in_curve = S_conc_uM >= high_curve_cutoff) %>% 
         filter(in_curve == TRUE) %>%
         select(-in_curve)
       write.csv(file = good_data_location,
@@ -335,7 +341,7 @@ data_processing_function <- function(data_file,
       
       if (dim(data.spreadsheet.passing)[1] != dim(data.spreadsheet)[1]) {
         data.spreadsheet.failing <- data.spreadsheet %>%
-          mutate(in_curve = S_conc_uM >= 20) %>% 
+          mutate(in_curve = S_conc_uM >= high_curve_cutoff) %>% 
           filter(in_curve == FALSE) %>%
           select(-in_curve)
         write.csv(file = bad_data_location,
@@ -348,7 +354,7 @@ data_processing_function <- function(data_file,
       print("Standard is low, and we're all good on QC.")
       
       data.spreadsheet.passing <- data.spreadsheet %>%
-        mutate(in_curve = S_conc_uM <= 50) %>% 
+        mutate(in_curve = S_conc_uM <= low_curve_cutoff) %>% 
         filter(in_curve == TRUE) %>%
         select(-in_curve)
       write.csv(file = good_data_location,
@@ -358,7 +364,7 @@ data_processing_function <- function(data_file,
       
       if (dim(data.spreadsheet.passing)[1] != dim(data.spreadsheet)[1]) {
         data.spreadsheet.failing <- data.spreadsheet %>%
-          mutate(in_curve = S_conc_uM <= 50) %>% 
+          mutate(in_curve = S_conc_uM <= low_curve_cutoff) %>% 
           filter(in_curve == FALSE) %>%
           select(-in_curve)
         write.csv(file = bad_data_location,
@@ -429,148 +435,235 @@ data_processing_function <- function(data_file,
   } else {
     print("Curve is shit. You ain't going anywhere")
   }
- 
 }
 
 
 #### Process data ####
 
-data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20191023.xlsx")
-# This one looks good.
-# Copy it into the good_data folder
-
-data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20191029.xlsx",
-                         override = "fail")
-# We'll need to re-run this on the low curve. 
-
-data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20191105.xlsx")
-# Bad curve. Will need re-running.
-
-data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20191119.xlsx")
-# This one looks good.
-# Copy it into the good_data folder
-
-data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20191126.xlsx")
-# This one looks good. 
-# Copy it into the good_data folder
-
-data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20191203.xlsx",
-                         override = "pass")
-# The MS QC failed on this one, it was too high. The original measured curve was 
-# pretty low (Ab667 of 0.069). Let's let this one pass, since everything else
-# looks so good. 
-# Copy it into the good_data folder
-# Anna zeroed the machine with 1% ZnAc instead of water, which shifted the raw 
-# values slightly. However, it does not seem to have negatively impacted the 
-# data processing, as we have a good standard curve. We kept this anyways. 
-
-data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20191209.xlsx")
-# This one looks good. 
-# All the data is within the curve. 
-# BLiMMP_S_0080 is a field blank that I set up a while back. 
-# It was an unwashed 30ml HDPE bottle that we filled with 
-# nanopore water and ZnAc. No detectable sulfide in it. Good!
-
-data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20191209B.xlsx")
-# Standard curve looks like shit. This needs to be re-run. 
-
-data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20191210.xlsx")
-# BLiMMP_S_0067 is below the curve (is 0) so was removed automatically.
-# However, we'll just include it, and will manually add it to the file 
-# that will be transferred to the good_data folder. 
-
-
-data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20200818.xlsx")
-# Curve looks good
-# Two samples were below 20µM and will need to be run on the low curve
-# when I get a chance. Other than that, looks great.
-
-data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20200909.xlsx",
-                         remove.these.samples = "H_2")
-
-data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20200914a.xlsx",
-                         output.file.name = "2020-09-14a",
-                         remove.these.samples = "H_1")
-
-data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20200914b.xlsx",
-                         output.file.name = "2020-09-14b")
-# Looking good here!
- 
-data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20200917a.xlsx",
-                         output.file.name = "2020-09-17a",
-                         override = "pass")
-# The replicates are failing here because the samples are so low.
-# We're gonna go ahead and pass it.
-
-data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20200917b.xlsx",
-                         output.file.name = "2020-09-17b")
-# This looks good
-
-data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20200917c.xlsx",
-                         output.file.name = "2020-09-17c")
-# This looks good
-
-data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20201019.xlsx",
-                         output.file.name = "2020-10-19",
-                         remove.these.samples = "H_1")
-# Starting to look like H_1 is not linear with the rest of the bunch in the high curve.
-# Wonder if it's saturating at that high of an absorbance.
-# Let's refrain from including this one in the future. 
-
-data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20201021a.xlsx",
-                         output.file.name = "2020-10-21a",
-                         remove.these.samples = "H_1")
-# This one looks good. Kept H_1 out as decided before.
-# Two samples below curve, will need to rerun those on low curve.
-
-data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20201021b.xlsx",
-                         output.file.name = "2020-10-21b",
-                         remove.these.samples = "H_1")
-# Looks good! All samples within curve.
-
-data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20201021c.xlsx",
-                         output.file.name = "2020-10-21c",
-                         remove.these.samples = "H_1",
-                         override = "pass")
-# CCV is -10.17%. I'm going to count that as a pass, since the other checks look good.
-# These are all incubation samples anyways.
-
-
-
-data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20201027a.xlsx",
-                         output.file.name = "2020-10-27a")
-# Passes with flying colors
-
-data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20201027b.xlsx",
-                         output.file.name = "2020-10-27b",
-                         remove.these.samples = "L_1")
-# Used L_3 for CCV, had to manually change the sulfurID
-# in the raw data file.
-# This run also looks great.
-
-data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20201027c.xlsx",
-                         output.file.name = "2020-10-27c",
-                         remove.these.samples = c("H_1"),
-                         override = "pass")
-# Forgot to add matrix spike to this sample...
-# Other QC looks good though, so we'll pass it.
-
-data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20201110c.xlsx",
-                         output.file.name = "2020-11-10c",
-                         remove.these.samples = c("L_1"))
-# Looks good here
-
-data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20201110a.xlsx",
-                         output.file.name = "2020-11-10a",
-                         remove.these.samples = c("H_1"))
-# Looks good here
-
-
+# data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20191023.xlsx")
+# # This one looks good.
+# # Copy it into the good_data folder
+# 
+# data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20191029.xlsx",
+#                          override = "fail")
+# # We'll need to re-run this on the low curve. 
+# 
+# data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20191105.xlsx")
+# # Bad curve. Will need re-running.
+# 
+# data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20191119.xlsx")
+# # This one looks good.
+# # Copy it into the good_data folder
+# 
+# data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20191126.xlsx")
+# # This one looks good. 
+# # Copy it into the good_data folder
+# 
+# data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20191203.xlsx",
+#                          override = "pass")
+# # The MS QC failed on this one, it was too high. The original measured curve was 
+# # pretty low (Ab667 of 0.069). Let's let this one pass, since everything else
+# # looks so good. 
+# # Copy it into the good_data folder
+# # Anna zeroed the machine with 1% ZnAc instead of water, which shifted the raw 
+# # values slightly. However, it does not seem to have negatively impacted the 
+# # data processing, as we have a good standard curve. We kept this anyways. 
+# 
+# data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20191209.xlsx")
+# # This one looks good. 
+# # All the data is within the curve. 
+# # BLiMMP_S_0080 is a field blank that I set up a while back. 
+# # It was an unwashed 30ml HDPE bottle that we filled with 
+# # nanopore water and ZnAc. No detectable sulfide in it. Good!
+# 
+# data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20191209B.xlsx")
+# Standard curve looks like shit. This needs to be re-run.
+# 
+# data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20191210.xlsx")
+# # BLiMMP_S_0067 is below the curve (is 0) so was removed automatically.
+# # However, we'll just include it, and will manually add it to the file 
+# # that will be transferred to the good_data folder. 
+# 
+# 
+# data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20200818.xlsx")
+# # Curve looks good
+# # Two samples were below 20µM and will need to be run on the low curve
+# # when I get a chance. Other than that, looks great.
+# 
+# data_processing_function("dataRaw/waterChemistry/sulfide/sulfide_20200909.xlsx",
+#                          remove.these.samples = "H_2")
+# 
+# data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20200914a.xlsx",
+#                          output.file.name = "2020-09-14a",
+#                          remove.these.samples = "H_1")
+# 
+# data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20200914b.xlsx",
+#                          output.file.name = "2020-09-14b")
+# # Looking good here!
+#  
+# data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20200917a.xlsx",
+#                          output.file.name = "2020-09-17a",
+#                          override = "pass")
+# # The replicates are failing here because the samples are so low.
+# # We're gonna go ahead and pass it.
+# 
+# data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20200917b.xlsx",
+#                          output.file.name = "2020-09-17b")
+# # This looks good
+# 
+# data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20200917c.xlsx",
+#                          output.file.name = "2020-09-17c")
+# # This looks good
+# 
+# data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20201019.xlsx",
+#                          output.file.name = "2020-10-19",
+#                          remove.these.samples = "H_1")
+# # Starting to look like H_1 is not linear with the rest of the bunch in the high curve.
+# # Wonder if it's saturating at that high of an absorbance.
+# # Let's refrain from including this one in the future. 
+# 
+# data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20201021a.xlsx",
+#                          output.file.name = "2020-10-21a",
+#                          remove.these.samples = "H_1")
+# # This one looks good. Kept H_1 out as decided before.
+# # Two samples below curve, will need to rerun those on low curve.
+# 
+# data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20201021b.xlsx",
+#                          output.file.name = "2020-10-21b",
+#                          remove.these.samples = "H_1")
+# # Looks good! All samples within curve.
+# 
+# data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20201021c.xlsx",
+#                          output.file.name = "2020-10-21c",
+#                          remove.these.samples = "H_1",
+#                          override = "pass")
+# # CCV is -10.17%. I'm going to count that as a pass, since the other checks look good.
+# # These are all incubation samples anyways.
+# 
+# 
+# 
+# data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20201027a.xlsx",
+#                          output.file.name = "2020-10-27a")
+# # Passes with flying colors
+# 
+# data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20201027b.xlsx",
+#                          output.file.name = "2020-10-27b",
+#                          remove.these.samples = "L_1")
+# # Used L_3 for CCV, had to manually change the sulfurID
+# # in the raw data file.
+# # This run also looks great.
+# 
+# data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20201027c.xlsx",
+#                          output.file.name = "2020-10-27c",
+#                          remove.these.samples = c("H_1"),
+#                          override = "pass")
+# # Forgot to add matrix spike to this sample...
+# # Other QC looks good though, so we'll pass it.
+# 
+# data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20201110c.xlsx",
+#                          output.file.name = "2020-11-10c",
+#                          remove.these.samples = c("L_1"))
+# # Looks good here
+# 
+# data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20201110a.xlsx",
+#                          output.file.name = "2020-11-10a",
+#                          remove.these.samples = c("H_1"))
+# # Looks good here
 
 
 
+# data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20211110a.xlsx",
+#                          output.file.name = "2021-11-10a",
+#                          remove.these.samples = c("H_1", "H_2"))
+# Not great, will redo with new standards
+
+# data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20211110b.xlsx",
+#                          output.file.name = "2021-11-10b",
+#                          remove.these.samples = c("L_1"))
+# Not great, will redo with new standards
+
+# data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20211115a.xlsx",
+#                          output.file.name = "2021-11-15a")
+# Looks good! I fucked up the QCS on this one, added 100µM standard instead of 1mM, so that's not great.
+# Still passed with it though, so we'll go with it. Not sure the matrix spike is too important for this analysis anyways.
+# Copy to goodData.
+# data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20211115b.xlsx",
+#                          output.file.name = "2021-11-15b",
+#                          override = "pass")
+# Looks good! Only blemish is the matrix spike. For this, I accidently added the 1 mM standard,
+# rather than the 100 µM. I think this is too high for this Cline's reagent, so just going to ignore it.
+# Copy to goodData.
+
+# data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20211117a.xlsx",
+#                          output.file.name = "2021-11-17a")
+# Looks good enough!
+# Copy to goodData
+
+# data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20211117b.xlsx",
+#                          output.file.name = "2021-11-17b")
+# # Good, copy to goodData
+# 
+# data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20211117c.xlsx",
+#                          output.file.name = "2021-11-17c")
+# # Good, copy to goodData
+# 
+# data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20211118a.xlsx",
+#                          output.file.name = "2021-11-18a")
+# # Good, copy to goodData
+# 
+# data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20211118b.xlsx",
+#                          output.file.name = "2021-11-18b")
+# # Good, copy to goodData
+
+# data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20211118c.xlsx",
+#                          output.file.name = "2021-11-18c",
+#                          remove.these.samples = c("H_1", "H_6"))
+# H_1 looked terrible. But, the samples weren't that high on the curve, and the other standards
+# looked good and matched up with previous results. So, we'll remove that standard and continue
+# on. Remake H_1 before continuing more analyses.
+# The 11.9 m samples, from the t0 point, were all below 20.
+# Also going to remove the 20 µM standard, after seeing the ones below, I'm not sure that we should
+# include that low of a standard for the high curve... Seems like we're losing linearity.
+# Good, copy to goodData
+
+# data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20211119a.xlsx",
+#                          output.file.name = "2021-11-19a",
+#                          remove.these.samples = c("H_6"))
+# CCV has 10.5% RSD. But, I think this is due to pipetting, not drift, since I reran the original
+# H_4 sample and it was close to the value measured first. I think we'll pass this, since everything
+# else looks good.
+# Removing the low standard, since I think that will be best after seeing other data. Seems to start to
+# lose linearity less than 0.2 absorbance
+
+# data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20211119b.xlsx",
+#                          output.file.name = "2021-11-19b",
+#                          remove.these.samples = c("H_1", "H_6"))
+# Pulled out the top and bottom samples. Ah, these standards don't look bad. Nick prepped this one, need to make 
+# pipetting is going carefully here.
 
 
+# data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20211123a.xlsx",
+#                          output.file.name = "2021-11-23a",
+#                          override = "pass")
+# These look great except for the matrix spike... We'll stick with it.
+
+# data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20211123b.xlsx",
+#                          output.file.name = "2021-11-23b")
+# All looks great! Keep it.
+# Used curve from sulfide_20211123a.xlsx to stay consistent with all high curve samples.
+
+# data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20211123c.xlsx",
+#                          output.file.name = "2021-11-23c")
+# Used curve from sulfide_20211123a.xlsx to stay consistent with all high curve samples.
+
+# data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20211123d.xlsx",
+#                          output.file.name = "2021-11-23d")
+# Looks great! Used curve from sulfide_20211123a.xlsx to stay consistent with all high curve samples.
+# Only made difference of 4 µM.
+
+# data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20211123e.xlsx",
+#                          output.file.name = "2021-11-23e")
+# PERFECT
 
 
 #### Clean up before combining all samples ####
@@ -601,10 +694,21 @@ for (file.name in list.o.results) {
 # Read in incubation metadata
 MA.metadata <- read.csv("metadata/processedMetadata/sulfide_MA.csv",
                         stringsAsFactors = FALSE)
+# Read in timing information (from Hg incubation data)
+timing.data <- rbind(read.csv("metadata/processedMetadata/incubation_Hg_metadata_2019.csv") %>%
+                       select(incubationID, t, durationInDays),
+                     read.csv("metadata/processedMetadata/incubation_Hg_metadata_2020.csv") %>%
+                       select(incubationID, t, durationInDays),
+                     read.csv("metadata/processedMetadata/incubation_Hg_metadata_2021.csv") %>%
+                       select(incubationID, t, durationInDays)) %>%
+  rename(incubationTimePoint = t)
+# Combine data
 MA.results <- S.results %>%
   inner_join(MA.metadata) %>%
+  left_join(timing.data) %>%
   arrange(sulfurID)
 
+# Save out data
 write.csv(MA.results,
           "dataEdited/waterChemistry/sulfide/MA_data.csv",
           row.names = FALSE,
