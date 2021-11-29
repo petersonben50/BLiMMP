@@ -665,6 +665,27 @@ data_processing_function <- function(data_file,
 #                          output.file.name = "2021-11-23e")
 # PERFECT
 
+# data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20211124a.xlsx",
+#                          output.file.name = "2021-11-24a",
+#                          override = "pass")
+# Spike recovery way off, but also used the wrong spike. Everything else looks spot on, so
+# we'll accept it.
+
+data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20211124b.xlsx",
+                         output.file.name = "2021-11-24b",
+                         override = "pass")
+# CCV is a little off, but we also used the second lowest standard, which wasn't a good idea...
+# too much variation. Also used the wrong spike here. The data looks good overall, so we'll
+# stick with it.
+
+# data_processing_function(data_file = "dataRaw/waterChemistry/sulfide/sulfide_20211124c.xlsx",
+#                          output.file.name = "2021-11-24c",
+#                          override = "pass")
+# Wrong spike. Looks great other than that.
+# The spikes were super consistent across the three runs from 2021-11-24.
+
+
+ 
 
 #### Clean up before combining all samples ####
 
@@ -757,7 +778,8 @@ samples.to.skip <- c("BLiMMP_INC_S_007",
                      "BLI20_TS_003",
                      "BLI20_TS_043",
                      "BLI20_TS_044",
-                     "BLI20_TS_045")
+                     "BLI20_TS_045",
+                     "BLI21_TS_005")
 
 unanalyzed.MA.samples <- MA.metadata %>%
   filter(!(sulfurID %in% MA.results$sulfurID)) %>%
