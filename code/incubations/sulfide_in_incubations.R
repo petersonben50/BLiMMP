@@ -158,7 +158,7 @@ sept.upper <- plot.sulfide.levels(start.date.of.interest = "2021-09-10",
 
 sept.mid <- plot.sulfide.levels(start.date.of.interest = "2021-09-10",
                                 depth.of.interest = 11.9,
-                                max.concentration = 75,
+                                max.concentration = 50,
                                 legend.position.to.use = "none")
 
 sept.bottom <- plot.sulfide.levels(start.date.of.interest = "2021-09-10",
