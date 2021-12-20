@@ -13,14 +13,17 @@ detection.vector <- c(4, 16)
 
 
 #### Plotting functions ####
-plot.sulfide.data <- function(sulfide.data.to.use) {
+plot.sulfide.sulfate.data <- function(sulfide.data.to.use,
+                                      sulfate.data.to.use,
+                                      xlim.to.use = c(0, 250)) {
+  # Sulfide data
   plot(x = sulfide.data.to.use$S_conc_uM,
        y = sulfide.data.to.use$depth,
        pch = 16,
        ylim = c(25, 0),
-       xlim = c(0, 150),
+       xlim = xlim.to.use,
        col = cb.translator["blue"],
-       xlab = "Sulfide (uM)",
+       xlab = "Sulfide/Sulfate (uM)",
        ylab = "")
   sulfide.data.to.use.lines <- sulfide.data.to.use %>%
     group_by(depth) %>%
@@ -29,11 +32,31 @@ plot.sulfide.data <- function(sulfide.data.to.use) {
   lines(x = sulfide.data.to.use.lines$S_conc_uM,
         y = sulfide.data.to.use.lines$depth,
         col = cb.translator["blue"])
+  
+  # Sulfate data
+  points(x = sulfate.data.to.use$sulfate_uM,
+         y = sulfate.data.to.use$depth,
+         pch = 1,
+         col = cb.translator["blue"])
+  sulfate.data.to.use.lines <- sulfate.data.to.use %>%
+    group_by(depth) %>%
+    summarise(sulfate_uM = mean(sulfate_uM)) %>%
+    arrange(depth)
+  lines(x = sulfate.data.to.use.lines$sulfate_uM,
+        y = sulfate.data.to.use.lines$depth,
+        col = cb.translator["blue"],
+        lty = 2)
+  
+  legend("top",
+         legend = c("Sulfate (µM)", "Sulfide (µM)"))
 }
 
 
-#### Read in sulfide data ####
+
+#### Read in data ####
 sulfide.data <- read.csv("dataEdited/waterChemistry/sulfide/WC_data.csv")
+sulfate.data <- read.csv("dataEdited/waterChemistry/sulfate/WC_data.csv")
+
 
 
 #### Plots for September 2020 ####
@@ -53,9 +76,11 @@ text(x = 6,
      cex = 1,
      labels = "September 2nd, 2020")
 
-# Sulfide data
-plot.sulfide.data(sulfide.data %>%
-                    filter(startDate == date.to.use))
+# Sulfide and sulfate data
+plot.sulfide.sulfate.data(sulfide.data.to.use = sulfide.data %>%
+                            filter(startDate == date.to.use),
+                          sulfate.data.to.use = sulfate.data %>%
+                            filter(startDate == date.to.use))
 dev.off()
 
 
@@ -77,9 +102,11 @@ text(x = 6,
      cex = 1,
      labels = "October 10th, 2020")
 
-# Sulfide data
-plot.sulfide.data(sulfide.data %>%
-                    filter(startDate == date.to.use))
+# Sulfide and sulfate data
+plot.sulfide.sulfate.data(sulfide.data.to.use = sulfide.data %>%
+                            filter(startDate == date.to.use),
+                          sulfate.data.to.use = sulfate.data %>%
+                            filter(startDate == date.to.use))
 dev.off()
 
 
@@ -103,7 +130,9 @@ text(x = 6,
      labels = "September 10th, 2021")
 
 # Sulfide data
-plot.sulfide.data(sulfide.data %>%
+plot.sulfide.sulfate.data(sulfide.data.to.use = sulfide.data %>%
+                    filter(startDate == date.to.use),
+                  sulfate.data.to.use = sulfate.data %>%
                     filter(startDate == date.to.use))
 dev.off()
 
@@ -127,6 +156,8 @@ text(x = 6,
      labels = "October 14th, 2021")
 
 # Sulfide data
-plot.sulfide.data(sulfide.data %>%
-                    filter(startDate == date.to.use))
+plot.sulfide.sulfate.data(sulfide.data %>%
+                            filter(startDate == date.to.use),
+                          sulfate.data %>%
+                            filter(startDate == date.to.use))
 dev.off()
