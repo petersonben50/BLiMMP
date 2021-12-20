@@ -47,8 +47,12 @@ plot.sulfide.sulfate.data <- function(sulfide.data.to.use,
         col = cb.translator["blue"],
         lty = 2)
   
-  legend("top",
-         legend = c("Sulfate (µM)", "Sulfide (µM)"))
+  legend(x = sum(xlim.to.use)/5,
+         y = 0,
+         legend = c("Sulfate (µM)", "Sulfide (µM)"),
+         pch = c(1, 16),
+         lty = c(1, 2),
+         col= cb.translator["blue"])
 }
 
 
