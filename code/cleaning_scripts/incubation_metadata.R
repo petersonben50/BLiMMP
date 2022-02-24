@@ -34,7 +34,7 @@ hg.ids.2019.2020 <- read_xlsx("metadata/raw_metadata/5_MA_Hg_samples.xlsx") %>%
   rename(bottleIdMeHg = bottleID) %>%
   mutate(bottleIdHgT = bottleIdMeHg) %>%
   select(bottleIdMeHg, bottleIdHgT, incubationID, dateKilled, timeKilled, t, notes)
-hg.ids.2021 <- read_xlsx("metadata/5_MA_Hg_samples.xlsx",
+hg.ids.2021 <- read_xlsx("metadata/raw_metadata/5_MA_Hg_samples.xlsx",
                                  sheet = "2021_MeHg") %>%
   rename(bottleIdMeHg = bottleID) %>%
   select(-c(notes, volCollected)) %>%
@@ -120,7 +120,7 @@ all.metadata.long <- all.metadata %>%
 
 #### Read out metadata ####
 metadata.to.save.out <- all.metadata.long %>%
-  select(bottleID, constituent, incubationID, sampleID, tripID, dateKilled,
+  select(bottleID, constituent, incubationID, sampleID, tripID, startDate, dateKilled,
          timeKilled, depth, t, durationInDays, durationSinceTimepointInDays,
          filtered, amendment, treatment) %>%
   arrange(incubationID, constituent, t)
