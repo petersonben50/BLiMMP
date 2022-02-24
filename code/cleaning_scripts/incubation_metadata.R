@@ -17,17 +17,17 @@ library(tidyr)
 
 #### Aggregate all metadata ####
 # Read in trip IDs
-trip.id <- read_xlsx("metadata/1_trip_IDs.xlsx") %>%
+trip.id <- read_xlsx("metadata/raw_metadata/1_trip_IDs.xlsx") %>%
   select(tripID, startDate)
 # Read in sample IDs
-sample.ids <- read_xlsx("metadata/2_sample_IDs.xlsx") %>%
+sample.ids <- read_xlsx("metadata/raw_metadata/2_sample_IDs.xlsx") %>%
   select(sampleID, tripID, depth)
 # Read in incubations IDs
-incubation.ids <- read_xlsx("metadata/4_MA_ID.xlsx") %>%
+incubation.ids <- read_xlsx("metadata/raw_metadata/4_MA_ID.xlsx") %>%
   select(incubationID, sampleID, filtered, amendment, sampleVolume, dateSpike, timeSpike)
 
 # Read in incubation IDs for 2019 and 2020
-hg.ids.2019.2020 <- read_xlsx("metadata/5_MA_Hg_samples.xlsx") %>%
+hg.ids.2019.2020 <- read_xlsx("metadata/raw_metadata/5_MA_Hg_samples.xlsx") %>%
   filter(!is.na(bottleID)) %>%
   # In 2021, we had separate sample bottles for MeHg and HgT,
   # so we need to accomodate that here as well
@@ -38,7 +38,7 @@ hg.ids.2021 <- read_xlsx("metadata/5_MA_Hg_samples.xlsx",
                                  sheet = "2021_MeHg") %>%
   rename(bottleIdMeHg = bottleID) %>%
   select(-c(notes, volCollected)) %>%
-  full_join(read_xlsx("metadata/5_MA_Hg_samples.xlsx",
+  full_join(read_xlsx("metadata/raw_metadata/5_MA_Hg_samples.xlsx",
                       sheet = "2021_HgT")) %>%
   rename(bottleIdHgT = bottleID) %>%
   # Don't keep the bottle ID info here, we just
