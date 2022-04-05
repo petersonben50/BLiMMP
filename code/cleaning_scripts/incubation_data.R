@@ -58,7 +58,8 @@ Hg.incubation.data <- Hg.incubation.data %>%
 
 #### Read out all data ####
 write.csv(Hg.incubation.data,
-          file = "dataEdited/incubations/clean_incubation_data.csv")
+          file = "dataEdited/incubations/clean_incubation_data.csv",
+          row.names = FALSE)
 
 
 
@@ -74,4 +75,5 @@ kmet.data <- Hg.incubation.data %>%
 
 #### Read out Kmet data ####
 write.csv(kmet.data,
-          file = "dataEdited/incubations/clean_incubation_Kmet_data.csv")
+          file = "dataEdited/incubations/clean_incubation_Kmet_data.csv",
+          row.names = FALSE)
