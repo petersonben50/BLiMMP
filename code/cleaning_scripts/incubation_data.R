@@ -6,6 +6,7 @@
 #### Prep workspace ####
 rm(list = ls())
 setwd("/Users/benjaminpeterson/Documents/research/BLiMMP")
+library(lubridate)
 library(readxl)
 library(tidyverse)
 
@@ -31,14 +32,14 @@ MeHg.data.clean <- right_join(incubation.metadata %>%
   mutate(MeHg_ambient_ppt = round(MeHg_ambient_ppt, 3),
          MeHg_198_ppt = round(MeHg_198_ppt, 3),
          MeHg_204_ppt = round(MeHg_204_ppt, 3)) %>%
-  select(-c(bottleID, constituent, MeHg_DOA))
+  select(-c(bottleID, constituent))
 rm(MeHg.data)
 
 #### Prepare HgT data ####
 HgT.data.clean <- right_join(incubation.metadata %>%
                                filter(constituent == "HgT"),
                              HgT.data) %>%
-  select(-c(bottleID, constituent, HgT_DOA))
+  select(-c(bottleID, constituent))
 rm(HgT.data, incubation.metadata)
 
 
@@ -49,5 +50,28 @@ rm(MeHg.data.clean,
    HgT.data.clean)
 
 
-#### Read out test data for 2022 ####
-write.csv(Hg.incubation.data %>% filter(year(startDate) == 2021), file = "~/Downloads/Hg_inc_data.csv")
+#### Calculate percent MeHg for ambient, 198, and 204
+Hg.incubation.data <- Hg.incubation.data %>%
+  mutate(percent_amb_MeHg = MeHg_ambient_ppt / HgT_ambient_ppt * 100,
+         percent_198_MeHg = MeHg_198_ppt / HgT_198_ppt * 100,
+         percent_204_MeHg = MeHg_204_ppt / HgT_204_ppt * 100)
+
+#### Read out all data ####
+write.csv(Hg.incubation.data,
+          file = "dataEdited/incubations/clean_incubation_data.csv")
+
+
+
+#### Calculate Kmet from t1 ####
+kmet.data <- Hg.incubation.data %>%
+  select(sampleID, incubationID, startDate,
+         t, treatment, durationInDays,
+         MeHg_198_ppt, HgT_198_ppt) %>%
+  filter(treatment == "unfiltered-unamended",
+         t == "t1") %>%
+  mutate(Kmet = (MeHg_198_ppt / HgT_198_ppt) / durationInDays)
+
+
+#### Read out Kmet data ####
+write.csv(kmet.data,
+          file = "dataEdited/incubations/clean_incubation_Kmet_data.csv")
