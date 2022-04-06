@@ -65,7 +65,7 @@ write.csv(Hg.incubation.data,
 
 #### Calculate Kmet from t1 ####
 kmet.data <- Hg.incubation.data %>%
-  select(sampleID, incubationID, startDate,
+  select(sampleID, incubationID, startDate, depth,
          t, treatment, durationInDays,
          MeHg_198_ppt, HgT_198_ppt) %>%
   filter(treatment %in% c("unfiltered-unamended",
