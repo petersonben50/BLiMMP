@@ -68,7 +68,9 @@ kmet.data <- Hg.incubation.data %>%
   select(sampleID, incubationID, startDate,
          t, treatment, durationInDays,
          MeHg_198_ppt, HgT_198_ppt) %>%
-  filter(treatment == "unfiltered-unamended",
+  filter(treatment %in% c("unfiltered-unamended",
+                          "unfiltered-molybdate",
+                          "filtered-unamended"),
          t == "t1") %>%
   mutate(Kmet = (MeHg_198_ppt / HgT_198_ppt) / durationInDays)
 
