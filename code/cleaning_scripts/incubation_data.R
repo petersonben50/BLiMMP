@@ -3,6 +3,7 @@
 # Benjamin D. Peterson
 
 
+
 #### Prep workspace ####
 rm(list = ls())
 setwd("/Users/benjaminpeterson/Documents/research/BLiMMP")
@@ -22,6 +23,7 @@ HgT.data <- read_xlsx("dataRaw/incubations/HgT/HgT_BENDOTA_SUMMARY.xlsx",
                       skip = 1)
 
 
+
 #### Prepare MeHg data ####
 MeHg.data.clean <- right_join(incubation.metadata %>%
                                 filter(constituent == "MeHg"),
@@ -36,6 +38,8 @@ MeHg.data.clean <- right_join(incubation.metadata %>%
   select(-c(bottleID, constituent))
 rm(MeHg.data)
 
+
+
 #### Prepare HgT data ####
 HgT.data.clean <- right_join(incubation.metadata %>%
                                filter(constituent == "HgT"),
@@ -45,11 +49,13 @@ HgT.data.clean <- right_join(incubation.metadata %>%
 rm(HgT.data, incubation.metadata)
 
 
+
 #### Combine data ####
 Hg.incubation.data <- full_join(MeHg.data.clean,
                                 HgT.data.clean)
 rm(MeHg.data.clean,
    HgT.data.clean)
+
 
 
 #### Calculate percent MeHg for ambient, 198, and 204
@@ -58,9 +64,11 @@ Hg.incubation.data <- Hg.incubation.data %>%
          percent_198_MeHg = MeHg_198_ppt / HgT_198_ppt * 100,
          percent_204_MeHg = MeHg_204_ppt / HgT_204_ppt * 100)
 
+
+
 #### Read out all data ####
 write.csv(Hg.incubation.data,
-          file = "dataEdited/incubations/clean_incubation_data.csv",
+          file = "dataEdited/incubation_Hg_data.csv",
           row.names = FALSE)
 
 
@@ -78,7 +86,8 @@ kmet.data <- Hg.incubation.data %>%
   mutate(Kmet = (MeHg_198_ppt / HgT_198_ppt) / durationInDays)
 
 
+
 #### Read out Kmet data ####
 write.csv(kmet.data,
-          file = "dataEdited/incubations/clean_incubation_Kmet_data.csv",
+          file = "dataEdited/incubation_Hg_rate_data.csv",
           row.names = FALSE)
