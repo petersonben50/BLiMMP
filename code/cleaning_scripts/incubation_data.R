@@ -32,6 +32,7 @@ MeHg.data.clean <- right_join(incubation.metadata %>%
   mutate(MeHg_ambient_ppt = round(MeHg_ambient_ppt, 3),
          MeHg_198_ppt = round(MeHg_198_ppt, 3),
          MeHg_204_ppt = round(MeHg_204_ppt, 3)) %>%
+  mutate(bottleID_MeHg = bottleID) %>%
   select(-c(bottleID, constituent))
 rm(MeHg.data)
 
@@ -39,6 +40,7 @@ rm(MeHg.data)
 HgT.data.clean <- right_join(incubation.metadata %>%
                                filter(constituent == "HgT"),
                              HgT.data) %>%
+  mutate(bottleID_HgT = bottleID) %>%
   select(-c(bottleID, constituent))
 rm(HgT.data, incubation.metadata)
 
