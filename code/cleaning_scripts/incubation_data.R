@@ -73,7 +73,7 @@ write.csv(Hg.incubation.data,
 
 
 
-#### Calculate Kmet from t1 ####
+#### Calculate Kmet and 198HgT loss ####
 kmet.data <- Hg.incubation.data %>%
   select(sampleID, incubationID,
          startDate, depth,
@@ -81,13 +81,65 @@ kmet.data <- Hg.incubation.data %>%
          MeHg_198_ppt, HgT_198_ppt) %>%
   filter(treatment %in% c("unfiltered-unamended",
                           "unfiltered-molybdate",
-                          "filtered-unamended"),
-         t == "t1") %>%
-  mutate(Kmet = (MeHg_198_ppt / HgT_198_ppt) / durationInDays)
+                          "filtered-unamended")) %>%
+  gather(key = constituent, value = concentration, c(MeHg_198_ppt, HgT_198_ppt, durationInDays)) %>%
+  mutate(const_time = paste(constituent, t,
+                            sep = "_")) %>%
+  select(sampleID, incubationID, startDate, depth,
+         treatment,const_time, concentration) %>%
+  spread(key = const_time,
+         value = concentration) %>%
+  mutate(Kmet_t1 = (MeHg_198_ppt_t1 - MeHg_198_ppt_t0) / HgT_198_ppt_t1 / durationInDays_t1,
+         Kmet_t2 = (MeHg_198_ppt_t2 - MeHg_198_ppt_t1) / HgT_198_ppt_t2 / (durationInDays_t2 - durationInDays_t1),
+         Kmet_total = (MeHg_198_ppt_t2 - MeHg_198_ppt_t0) / ((HgT_198_ppt_t2 + HgT_198_ppt_t1) / 2) / (durationInDays_t2 - durationInDays_t0),
+         HgT_198_daily_percent_loss_t1 = (HgT_198_ppt_t0 - HgT_198_ppt_t1) / HgT_198_ppt_t0 / durationInDays_t1 * 100,
+         HgT_198_daily_percent_loss_t2 = (HgT_198_ppt_t1 - HgT_198_ppt_t2) / HgT_198_ppt_t1 / (durationInDays_t2 - durationInDays_t1) * 100,
+         HgT_198_percent_loss_total = (HgT_198_ppt_t0 - HgT_198_ppt_t2) / HgT_198_ppt_t0 * 100) %>%
+  select(sampleID, incubationID, startDate, depth, treatment,
+         Kmet_t1, Kmet_t2, Kmet_total,
+         HgT_198_daily_percent_loss_t1,
+         HgT_198_daily_percent_loss_t2,
+         HgT_198_percent_loss_total)
+
+
+
+#### Calculate Kdem and 204HgT loss ####
+kdem.data <- Hg.incubation.data %>%
+  select(sampleID, incubationID,
+         startDate, depth,
+         t, treatment, durationInDays,
+         MeHg_204_ppt, HgT_204_ppt) %>%
+  filter(treatment %in% c("unfiltered-unamended",
+                          "unfiltered-molybdate",
+                          "filtered-unamended")) %>%
+  gather(key = constituent, value = concentration, c(MeHg_204_ppt, HgT_204_ppt, durationInDays)) %>%
+  mutate(const_time = paste(constituent, t,
+                            sep = "_")) %>%
+  select(sampleID, incubationID, startDate, depth,
+         treatment,const_time, concentration) %>%
+  spread(key = const_time,
+         value = concentration) %>%
+  mutate(Kdem_t1 = -((MeHg_204_ppt_t1 / HgT_204_ppt_t1) - (MeHg_204_ppt_t0 / HgT_204_ppt_t0)) / durationInDays_t1,
+         Kdem_t2 = -((MeHg_204_ppt_t2 / HgT_204_ppt_t2) - (MeHg_204_ppt_t1 / HgT_204_ppt_t1)) / (durationInDays_t2 - durationInDays_t1),
+         Kdem_total = -((MeHg_204_ppt_t2 / HgT_204_ppt_t2) - (MeHg_204_ppt_t0 / HgT_204_ppt_t0)) / (durationInDays_t2 - durationInDays_t0),
+         HgT_204_daily_percent_loss_t1 = (HgT_204_ppt_t0 - HgT_204_ppt_t1) / HgT_204_ppt_t0 / durationInDays_t1 * 100,
+         HgT_204_daily_percent_loss_t2 = (HgT_204_ppt_t1 - HgT_204_ppt_t2) / HgT_204_ppt_t1 / (durationInDays_t2 - durationInDays_t1) * 100,
+         HgT_204_percent_loss_total = (HgT_204_ppt_t0 - HgT_204_ppt_t2) / HgT_204_ppt_t0 * 100) %>%
+  select(sampleID, incubationID, startDate, depth, treatment,
+         Kdem_t1, Kdem_t2, Kdem_total,
+         HgT_204_daily_percent_loss_t1,
+         HgT_204_daily_percent_loss_t2,
+         HgT_204_percent_loss_total)
+
+
+
+#### Combine all rate data ####
+all.rate.data <- full_join(kmet.data,
+                           kdem.data)
 
 
 
 #### Read out Kmet data ####
-write.csv(kmet.data,
+write.csv(all.rate.data,
           file = "dataEdited/incubation_Hg_rate_data.csv",
           row.names = FALSE)
