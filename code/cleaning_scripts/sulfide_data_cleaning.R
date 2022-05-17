@@ -716,12 +716,8 @@ for (file.name in list.o.results) {
 MA.metadata <- read.csv("metadata/processedMetadata/sulfide_MA.csv",
                         stringsAsFactors = FALSE)
 # Read in timing information (from Hg incubation data)
-timing.data <- rbind(read.csv("metadata/processedMetadata/incubation_Hg_metadata_2019.csv") %>%
-                       select(incubationID, t, durationInDays),
-                     read.csv("metadata/processedMetadata/incubation_Hg_metadata_2020.csv") %>%
-                       select(incubationID, t, durationInDays),
-                     read.csv("metadata/processedMetadata/incubation_Hg_metadata_2021.csv") %>%
-                       select(incubationID, t, durationInDays)) %>%
+timing.data <- read.csv("metadata/processedMetadata/incubation_metadata.csv") %>%
+  select(incubationID, t, durationInDays) %>%
   rename(incubationTimePoint = t)
 # Combine data
 MA.results <- S.results %>%
@@ -731,7 +727,7 @@ MA.results <- S.results %>%
 
 # Save out data
 write.csv(MA.results,
-          "dataEdited/waterChemistry/sulfide/MA_data.csv",
+          "dataEdited/incubation_sulfide_data.csv",
           row.names = FALSE,
           quote = FALSE)
 
