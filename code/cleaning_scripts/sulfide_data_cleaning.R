@@ -12,7 +12,7 @@ library(readxl)
 
 
 #### Prepare metadata ####
-S.metadata <- read_xlsx("metadata/chem_S.xlsx",
+S.metadata <- read_xlsx("metadata/raw_metadata/chem_S.xlsx",
                         sheet = "Sheet1") %>%
   select(-notes) %>%
   filter(!is.na(sampleID) & !is.na(incubationID))
@@ -717,6 +717,7 @@ MA.metadata <- read.csv("metadata/processedMetadata/sulfide_MA.csv",
                         stringsAsFactors = FALSE)
 # Read in timing information (from Hg incubation data)
 timing.data <- read.csv("metadata/processedMetadata/incubation_metadata.csv") %>%
+  spread(key = constituent, value = bottleID) %>%
   select(incubationID, t, durationInDays) %>%
   rename(incubationTimePoint = t)
 # Combine data
@@ -756,7 +757,7 @@ WC.results[WC.results$corewater, ] <- WC.results[WC.results$corewater, ] %>%
 
 
 write.csv(WC.results,
-          "dataEdited/waterChemistry/sulfide/WC_data.csv",
+          "dataEdited/waterColumn_sulfide_data.csv",
           row.names = FALSE,
           quote = FALSE)
 
