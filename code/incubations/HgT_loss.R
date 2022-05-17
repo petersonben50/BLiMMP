@@ -179,5 +179,5 @@ make.all.plots.for.constituent(constituent.to.use = c("HgT_198_percent_loss_tota
                                                       "HgT_204_percent_loss_total"),
                                concentration.to.use = c(-40, 62),
                                constituent.ylab = "HgT loss (%)",
-                               x.ticks.to.use = c("198HgT", "198HgT"))
+                               x.ticks.to.use = c("198HgT", "204HgT"))
 dev.off()
