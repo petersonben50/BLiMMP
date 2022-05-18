@@ -18,12 +18,12 @@ library(readxl)
 
 
 #### Prepare metadata ####
-S.metadata <- read_xlsx("metadata/chem_S.xlsx") %>%
+S.metadata <- read_xlsx("metadata/raw_metadata/chem_S.xlsx") %>%
   select(-notes)
-sample_IDs <- read_xlsx("metadata/2_sample_IDs.xlsx")
-incubation_IDs <- read_xlsx("metadata/4_MA_ID.xlsx") %>%
+sample_IDs <- read_xlsx("metadata/raw_metadata/2_sample_IDs.xlsx")
+incubation_IDs <- read_xlsx("metadata/raw_metadata/4_MA_ID.xlsx") %>%
   select(-notes)
-trip_IDs <- read_xlsx("metadata/1_trip_IDs.xlsx") %>%
+trip_IDs <- read_xlsx("metadata/raw_metadata/1_trip_IDs.xlsx") %>%
   select(-notes)
 
 
@@ -69,13 +69,13 @@ rm(list = ls())
 
 
 #### Prepare metadata for metals ####
-filtered.metals.metadata <- read_xlsx("metadata/chem_FM.xlsx") %>%
+filtered.metals.metadata <- read_xlsx("metadata/raw_metadata/chem_FM.xlsx") %>%
   select(-notes) %>%
   mutate(filteredInField = "yes") %>%
   rename(metalID = MFID) %>%
   filter(grepl("BLI2",
                metalID))
-unfiltered.metals.metadata <- read_xlsx("metadata/chem_UM.xlsx") %>%
+unfiltered.metals.metadata <- read_xlsx("metadata/raw_metadata/chem_UM.xlsx") %>%
   select(-notes) %>%
   mutate(filteredInField = "no") %>%
   rename(metalID = MUID) %>%
@@ -86,10 +86,10 @@ metals.metadata <- rbind(unfiltered.metals.metadata,
 rm(unfiltered.metals.metadata,
    filtered.metals.metadata)
 
-sample_IDs <- read_xlsx("metadata/2_sample_IDs.xlsx")
-incubation_IDs <- read_xlsx("metadata/4_MA_ID.xlsx") %>%
+sample_IDs <- read_xlsx("metadata/raw_metadata/2_sample_IDs.xlsx")
+incubation_IDs <- read_xlsx("metadata/raw_metadata/4_MA_ID.xlsx") %>%
   select(-notes)
-trip_IDs <- read_xlsx("metadata/1_trip_IDs.xlsx") %>%
+trip_IDs <- read_xlsx("metadata/raw_metadata/1_trip_IDs.xlsx") %>%
   select(-notes)
 
 
@@ -135,3 +135,17 @@ write.csv(MA.metadata,
           row.names = FALSE,
           quote = FALSE)
 
+
+
+
+#### Prepare metadata for anions ####
+AN.metadata <- read_xlsx("metadata/raw_metadata/chem_AN.xlsx") %>%
+  filter(grepl("BLI", anionID)) %>%
+  left_join(sample_IDs) %>%
+  left_join(trip_IDs) %>%
+  select(anionID, sampleID, tripID, startDate, depth) %>%
+  filter(!is.na(tripID))
+write.csv(AN.metadata,
+          file = "metadata/processedMetadata/anions_metadata.csv",
+          row.names = FALSE,
+          quote = FALSE)
