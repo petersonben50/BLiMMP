@@ -47,15 +47,19 @@ Kmet_vs_sulfide_plot_t1 <- all.data %>%
              color = as.character(year(startDate)),
              shape = as.character(month(startDate,
                                         label = TRUE, abbr = FALSE)))) +
-  geom_point() +
+  geom_point(size = 3) +
   scale_color_manual(values = color.vector.year,
                      name = "Year") +
   scale_shape_manual(values = shape.vector,
                      name = "Month") +
-  ylab("Kmet (day^-1)") +
+  ylab(bquote(K[met] (day^-1))) +
   xlab("Sulfide (µM)") +
   theme_bw() +
-  theme(legend.position = c(0.25, 0.72))
+  theme(legend.position = c(0.25, 0.72),
+        legend.spacing.y = unit(0, "mm"),
+        legend.background = element_blank(),
+        legend.box.background = element_rect(colour = "black",
+                                             fill = "white"))
 
 
 #### Plot the Kmet vs. sulfide for t2 ####
@@ -95,8 +99,8 @@ Kmet_vs_sulfide_plot_total <- all.data %>%
 
 
 #### View all plots ####
-ggarrange(Kmet_vs_sulfide_plot_t1, Kmet_vs_sulfide_plot_t2,
-          Kmet_vs_sulfide_plot_total,
+ggarrange(Kmet_vs_sulfide_plot_t1 + labs(title = "Kmet t1"), Kmet_vs_sulfide_plot_t2 + labs(title = "Kmet t2"),
+          Kmet_vs_sulfide_plot_total + labs(title = "Kmet total"),
           ncol = 1)
 
 #### Save out plot ####
