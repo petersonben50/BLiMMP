@@ -27,6 +27,19 @@ So, first I downloaded the data from QB3 using the `lftp` protocol they outlined
 This set of metagenomes included 5 from the BLiMMP project (BLI30_MG_001 through 005), but also included 5 metagenomes for Rachel, Elizabeth, and Charles.
 The naming system that QB3 attached to the libraries was different than what I had named them, so I generated a key to link the two names here: `~/BLiMMP/dataEdited/metagenomes/reports/naming_key.tsv`.
 These were all transferred into the `dataRaw/metagenomes` folder.
+Later, I changed this so that the metagenomes got imported into a `dataRaw/metagenomes/2020_data` folder.
+Then, I moved the metagenomes up a folder.
+
+
+*Transfer 2021 data*
+
+First downloaded the data from QB3 using the `lftp` protocol they outlined for us (email on 2021-07-22).
+Email here: `dataRaw/metagenomes/2021_data_email.pdf`.
+For this, we generated 12 metagenomes, duplicate metagenomes from the six sites where we did incubations.
+Transferred them into `2021_data`.
+Looks like we also got a bunch of empty files, all the ones with the "L001".
+These files aren't listed in the md5 files they sent along.
+So, let's remove them, only work with the "L002" files.
 
 
 **Trim metagenomes**

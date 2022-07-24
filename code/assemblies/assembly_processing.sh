@@ -39,14 +39,40 @@ screen -S BLI20_MG_transfer
 mkdir ~/BLiMMP
 mkdir ~/BLiMMP/dataRaw
 mkdir ~/BLiMMP/dataRaw/metagenomes
-cd ~/BLiMMP/dataRaw/metagenomes
+mkdir ~/BLiMMP/dataRaw/metagenomes/2020_data
+cd ~/BLiMMP/dataRaw/metagenomes/2020_data
 
 #source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
 #conda activate lftp
 #lftp -c 'set ssl:verify-certificate no set ftp:ssl-protect-data true set ftp:ssl-force true; open -u n210421_150PE_NVS1B_S1_Peterson,Shiezeicie7Eab5 -e "mirror -c; quit" ftp://gslanalyzer.qb3.berkeley.edu:990'
+mv BP_* ../
+# Check md5sum
 
 
+#########################
+# Transfer 2021 data
+#########################
+screen -S BLI21_MG_transfer
+cd ~/BLiMMP/dataRaw/metagenomes
+mkdir 2021_data
+cd 2021_data
+#source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
+#conda activate lftp
+#lftp -c 'set ssl:verify-certificate no set ftp:ssl-protect-data true set ftp:ssl-force true; open -u n220708_150PE_NVS1A_S4_Peterson_M001705,teoDiishech4chi -e "mirror -c; quit" ftp://gslanalyzer.qb3.berkeley.edu:990'
+# ls -alh
+# Looks like we had a bunch of empty files, all the ones with the "L001".
+# These files aren't listed in the md5 files they sent along.
+# So, let's remove them, only work with the "L002" files.
+# Stash the L001 files
+mkdir 2021_L001
+mv *_L001_* 2021_L001
 
+# Compare md5sum values of downloaded files to the ones they sent
+#md5sum KMBP011*gz > post_download_md5sum.txt
+#cat post_download_md5sum.txt
+#cat md5sum.txt
+# They match up!
+mv KMBP011* ../
 
 
 ##################################################
@@ -59,8 +85,13 @@ mkdir ~/BLiMMP/dataEdited
 mkdir ~/BLiMMP/dataEdited/metagenomes
 mkdir ~/BLiMMP/dataEdited/metagenomes/reports
 # Upload naming_key.tsv to the reports file
+# This naming_key.tsv file is a tab-separated file with two columns.
+# The first has the QB3 name. The second has our metagenome ID.
+# Data was originally found in our dilution table spreadsheets:
+# 2020 data: /Users/benjaminpeterson/Documents/research/BLiMMP/dataEdited/dnaSequencing/2020/samplePrep/KMBP010_dilutions.xlsx
+# 2021 data: /Users/benjaminpeterson/Documents/research/BLiMMP/dataEdited/dnaSequencing/2021/samplePrep/BLI21_MG_dilutions.xlsx
 
-# Downlaode fastp
+# Download fastp
 #mkdir ~/BLiMMP/code
 #cd ~/BLiMMP/code
 #wget http://opengene.org/fastp/fastp
@@ -72,16 +103,15 @@ read_storage=~/BLiMMP/dataEdited/metagenomes
 ancillary_info=~/BLiMMP/dataEdited/metagenomes/reports
 rawReads=~/BLiMMP/dataRaw/metagenomes
 
-grep 'BLI20_MG_00' $ancillary_info/naming_key.tsv | while read line
+grep 'BLI2' $ancillary_info/naming_key.tsv | head | while read line
 do
   sequencingID=`echo $line | awk '{ print $1 }'`
   metagenomeID=`echo $line | awk '{ print $2 }'`
-  echo "Cleaning up:"
-  ls $rawReads/$sequencingID\_*R1*fastq.gz
-  ls $rawReads/$sequencingID\_*R2*fastq.gz
-  echo "into" $metagenomeID
   if [ ! -e $read_storage/$metagenomeID\_R1.fastq.gz ]; then
     echo "Processing" $metagenomeID
+    ls $rawReads/$sequencingID\_*R1*fastq.gz
+    ls $rawReads/$sequencingID\_*R2*fastq.gz
+    echo "into" $metagenomeID
     $fastp --in1 $rawReads/$sequencingID\_*R1*fastq.gz \
             --in2 $rawReads/$sequencingID\_*R2*fastq.gz \
             --out1 $read_storage/$metagenomeID\_R1.fastq.gz \
@@ -98,7 +128,7 @@ do
             --cut_tail_mean_quality 20 \
             --length_required 100
   else
-    echo "Already processed" $metagenome
+    echo "Already processed" $metagenomeID
   fi
 done
 
