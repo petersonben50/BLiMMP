@@ -60,9 +60,6 @@ cd 2021_data
 #conda activate lftp
 #lftp -c 'set ssl:verify-certificate no set ftp:ssl-protect-data true set ftp:ssl-force true; open -u n220708_150PE_NVS1A_S4_Peterson_M001705,teoDiishech4chi -e "mirror -c; quit" ftp://gslanalyzer.qb3.berkeley.edu:990'
 # ls -alh
-# Looks like we had a bunch of empty files, all the ones with the "L001".
-# These files aren't listed in the md5 files they sent along.
-# So, let's remove them, only work with the "L002" files.
 # Stash the L001 files
 mkdir 2021_L001
 mv *_L001_* 2021_L001
