@@ -8,26 +8,6 @@
 
 ##################################################
 ##################################################
-# Upload list files
-##################################################
-##################################################
-mkdir ~/BLiMMP/metadata
-# Upload a list of the metagenomes:
-# ~/BLiMMP/metadata/metagenome_list.txt
-
-# Make sure the key linking the metagenomes to the
-# assemblies is up-to-date:
-# ~/BLiMMP/metadata/assembly_key.tsv
-
-# Also upload a list of the assemblies:
-# ~/BLiMMP/metadata/assembly_list.txt
-
-
-
-
-
-##################################################
-##################################################
 # Transfer data
 ##################################################
 ##################################################
@@ -74,6 +54,16 @@ mv KMBP011* ../
 
 ##################################################
 ##################################################
+# Generate and upload the naming file
+##################################################
+##################################################
+mkdir ~/BLiMMP/metadata
+# Upload a list of the metagenomes:
+# ~/BLiMMP/dataEdited/metagenomes/reports/naming_key.tsv
+
+
+##################################################
+##################################################
 # Trim metagenomes
 ##################################################
 ##################################################
@@ -100,15 +90,17 @@ read_storage=~/BLiMMP/dataEdited/metagenomes
 ancillary_info=~/BLiMMP/dataEdited/metagenomes/reports
 rawReads=~/BLiMMP/dataRaw/metagenomes
 
-grep 'BLI2' $ancillary_info/naming_key.tsv | head | while read line
+echo -e '\n\n' >> $ancillary_info/metagenome_run_info.txt
+date >> $ancillary_info/metagenome_run_info.txt
+grep 'BLI2' $ancillary_info/naming_key.tsv | while read line
 do
   sequencingID=`echo $line | awk '{ print $1 }'`
   metagenomeID=`echo $line | awk '{ print $2 }'`
   if [ ! -e $read_storage/$metagenomeID\_R1.fastq.gz ]; then
-    echo "Processing" $metagenomeID
-    ls $rawReads/$sequencingID\_*R1*fastq.gz
-    ls $rawReads/$sequencingID\_*R2*fastq.gz
-    echo "into" $metagenomeID
+    echo "Processing" >> $ancillary_info/metagenome_run_info.txt
+    ls $rawReads/$sequencingID\_*R1*fastq.gz >> $ancillary_info/metagenome_run_info.txt
+    ls $rawReads/$sequencingID\_*R2*fastq.gz >> $ancillary_info/metagenome_run_info.txt
+    echo "into" $metagenomeID >> $ancillary_info/metagenome_run_info.txt
     $fastp --in1 $rawReads/$sequencingID\_*R1*fastq.gz \
             --in2 $rawReads/$sequencingID\_*R2*fastq.gz \
             --out1 $read_storage/$metagenomeID\_R1.fastq.gz \
@@ -125,7 +117,7 @@ do
             --cut_tail_mean_quality 20 \
             --length_required 100
   else
-    echo "Already processed" $metagenomeID
+    echo "Already processed" $metagenomeID >> $ancillary_info/metagenome_run_info.txt
   fi
 done
 
@@ -213,6 +205,21 @@ do
                 awk -F " " '{ print $5 }')
   echo -e $metagenome"\t"$R1_count"\t"$R2_count"\t"$single_count"\t"$merged_count >> metagenome_coverage.tsv
 done
+
+
+
+
+
+
+
+
+
+# Make sure the key linking the metagenomes to the
+# assemblies is up-to-date:
+# ~/BLiMMP/metadata/assembly_key.tsv
+
+# Also upload a list of the assemblies:
+# ~/BLiMMP/metadata/assembly_list.txt
 
 
 

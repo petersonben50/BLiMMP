@@ -4,18 +4,6 @@ This document is meant to explain the scripts found in `code/assemblies/assembly
 These scripts are used to process and assemble the metagenomes from the BLiMMP project.
 
 
-**Upload list files**
-
-First I uploaded the files that I needed down the line to the metadata folder:
-- assembly_key.csv
-- assembly_list.txt
-- metagenome_list.txt
-
-The `assembly_key.csv` file has two columns: groupID and metagenomeID.
-GroupID should really be assemblyID, as this file identifies the metagenomes that are needed for each assembly.
-This will be used by the `assembly_by_group.py` script for generating the assemblies.
-
-
 **Transfer data**
 
 Then I needed to retrieve the metagenomic data.
@@ -42,6 +30,16 @@ These files aren't listed in the md5 files they sent along.
 So, let's remove them, only work with the "L002" files.
 
 
+**Generate and upload the naming file**
+
+The names that we submit to QB3 and the ones they ultimately use in their sequencing don't match up with our naming convention.
+Thus, I generated a two-column table that contains the sequencing ID used by QB3 in the first column and the desired metagenome ID that we want in the second column.
+This is found here: `dataEdited/metagenomes/reports/naming_key.tsv`
+Upload to GLBRC here: `~/BLiMMP/dataEdited/metagenomes/reports/naming_key.tsv`.
+Note that 5 of the metagenomes included here with the 2020 sequencing were not from this project.
+They will not be processed further in this workflow.
+
+
 **Trim metagenomes**
 
 Next I needed to quality trim the metagenomes.
@@ -61,6 +59,16 @@ Next I wanted to generate a couple of metrics for the different metagenomes.
 First I counted the reads in both the trimmed and untrimmed metagenomes using `zgrep` to count the lines starting with "@".
 I then used the `kseq_fastq_base` script to calculate the coverage over the pre- and post-trimmed metagenomes.
 These will give us some metrics for how much sequencing data we actually have and how much we lost due to trimming.
+
+
+
+- assembly_key.csv
+- assembly_list.txt
+The `assembly_key.csv` file has two columns: groupID and metagenomeID.
+GroupID should really be assemblyID, as this file identifies the metagenomes that are needed for each assembly.
+This will be used by the `assembly_by_group.py` script for generating the assemblies.
+
+
 
 
 **Metagenome assembly**
