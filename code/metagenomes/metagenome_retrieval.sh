@@ -59,8 +59,14 @@ mv KMBP011* ../
 ##################################################
 ##################################################
 mkdir ~/BLiMMP/metadata
-# Upload a list of the metagenomes:
-# ~/BLiMMP/dataEdited/metagenomes/reports/naming_key.tsv
+# Upload naming_key.tsv to the reports file
+# ~/BLiMMP/dataRaw/metagenomes/reports/naming_key.tsv
+# This naming_key.tsv file is a tab-separated file with two columns.
+# The first has the QB3 name. The second has our metagenome ID.
+# Data was originally found in our dilution table spreadsheets:
+# 2020 data: /Users/benjaminpeterson/Documents/research/BLiMMP/dataEdited/dnaSequencing/2020/samplePrep/KMBP010_dilutions.xlsx
+# 2021 data: /Users/benjaminpeterson/Documents/research/BLiMMP/dataEdited/dnaSequencing/2021/samplePrep/BLI21_MG_dilutions.xlsx
+
 rawReads=~/BLiMMP/dataRaw/metagenomes
 ancillary_info=~/BLiMMP/dataEdited/metagenomes/reports
 
