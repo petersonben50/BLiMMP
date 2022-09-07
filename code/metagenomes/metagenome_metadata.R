@@ -21,7 +21,7 @@ sample.data <-
             select(sampleID, tripID, depth) %>%
   # Read in trip metadata
   left_join(read_xlsx("metadata/raw_metadata/1_trip_IDs.xlsx") %>%
-              select(tripID, startDate)) 
+              select(tripID, startDate))
 
 all.data <-
 # Read in filter metadata
@@ -79,13 +79,13 @@ sample.data %>%
     lat_lon = "43.0989 N 89.4055 W") %>%
   select(sample_name, sample_title, bioproject_accession, organism, collection_date,
          depth, env_broad_scale, env_local_scale, env_medium, geo_loc_name, lat_lon) %>%
-  write.csv(file = "dataEdited/metagenomes/temp_NCBI_info_MIMS.csv",
+  write.csv(file = "dataEdited/metagenomes/NCBI_upload/temp_NCBI_info_MIMS.csv",
               quote = FALSE,
               row.names = FALSE)
 
 
 #### SRA entry prep ####
-biosample.ids <- read.table("dataEdited/metagenomes/NCBI_info_MIMS_with_BioSample.txt",
+biosample.ids <- read.table("dataEdited/metagenomes/NCBI_upload/NCBI_info_MIMS_with_BioSample.txt",
                             sep = '\t',
                             skip = 1) %>%
   select(V1, V3)
@@ -102,7 +102,7 @@ all.data %>%
   rename(library_ID = metagenomeID) %>%
   mutate(replicate = duplicated(sample_name) + 1,
          title = paste("Metagenomic sequencing of microbial community from the water column of Lake Mendota on ",
-                       startDate, " at ", depth, "m - biological replicate ", replicate, 
+                       startDate, " at ", depth, "m - biological replicate ", replicate,
                        sep = ""),
          library_strategy = "WGS",
          library_source = "METAGENOMIC",
@@ -124,6 +124,6 @@ all.data %>%
          library_selection, library_layout, platform, instrument_model, design_description,
          filetype, filename, filename2, filename3, filename4, assembly, fasta_file) %>%
   arrange(biosample_accession) %>%
-  write.csv(file = "dataEdited/metagenomes/temp_NCBI_info_SRA.csv",
+  write.csv(file = "dataEdited/metagenomes/NCBI_upload/temp_NCBI_info_SRA.csv",
             quote = FALSE,
             row.names = FALSE)
