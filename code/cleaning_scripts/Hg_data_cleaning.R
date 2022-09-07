@@ -5,7 +5,7 @@
 # into one data set. Now I've changed it, I downloaded all the Hg
 # data related to my project from Merlins into one big file. Everything
 # from the Lake Mendota project after 2020-07-01. This is saved here:
-# dataRaw/Hg/USGS_results_2021-11-09.xlsx
+# dataRaw/Hg/USGS_results_2022-09-07.xlsx
 
 # This file includes the incubation results as well.
 
@@ -20,7 +20,7 @@ library(readxl)
 
 
 #### Set variables ####
-dataSheet <- "dataRaw/Hg/USGS_results_2021-11-09.xlsx"
+dataSheet <- "dataRaw/Hg/USGS_results_2022-09-07.xlsx"
 waterDepth <- 24
 output <- "dataEdited/Hg/Hg_data_clean.csv"
 
@@ -38,13 +38,22 @@ Hg.data.raw <- read_xlsx(dataSheet) %>%
          unit, constituent, detection_flag, corewater)
 
 
-#### Keep only water column data ####
+#### Remove unneeded data ####
 # No corewater or incubation data
 Hg.data <- Hg.data.raw %>%
-  filter(!(constituent %in% c("UMHG", "UTHG")),
-         !(sampleDate %in% c(as.Date("2020-08-14"),
-                             as.Date("2020-09-24"))))
+  filter(
+    # No incubation data
+    !(constituent %in% c("UMHG", "UTHG")),
+    # No data from corewater sampling trips
+    !(sampleDate %in% c(as.Date("2020-08-14"),
+                        as.Date("2020-09-24"))),
+    # We have two surface samples listed... not sure why,
+    # and not sure why one is listed on 2021-09-11. Let's 
+    # just remove that one, we only need one here.
+    !(sampleDate == "2021-09-11" & depth == 0.0 & sampleTime == "1300")
+    )
 rm(Hg.data.raw)
+
 
 #### Prep inorganic data ####
 Hg.data <- Hg.data %>%
@@ -75,12 +84,60 @@ Hg.data <- rbind(Hg.data,
 rm(iHg.data)
 
 
-#### Fix surface samples from 2021-09-10/11 ####
-# We have two surface samples listed... not sure why,
-# and not sure why one is listed on 2021-09-11. Let's 
-# just remove that one, we only need one here.
-Hg.data <- Hg.data %>%
-  filter(!(sampleDate == "2021-09-11" & depth == 0.0 & sampleTime == "1300"))
+
+#### Calculate % MeHg for filtered and particulate ####
+perMEHG.data <- Hg.data %>%
+  filter(constituent %in% c("FMHG_NG.L", "FTHG_NG.L",
+                            "PMHG_NG.L", "PTHG_NG.L"),
+         detection_flag == "NONE") %>%
+  select(-detection_flag) %>%
+  spread(key = constituent,
+         value = concentration) %>%
+  mutate(perFMHG = FMHG_NG.L / FTHG_NG.L * 100,
+         perPMHG = PMHG_NG.L / PTHG_NG.L * 100) %>%
+  gather(key = constituent,
+         value = concentration,
+         -c(1:5)) %>%
+  filter(!is.na(concentration),
+         constituent %in% c("perFMHG", "perPMHG")) %>%
+  mutate(detection_flag = "NONE") %>%
+  select(sampleDate, depth, sampleTime, depthOriginal,
+         concentration, constituent, detection_flag, corewater)
+Hg.data <- rbind(Hg.data,
+                 perMEHG.data)
+rm(perMEHG.data)
+
+
+#### Calculate solids concentrations for MeHg and HgT ####
+solids.HG.data <- Hg.data %>%
+  filter(constituent %in% c("SPM_MG.L", "PTHG_NG.L",
+                            "PMHG_NG.L", "PiHg_NG.L")) %>%
+  select(-detection_flag) %>%
+  spread(key = constituent,
+         value = concentration) 
+# One of the duplicates is missing an SPM values.
+# Let's just use the SPM value from the other dup
+# to calculate the per g values.
+solids.HG.data[(solids.HG.data$sampleDate == "2020-10-10" &
+                  solids.HG.data$sampleTime == "1800"), "SPM_MG.L"] <- solids.HG.data[(solids.HG.data$sampleDate == "2020-10-10" &
+                                                                                         solids.HG.data$sampleTime == "1820"), "SPM_MG.L"]
+solids.HG.data <- solids.HG.data %>%
+  mutate(PMHG_NG.G = PMHG_NG.L / SPM_MG.L * 1000,
+         PTHG_NG.G = PTHG_NG.L / SPM_MG.L * 1000,
+         PiHG_NG.G = PiHg_NG.L / SPM_MG.L * 1000) %>%
+  gather(key = constituent,
+         value = concentration,
+         -c(1:5)) %>%
+  filter(!is.na(concentration),
+         constituent %in% c("PMHG_NG.G", "PTHG_NG.G", "PiHG_NG.G")) %>%
+  mutate(detection_flag = "NONE") %>%
+  select(sampleDate, depth, sampleTime, depthOriginal,
+         concentration, constituent, detection_flag, corewater)
+# Add solids concentrations to dataset
+Hg.data <- rbind(Hg.data,
+                 solids.HG.data)
+
+
 
 #### Read out data ####
 write.csv(Hg.data,
