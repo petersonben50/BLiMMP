@@ -1,5 +1,5 @@
 #################################
-# coassembly_by_group.py
+# assembly_by_group.py
 # Benjamin D. Peterson
 
 # This script will read in a csv file with the
@@ -72,9 +72,9 @@ group2mg = pd.read_csv(GROUP_SPREADSHEET_NAME)
 ####---------------------------------####
 # Select the metagenomes that correspond to the selected group
 ####---------------------------------####
-groupMetagenomes = group2mg.loc[group2mg['groupID'] == group]
+groupMetagenomes = group2mg.loc[group2mg['groupID'] == GROUP_NAME]
 neededMetagenomes = groupMetagenomes['metagenomeID']
-print("Assembling " + group + " using " + neededMetagenomes)
+print("Assembling " + GROUP_NAME + " using " + neededMetagenomes)
 
 
 ####---------------------------------####
