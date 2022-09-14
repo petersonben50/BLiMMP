@@ -4,8 +4,8 @@
 # Benjamin D. Peterson
 ##################
 
-request_cpus = 24
-request_memory = 1000GB
+request_cpus = 12
+request_memory = 220GB
 
 executable = /home/GLBRCORG/bpeterson26/BLiMMP/code/assembly_by_group_execute.sh
 

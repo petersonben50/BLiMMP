@@ -21,8 +21,8 @@ if [ ! -e $output/$assembly/scaffolds.fasta ]; then
                                     --readLocation $read_storage \
                                     --mergedReads yes \
                                     --output $output/$assembly \
-                                    --threads 20 \
-                                    --memory 999
+                                    --threads 10 \
+                                    --memory 200
 else
   echo $assembly "already assembled"
 fi
