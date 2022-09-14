@@ -47,4 +47,13 @@ Started with a seed score of 50 (`-S 50`).
 Specified that our input is a read set (`-r`).
 I also filtered out unique kmers by requiring that kmers be present at least twice (`-m 2`).
 I only did the sketch on the forward reads for now.
-After the sketches were complete, I combined them into one sketch (`BLI_MG_sketches.msh`) and calculated the distance between the metagenomes
+After the sketches were complete, I combined them into one sketch (`BLI_MG_sketches.msh`) and calculated the distance between the metagenomes, also starting with a seed score of 50.
+I downloaded the distance files to my local computer and investigated them in R: `ordinate_MGs_mash.R`
+
+First, this confirmed that the replicate metagenomes from 2021 were good replicates, as they were much more similar to each other than to other metagenomes, with the possible exception of 2021-10-14 at 14.2 m.
+There is also a clear distinction between deep hypolimnetic samples and the oxic-anoxic interface samples within a year.
+Finally, we see strong separation between 2020 and 2021 samples.
+Thus, I'm going to do 11 separate "single" assemblies, with a single assembly for each sample.
+For 2021 samples, this means there will be two metagenomes in a single assembly.
+We'll also do 2 co-assemblies, one for each year.
+To facilitate the assembly, I generated a csv file with the metagenomes linked to the group ID: `metadata/assembly_key.csv`.
