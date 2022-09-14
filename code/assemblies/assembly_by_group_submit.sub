@@ -1,0 +1,22 @@
+##################
+# assembly_by_group_submit.sub
+
+# Benjamin D. Peterson
+##################
+
+request_cpus = 24
+request_memory = 1000GB
+
+executable = /home/GLBRCORG/bpeterson26/BLiMMP/code/assembly_by_group_execute.sh
+
+environment = "assembly=$(assembly) \
+              code=/home/GLBRCORG/bpeterson26/BLiMMP/code \
+              assembly_grouping=/home/GLBRCORG/bpeterson26/BLiMMP/metadata/assembly_key.csv \
+              read_storage=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/metagenomes \
+              output=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/assemblies/assembly_files"
+
+output = /home/GLBRCORG/bpeterson26/BLiMMP/reports/$(assembly)_assembly_with_merged.out
+error = /home/GLBRCORG/bpeterson26/BLiMMP/reports/$(assembly)_assembly_with_merged.err
+log = /home/GLBRCORG/bpeterson26/BLiMMP/reports/$(assembly)_assembly_with_merged.log
+
+queue assembly from /home/GLBRCORG/bpeterson26/BLiMMP/metadata/assembly_list.txt

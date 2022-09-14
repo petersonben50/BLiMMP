@@ -11,39 +11,19 @@
 ######################
 mkdir ~/BLiMMP/dataEdited/assemblies
 mkdir ~/BLiMMP/dataEdited/assemblies/assembly_files
+mkdir ~/BLiMMP/reports/assemblies
+mkdir ~/BLiMMP/dataEdited/assemblies/scaffolds
+mkdir ~/BLiMMP/dataEdited/assemblies/scaffolds/renaming_reports
+tail -n +2 ~/BLiMMP/metadata/assembly_key.csv | \
+  awk -F ',' '{ print $1 }' | \
+  sort | \
+  uniq \
+  > ~/BLiMMP/metadata/assembly_list.txt
 
-screen -S BLiMMP_metagenome_coassembly
-cd ~/BLiMMP/dataEdited/assemblies
-source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
-conda activate bioinformatics
-PYTHONPATH=""
-PERL5LIB=""
+chmod +x /home/GLBRCORG/bpeterson26/BLiMMP/code/assembly_by_group.py
+chmod +x /home/GLBRCORG/bpeterson26/BLiMMP/code/assembly_by_group_execute.sh
+condor_submit /home/GLBRCORG/bpeterson26/BLiMMP/code/assembly_by_group_submit.sub
 
-code=~/BLiMMP/code
-assembly_grouping=~/BLiMMP/metadata/assembly_key.csv
-read_storage=~/BLiMMP/dataEdited/metagenomes
-output=~/BLiMMP/dataEdited/assemblies/assembly_files
-
-#chmod +x $code/assembly_by_group.py
-
-awk -F '\t' '{ print $1 }' ~/BLiMMP/metadata/assembly_list.txt | while read assembly
-do
-  if [ ! -d $output/$assembly ]; then
-    mkdir $output/$assembly
-  fi
-  if [ ! -e $output/$assembly/scaffolds.fasta ]; then
-    echo "Assembling" $assembly
-    python $code/assembly_by_group.py $assembly \
-                                      $assembly_grouping \
-                                      $read_storage \
-                                      $output/$assembly
-    # To continue a paused run:
-    # assembly=XXXXXX
-    # metaspades.py --continue -o assembly
-  else
-    echo $assembly "already assembled"
-  fi
-done
 
 
 ######################
