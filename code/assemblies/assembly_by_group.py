@@ -82,13 +82,13 @@ print("Assembling " + GROUP_NAME + " using " + neededMetagenomes)
 ####---------------------------------####
 metaSPadesCommand = 'metaspades.py -t ' + THREADS + ' -m ' + MEMORY + ' -k 21,33,55,77,99,127 '
 for metagenome in neededMetagenomes:
-    metaSPadesCommand = metaSPadesCommand + '--pe-1 1 ' + readLocation + '/' + metagenome + '_R1.fastq.gz '
-    metaSPadesCommand = metaSPadesCommand + '--pe-2 1 ' + readLocation + '/' + metagenome + '_R2.fastq.gz '
-    metaSPadesCommand = metaSPadesCommand + '--pe-s 1 ' + readLocation + '/' + metagenome + '_single.fastq.gz '
+    metaSPadesCommand = metaSPadesCommand + '--pe-1 1 ' + READ_LOCATION + '/' + metagenome + '_R1.fastq.gz '
+    metaSPadesCommand = metaSPadesCommand + '--pe-2 1 ' + READ_LOCATION + '/' + metagenome + '_R2.fastq.gz '
+    metaSPadesCommand = metaSPadesCommand + '--pe-s 1 ' + READ_LOCATION + '/' + metagenome + '_single.fastq.gz '
     if MERGED_READS == 'yes':
-        metaSPadesCommand = metaSPadesCommand + '--pe-m 1 ' + readLocation + '/' + metagenome + '_merged.fastq.gz '
+        metaSPadesCommand = metaSPadesCommand + '--pe-m 1 ' + READ_LOCATION + '/' + metagenome + '_merged.fastq.gz '
 
-metaSPadesCommand = metaSPadesCommand + '-o ' + output
+metaSPadesCommand = metaSPadesCommand + '-o ' + OUTPUT
 print(metaSPadesCommand)
 
 
