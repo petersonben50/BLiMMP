@@ -15,7 +15,7 @@ environment = "mtID=$(mtID) \
                originalReadsDirectory=/home/GLBRCORG/bpeterson26/BLiMMP/dataRaw/metatranscriptomes \
                transcriptomeDirectory=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/metatranscriptomes \
                fastp=/home/GLBRCORG/bpeterson26/BLiMMP/code/fastp \
-               linesToCut=160000"
+               linesToCut=960000"
 
 output = /home/GLBRCORG/bpeterson26/BLiMMP/reports/metatranscriptomes/outs/trimming_MT_$(mtID).out
 error = /home/GLBRCORG/bpeterson26/BLiMMP/reports/metatranscriptomes/errs/trimming_MT_$(mtID).out
