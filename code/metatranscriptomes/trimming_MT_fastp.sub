@@ -1,0 +1,24 @@
+##################
+# code/metatranscriptomes/trimming_MT_fastp.sub
+# Submission script for trimming metatranscriptomes
+# using fastp.
+
+# Benjamin D. Peterson
+##################
+
+request_cpus = 10
+request_memory = 100GB
+
+executable = /home/GLBRCORG/bpeterson26/BLiMMP/code/trimming_MT_fastp.sh
+
+environment = "mtID=$(mtID) \
+               originalReadsDirectory=/home/GLBRCORG/bpeterson26/BLiMMP/dataRaw/metatranscriptomes \
+               transcriptomeDirectory=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/metatranscriptomes \
+               fastp=/home/GLBRCORG/bpeterson26/BLiMMP/code/fastp \
+               linesToCut=160000"
+
+output = /home/GLBRCORG/bpeterson26/BLiMMP/reports/metatranscriptomes/outs/trimming_MT_$(mtID).out
+error = /home/GLBRCORG/bpeterson26/BLiMMP/reports/metatranscriptomes/errs/trimming_MT_$(mtID).out
+log = /home/GLBRCORG/bpeterson26/BLiMMP/reports/metatranscriptomes/logs/trimming_MT_$(mtID).out
+
+queue mtID from /home/GLBRCORG/bpeterson26/BLiMMP/metadata/metatranscriptome_list.txt
