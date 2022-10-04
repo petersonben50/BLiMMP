@@ -1,0 +1,22 @@
+##################
+# sortmerna_rRNA_silva.sub
+# Submission script for sorting out rRNA reads
+# from non-rRNA reads in metatranscriptomic
+# sequencing files.
+
+# Benjamin D. Peterson
+##################
+
+request_cpus = 4
+request_memory = 10GB
+
+executable = /home/GLBRCORG/bpeterson26/BLiMMP/code/sortmerna_rRNA_silva.sh
+environment = "MT_subset=$(MT_subset) \
+            referenceDB=/home/GLBRCORG/bpeterson26/references/sortmerna_dbs \
+            workingDirectory=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/metatranscriptomes/workingDirectory"
+
+output = /home/GLBRCORG/bpeterson26/BLiMMP/reports/metatranscriptomes/outs/sortmerna_subset_$(MT_subset).out
+error = /home/GLBRCORG/bpeterson26/BLiMMP/reports/metatranscriptomes/errs/sortmerna_subset_$(MT_subset).err
+log = /home/GLBRCORG/bpeterson26/BLiMMP/reports/metatranscriptomes/logs/sortmerna_subset_$(MT_subset).log
+
+queue MT_subset from /home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/metatranscriptomes/workingDirectory/split_file_list.txt

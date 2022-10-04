@@ -16,9 +16,6 @@ mkdir ~/BLiMMP/dataEdited/metatranscriptomes/reports
 mkdir ~/BLiMMP/reports/metatranscriptomes
 cd ~/BLiMMP/reports/metatranscriptomes
 mkdir outs errs logs
-referenceDB=/home/GLBRCORG/bpeterson26/references/sortmerna_dbs
-originalReadsDirectory=/home/GLBRCORG/bpeterson26/BLiMMP/dataRaw/metatranscriptomes
-transcriptomeDirectory=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/metatranscriptomes
 
 
 #########################
@@ -34,13 +31,6 @@ chmod +x ./fastp
 # This saved out interleaved files that
 # we immediately split up.
 #########################
-screen -S MT_processing
-originalReadsDirectory=/home/GLBRCORG/bpeterson26/BLiMMP/dataRaw/metatranscriptomes
-transcriptomeDirectory=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/metatranscriptomes
-fastp=~/BLiMMP/code/fastp
-linesToCut=160000
-cd $transcriptomeDirectory/workingDirectory
-
 condor_status -avail -long -attributes Name,Cpus,Memory
 chmod +x /home/GLBRCORG/bpeterson26/BLiMMP/code/trimming_MT_fastp.sh
 condor_submit /home/GLBRCORG/bpeterson26/BLiMMP/code/trimming_MT_fastp.sub
@@ -48,3 +38,11 @@ condor_submit /home/GLBRCORG/bpeterson26/BLiMMP/code/trimming_MT_fastp.sub
 transcriptomeDirectory=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/metatranscriptomes
 cd $transcriptomeDirectory/workingDirectory
 ls *_splitFiles_* > split_file_list.txt
+wc -l split_file_list.txt
+
+
+#########################
+# Run sortmerna on metatranscriptomes
+#########################
+chmod +x /home/GLBRCORG/bpeterson26/BLiMMP/code/sortmerna_rRNA_silva.sh
+condor_submit /home/GLBRCORG/bpeterson26/BLiMMP/code/sortmerna_rRNA_silva.sub
