@@ -2,7 +2,7 @@
 
 
 ##############################
-# code/executables/ORF_prediction_assemblies.sh
+# code/assemblies/ORF_prediction_assemblies.sh
 # Benjamin D. Peterson
 
 # This script uses Prodigal to predict
@@ -17,7 +17,7 @@
 ##############################
 source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
 conda activate bioinformatics
-cd /home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/assemblies
+cd $workingDirectory
 
 
 ##############################
@@ -42,5 +42,5 @@ if [ -e scaffolds/$assembly\_assembly.fna ]; then
     mv -f ORFs/$assembly.faa_temp.fasta ORFs/$assembly.faa
   fi
 else
-  echo "You gotta clean this shit:" $assembly
+  echo $assembly "has not yet been cleaned (possibly not assembled)."
 fi

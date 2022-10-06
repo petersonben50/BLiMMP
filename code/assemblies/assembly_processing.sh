@@ -26,38 +26,6 @@ condor_submit /home/GLBRCORG/bpeterson26/BLiMMP/code/assembly_by_group_submit.su
 
 
 
-######################
-# Clean up assemblies
-######################
-screen -S HCC_clean_metagenome_assembly
-source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
-conda activate anvio6.2
-PYTHONPATH=''
-cd ~/BLiMMP/dataEdited/assemblies
-mkdir scaffolds
-mkdir scaffolds/renaming_reports
-
-awk -F '\t' '{ print $1 }' ~/BLiMMP/metadata/assembly_list.txt | while read assembly
-do
-  if [ -e assembly_files/$assembly/scaffolds.fasta ]; then
-    echo $assembly "is done assembling. Let's clean it."
-    if [ -e scaffolds/$assembly\_assembly.fna ]; then
-      echo "Dude, you already cleaned the assembly for" $assembly". Relax."
-    else
-      echo "Cleaning the assembly for" $assembly
-      anvi-script-reformat-fasta assembly_files/$assembly/scaffolds.fasta \
-                                  -o scaffolds/$assembly\_assembly.fna \
-                                  -l 1000 \
-                                  --simplify-names \
-                                  --prefix $assembly \
-                                  --report-file scaffolds/renaming_reports/$assembly\_report_file.txt
-    fi
-  else
-    echo "Yo, you gotta go back and assemble" $assembly
-  fi
-done
-conda deactivate
-
 
 ############################################
 ############################################
