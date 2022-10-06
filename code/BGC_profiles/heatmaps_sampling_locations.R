@@ -10,27 +10,33 @@
 rm(list = ls())
 setwd("~/Documents/research/BLiMMP")
 library(tidyverse)
-# library(gtools)
-# library(LakeMetabolizer)
 library(rLakeAnalyzer)
 library(stringr)
-# library(RcppRoll)
 library(readxl)
 library(lubridate)
 library(viridis)
-source("code/BLiMMP_functions.R")
+cb.translator <- readRDS("references/colorblind_friendly_colors.rds")
 
 
 #### Download data ####
 # Go for the hourly data.
 # Find it here: https://lter.limnology.wisc.edu/node/56136/data_form
-# Download all columns, from 2020-04-01 to 2021-12-31.
+# Download all columns, from 2020-04-01 to 2020-12-31.
 # Save it here: ~/Documents/research/BLiMMP/dataRaw/buoy/sensor_mendota_lake_watertemp_hourly.csv
-
+# Got the 2021 hourly data from Mark Gahler on 2022-10-06
 
 #### Set variables of interest for testing ####
-data.to.use <- read.csv(file = "dataRaw/buoy/sensor_mendota_lake_watertemp_hourly.csv",
-                        stringsAsFactors = FALSE)
+buoy.data.2020 <- read.csv(file = "dataRaw/buoy/sensor_mendota_lake_watertemp_hourly.csv") %>%
+  select(sampledate, hour, depth, wtemp, flag_wtemp)
+buoy.data.2021 <- read.csv(file = "dataRaw/buoy/me_wtemp_2021.csv") %>%
+  mutate(hour = gsub(":", "", sampletime) %>%
+           substr(1, 4) %>%
+           as.integer()) %>%
+    select(sampledate, hour, depth, wtemp, flag_wtemp)
+data.to.use <- rbind(buoy.data.2020,
+                     buoy.data.2021)
+rm(buoy.data.2020,
+   buoy.data.2021)
 sampling.location.info <- read_xlsx("dataEdited/incubations/incubation_sites_notes.xlsx")
 
 
@@ -56,7 +62,7 @@ temp.profile.thermocline <- function(data.of.interest,
   
   # Read in the data and clean the timestamps
   LTERdf <- data.of.interest %>%
-    filter(year4 == year.of.interest) %>%
+    filter(year(sampledate) == year.of.interest) %>%
     mutate(hour = str_pad(hour, 4, pad = "0")) %>%
     mutate(date_time = ymd_hm(paste(sampledate, hour))) %>%
     select(date_time, depth, wtemp) %>%
@@ -103,20 +109,6 @@ temp.profile.thermocline <- function(data.of.interest,
     spread(key = depth,
            value = wtemp,
            fill = NA)
-  
-  
-  # Find dates with NAs and exclude them
-  # LTERdf.missing.vector <- LTERdf %>%
-  #   select(-date_time) %>%
-  #   rowSums() %>%
-  #   is.na()
-  # if (length(which(LTERdf.missing.vector)) > 0) {
-  #   print(paste("NAs present on ",
-  #               LTERdf[which(LTERdf.missing.vector), "date_time"],
-  #               sep = ""))
-  #   LTERdf <- LTERdf[!LTERdf.missing.vector, ]
-  # }
-  # 
   
   # Set up matrix
   LTERmt <- LTERdf %>%
@@ -177,20 +169,24 @@ temp.profile.thermocline <- function(data.of.interest,
                           pch = 18,
                           col = cb.translator['vermillion']) }
   )
+  title(main = year.of.interest)
   
 }
 
 
 #### Plot out heat maps ####
+
+pdf("results/BGC_profiles/temp_heatmaps.pdf",
+    width = 7.5,
+    height = 4)
 temp.profile.thermocline(data.of.interest = data.to.use,
                          year.of.interest = 2020,
                          starting.date = "2020-04-30",
                          ending.date = "2020-11-05",
                          sampling.date.location.df.to.use = sampling.location.info)
-
-
 temp.profile.thermocline(data.of.interest = data.to.use,
                          year.of.interest = 2021,
                          starting.date = "2021-04-30",
                          ending.date = "2021-11-05",
                          sampling.date.location.df.to.use = sampling.location.info)
+dev.off()
