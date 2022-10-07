@@ -61,7 +61,7 @@ DO.heatmap <- function(year.of.interest,
                  z = clean.DO.profile.matrix$z,
                  xlim = date.limits %>% yday(),
                  ylim = c(20, 0),
-                 zlim = c(0, 14),
+                 zlim = c(0, 15),
                  nlevels = 40,
                  color.palette = colorRampPalette(c(cb.translator["black"], cb.translator["blue"], cb.translator["bluishgreen"], cb.translator["orange"]),
                                                   bias = 1, space = "rgb"),
@@ -69,7 +69,7 @@ DO.heatmap <- function(year.of.interest,
                    axis(1,
                         at = dates.to.plot.on.axes %>% as.Date() %>% yday(),
                         labels = paste(month(dates.to.plot.on.axes, label = TRUE, abbr = FALSE),
-                                       " 1st"));
+                                       "1st"));
                    axis(2,
                         at = depths.to.plot.on.axes);
                    
