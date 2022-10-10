@@ -31,8 +31,8 @@ sortmerna --ref $referenceDB/rfam-5.8s-database-id98.fasta \
           --fastx \
           --paired_in \
           --workdir  sortmernaTemp_MT_subset_$MT_subset \
-          --aligned $MT_subset\_rRNA \
-          --other $MT_subset\_nonRNA \
+          --aligned rRNA \
+          --other nonRNA \
           --threads 3
 
 echo ""

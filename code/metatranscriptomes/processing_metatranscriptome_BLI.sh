@@ -46,3 +46,47 @@ wc -l split_file_list.txt
 #########################
 chmod +x /home/GLBRCORG/bpeterson26/BLiMMP/code/sortmerna_rRNA_silva.sh
 condor_submit /home/GLBRCORG/bpeterson26/BLiMMP/code/sortmerna_rRNA_silva.sub
+
+# Check which ones are held up:
+cd ~/BLiMMP/reports/metatranscriptomes/outs
+ls sortmerna_subset_*.out | wc -l
+# 7719 total, which makes the original number of jobs
+tail -q -n 1 sortmerna_subset_*.out | grep -v 'Removing working directory'
+# [writeLog:898] Using Log file: "/mnt/bigdata/linuxhome/bpeterson26/BLiMMP/dataEdited/metatranscriptomes/workingDirectory/BLI20_MT_007_splitFiles_hz_rRNA.log"
+grep -L 'Removing working directory' sortmerna_subset_*.out
+# sortmerna_subset_BLI20_MT_007_splitFiles_hz.out
+# sortmerna_subset_BLI21_MT_009_splitFiles_ow.out
+condor_rm 321179
+# Need to manually run these, there are a bunch of intermediate files left.
+# The files of interest look intact, but best just to re-run.
+cd ~/BLiMMP/dataEdited/metatranscriptomes/workingDirectory
+rm -rf BLI20_MT_007_splitFiles_hz_nonRNA.BLI20_MT_007_splitFiles_hz BLI20_MT_007_splitFiles_hz_rRNA.BLI20_MT_007_splitFiles_hz BLI20_MT_007_splitFiles_hz_rRNA.log sortmernaTemp_MT_subset_BLI20_MT_007_splitFiles_hz
+# In screen, set MT_subset to BLI20_MT_007_splitFiles_hz and run the scripts in sortmerna_rRNA_silva.sh
+rm -rf  sortmernaTemp_MT_subset_BLI21_MT_009_splitFiles_owsortmerna_keys_2* BLI21_MT_009_splitFiles_ow_nonRNA.BLI21_MT_009_splitFiles_ow BLI21_MT_009_splitFiles_ow_rRNA.BLI21_MT_009_splitFiles_ow sortmernaTemp_MT_subset_BLI21_MT_009_splitFiles_ow
+# In screen, set MT_subset to BLI21_MT_009_splitFiles_ow and run the scripts in sortmerna_rRNA_silva.sh
+
+
+
+#########################
+# Combine and count non-rRNA and rRNA reads from each sample
+#########################
+transcriptomeDirectory=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/metatranscriptomes
+mkdir $transcriptomeDirectory/rRNA_reads
+mkdir $transcriptomeDirectory/workingDirectory_IS
+echo -e 'mtID\trRNA_reads\tnonrRNA_reads' > $transcriptomeDirectory/reports/mt_read_counts_rRNA.tsv
+cat /home/GLBRCORG/bpeterson26/BLiMMP/metadata/metatranscriptome_list.txt | while read mtID
+do
+  echo "Counting rRNA reads for" $mtID
+  cat rRNA.$mtID\_splitFiles_* > $transcriptomeDirectory/rRNA_reads/$mtID\_rRNA.fastq
+  rRNA_lines=`cat $transcriptomeDirectory/rRNA_reads/$mtID\_rRNA.fastq | wc -l`
+  rRNA_counts=`expr $rRNA_lines / 4`
+
+  echo "Counting non-rRNA reads for" $mtID
+  cat nonRNA.$mtID\_splitFiles_* > $transcriptomeDirectory/workingDirectory_IS/$mtID\_nonRNA.fastq
+  nonrRNA_lines=`cat $transcriptomeDirectory/workingDirectory_IS/$mtID\_nonrRNA.fastq | wc -l`
+  nonrRNA_counts=`expr $nonrRNA_lines / 4`
+
+  echo -e "$mtID\t$rRNA_counts\t$nonrRNA_counts" >> $transcriptomeDirectory/reports/mt_read_counts_rRNA.tsv
+done
+cd ~/BLiMMP/dataEdited/metatranscriptomes
+rm -rf workingDirectory
