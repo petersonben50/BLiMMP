@@ -90,3 +90,21 @@ do
 done
 cd ~/BLiMMP/dataEdited/metatranscriptomes
 rm -rf workingDirectory
+
+
+#########################
+# Pull out reads mapping to internal standard
+#########################
+cd ~/BLiMMP/dataEdited/metatranscriptomes/workingDirectory_IS
+# Split them up first
+linesToCut=800000
+cat /home/GLBRCORG/bpeterson26/BLiMMP/metadata/metatranscriptome_list.txt | while read mtID
+do
+  echo "Splitting up" $mtID
+  split -l $linesToCut $mtID\_nonrRNA.fastq $mtID\_nonrRNA_splitFiles_
+done
+ls *_nonrRNA_splitFiles_* > nonrRNA_splitFiles_list.txt
+
+# Run submission file to identify IS reads
+chmod +x /home/GLBRCORG/bpeterson26/BLiMMP/code/sortmerna_featureOfInterest.sh
+condor_submit /home/GLBRCORG/bpeterson26/BLiMMP/code/sortmerna_featureOfInterest_internalStandard.sub
