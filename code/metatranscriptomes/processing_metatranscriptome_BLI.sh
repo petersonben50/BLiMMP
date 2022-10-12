@@ -108,3 +108,60 @@ ls *_nonrRNA_splitFiles_* > nonrRNA_splitFiles_list.txt
 # Run submission file to identify IS reads
 chmod +x /home/GLBRCORG/bpeterson26/BLiMMP/code/sortmerna_featureOfInterest.sh
 condor_submit /home/GLBRCORG/bpeterson26/BLiMMP/code/sortmerna_featureOfInterest_internalStandard.sub
+
+# Check to make sure they're done:
+cd ~/BLiMMP/dataEdited/metatranscriptomes/workingDirectory_IS
+find * -empty | wc -l
+# We have 1330 files that are empty.
+# Seven of these are sortmernaTempIS files. The jobs they correspond to,
+# some appear to have been completed, others just have empty IS and nonIS
+# files.
+# Need to look at this more closely:
+mkdir reads_IS reads_nonIS logs
+#mv *_nonRNA_IS.BLI* reads_IS
+#mv *_nonRNA_nonIS.BLI* reads_nonIS
+#mv *.log logs
+# When I tried to do this, it reported that one of the file was busy.
+# This file was one of the ones listed as empty. Perhaps they're still
+# being written even through the job is done? Let's look:
+find * -empty | head
+# First one is BLI20_MT_001_nonrRNA_splitFiles_di
+# The log and both split files are empty.
+cd ~/BLiMMP/reports/metatranscriptomes
+ls */*BLI20_MT_001_nonrRNA_splitFiles_di*
+cat errs/sortmerna_IS_BLI20_MT_001_nonrRNA_splitFiles_di.err
+# Got it. The submission scripts generated an error
+# that a folder was already in existance. Two potential
+# explanations:
+# 1. I started the run, stopped it, then didn't delete all
+#    the old files. This is unlikely, I usually reset the
+#    the directory when I start anew. But possible.
+# 2. I noticed that at times, it seems that jobs were sent
+#    back, in that the jobs that were idle would increase,
+#    usually only by 2 or so. So, a job may start, reconsider,
+#    then stop, but already have started creating files.
+#    If this is the case, at the start of the submission
+#    file we just need to add a script to delete that folder
+#    if it exists.
+# Interesting that those folders do not exist now.
+
+# Looks like if things went well, there are no error outputs:
+cd ~/BLiMMP/reports/metatranscriptomes/errs
+find * -empty | wc -l
+find sortmerna_IS_BLI2* -empty | wc -l
+# Damn, only 4921.
+cd ~/BLiMMP/dataEdited/metatranscriptomes/workingDirectory_IS
+wc -l nonrRNA_splitFiles_list.txt
+# Out of 5621. That's a lot that failed.
+
+# Let's try again. Reset, new folder:
+cd ~/BLiMMP/dataEdited/metatranscriptomes
+mv workingDirectory_IS original_workingDirectory_IS
+mkdir workingDirectory_IS temp_nonrRNA
+mv original_workingDirectory_IS/*fastq temp_nonrRNA
+cat original_workingDirectory_IS/nonrRNA_splitFiles_list.txt | while read subset
+do
+  mv original_workingDirectory_IS/$subset workingDirectory_IS/$subset
+done
+mv original_workingDirectory_IS/nonrRNA_splitFiles_list.txt workingDirectory_IS/nonrRNA_splitFiles_list.txt
+condor_submit /home/GLBRCORG/bpeterson26/BLiMMP/code/sortmerna_featureOfInterest_internalStandard.sub
