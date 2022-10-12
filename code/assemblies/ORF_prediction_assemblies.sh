@@ -36,9 +36,9 @@ if [ -e scaffolds/$assembly\_assembly.fna ]; then
               -d ORFs/$assembly.fna \
               -p meta
 
-    python /home/GLBRCORG/bpeterson26/BLiMMP/code/generalUse/cleanFASTA.py ORFs/$assembly.fna
+    python /home/GLBRCORG/bpeterson26/BLiMMP/code/cleanFASTA.py ORFs/$assembly.fna
     mv -f ORFs/$assembly.fna_temp.fasta ORFs/$assembly.fna
-    python /home/GLBRCORG/bpeterson26/BLiMMP/code/generalUse/cleanFASTA.py ORFs/$assembly.faa
+    python /home/GLBRCORG/bpeterson26/BLiMMP/code/cleanFASTA.py ORFs/$assembly.faa
     mv -f ORFs/$assembly.faa_temp.fasta ORFs/$assembly.faa
   fi
 else
