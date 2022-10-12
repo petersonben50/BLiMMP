@@ -1,0 +1,25 @@
+##################
+# code/assemblies/mapping_clean_metagenome.sub
+# Submission script for cleaning metagenomes
+# that can be used for mapping reads to assemblies
+# or bins.
+
+# Benjamin D. Peterson
+##################
+
+request_cpus = 4
+request_memory = 20GB
+
+executable = /home/GLBRCORG/bpeterson26/BLiMMP/code/mapping_clean_metagenome.sh
+
+environment = "metagenomeID=$(metagenomeID) \
+              input_folder=/home/GLBRCORG/bpeterson26/BLiMMP/dataRaw/metagenomes \
+              output_folder=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/mapping/reads_for_mapping \
+              report_folder=~/BLiMMP/dataEdited/assemblies/reports \
+              fastp=/home/GLBRCORG/bpeterson26/BLiMMP/code/fastp"
+
+output = /home/GLBRCORG/bpeterson26/BLiMMP/reports/assemblies/$(assembly)_mappingCleanMetagenome.out
+error = /home/GLBRCORG/bpeterson26/BLiMMP/reports/assemblies/$(assembly)_mappingCleanMetagenome.err
+log = /home/GLBRCORG/bpeterson26/BLiMMP/reports/assemblies/$(assembly)_mappingCleanMetagenome.log
+
+queue metagenomeID from /home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/metagenomes/reports/metagenome_list.txt
