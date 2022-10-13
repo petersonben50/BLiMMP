@@ -165,3 +165,41 @@ do
 done
 mv original_workingDirectory_IS/nonrRNA_splitFiles_list.txt workingDirectory_IS/nonrRNA_splitFiles_list.txt
 condor_submit /home/GLBRCORG/bpeterson26/BLiMMP/code/sortmerna_featureOfInterest_internalStandard.sub
+
+cd ~/BLiMMP/dataEdited/metatranscriptomes/workingDirectory_IS
+find * -empty | wc -l
+find * -empty
+# Looks like these temporary empty files form. BLI20_MT_001_nonrRNA_splitFiles_ir has some empties
+# in ~/BLiMMP/dataEdited/metatranscriptomes/workingDirectory_IS, but there's no error message from
+# the submission file about pre-existing files, at least not yet. The out file says it's on the
+# testing files step, not yet to aligning.
+# Hmm, several hours later it's still testing. Might need to re-run this one.
+
+# Yep, getting the same error that the directory already exists. I think the
+# job is starting, resetting, and that's throwing an error. Maybe we need to
+# just delete the folder before it starts?
+# This has happened a lot already. Okay. In the submission file, add a
+
+
+# Count up the reads mapping to IS and separated merged files
+cd ~/HeCaMT/dataEdited/metatranscriptomes/workingDirectory
+scripts=/home/glbrc.org/bpeterson26/programs/sortmerna-2.1b/scripts/
+echo -e 'mtID\tIS_reads\tMT_reads' > $transcriptomeDirectory/reports/mt_read_counts_IS.tsv
+cat ~/HeCaMT/metadata/mtID_list_2017test.txt | while read mtID
+do
+  echo "Counting rRNA reads for" $mtID
+  IS_lines=`cat $mtID\_nonrRNA_splitFiles_*_nonRNA_IS.$mtID* | wc -l`
+  IS_counts=`expr $IS_lines / 4`
+
+  echo "Counting non-rRNA reads for" $mtID
+  cat $mtID\_nonrRNA_splitFiles_*_nonRNA_nonIS.$mtID* > $mtID\_forAnalysis.fastq
+  mt_lines=`cat $mtID\_nonrRNA.fastq | wc -l`
+  mt_counts=`expr $mt_lines / 4`
+
+  echo -e "$mtID\t$IS_counts\t$mt_counts" >> $transcriptomeDirectory/reports/mt_read_counts_IS.tsv
+
+  echo "Un-merging reads for" $mtID
+  $scripts/unmerge-paired-reads.sh $mtID\_forAnalysis.fastq \
+                                    $transcriptomeDirectory/$mtID\_R1.fastq \
+                                    $transcriptomeDirectory/$mtID\_R2.fastq
+done

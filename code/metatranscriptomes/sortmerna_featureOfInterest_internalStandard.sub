@@ -6,8 +6,8 @@
 # Benjamin D. Peterson
 ##################
 
-request_cpus = 4
-request_memory = 10GB
+request_cpus = 8
+request_memory = 50GB
 
 executable = /home/GLBRCORG/bpeterson26/BLiMMP/code/sortmerna_featureOfInterest.sh
 
