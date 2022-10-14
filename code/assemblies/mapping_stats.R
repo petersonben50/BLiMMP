@@ -17,5 +17,22 @@ library(tidyverse)
 metagenomes <- read.table("dataEdited/metagenomes/reports/naming_key.tsv",
                           sep = '\t') %>%
   rename(metagenomeID = V2) %>%
-  select(metagenomeID)
-  
+  select(metagenomeID) %>%
+  filter(grepl("BLI", metagenomeID)) %>%
+  mutate(year = metagenomeID %>%
+           strsplit("_") %>% sapply("[", 1) %>%
+           gsub("BLI", "20", .))
+assemblies <- read.table("dataEdited/assemblies/reports/all_assemblies_stats.txt",
+                         header = TRUE) %>%
+  select(assemblyID) %>%
+  mutate(year = assemblyID %>%
+           strsplit("_") %>% sapply("[", 1) %>%
+           gsub("BLI", "20", .))
+mapping.key <- full_join(metagenomes,
+                         assemblies) %>%
+  select(-year)
+write.table(mapping.key,
+            file = "dataEdited/assemblies/reports/mapping_key.tsv",
+            quote = FALSE,
+            sep = "\t",
+            row.names = FALSE)
