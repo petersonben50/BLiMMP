@@ -39,13 +39,13 @@ cd $output
 # Run the mapping
 ##############################
 
-if [ -e indices/bowtie_index_$assembly.1.bt2 ]; then
+if [ -e $indices/bowtie_index_$assembly.1.bt2 ]; then
   if [ ! -e $metagenome\_to_$assembly.bam ]; then
     echo "Mapping" $metagenome "to" $assembly
-    bowtie2 -x indices/bowtie_index_$assembly \
+    bowtie2 -x $indices/bowtie_index_$assembly \
             -1 $read_storage/$metagenome\_R1.fastq.gz \
             -2 $read_storage/$metagenome\_R2.fastq.gz \
-            -U $read_storage/$metagenome\_merged.fastq.gz,$read_storage/$metagenome\_single.fastq.gz \
+            -U $read_storage/$metagenome\_single.fastq.gz \
             -p 12 \
             -S $metagenome\_to_$assembly.sam
     samtools view $metagenome\_to_$assembly.sam \

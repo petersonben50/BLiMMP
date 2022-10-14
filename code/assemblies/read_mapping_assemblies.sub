@@ -15,11 +15,11 @@ executable = /home/GLBRCORG/bpeterson26/BLiMMP/code/read_mapping_assemblies.sh
 
 environment = "assembly=$(assembly) \
                 metagenome=$(metagenome) \
-                read_storage=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/metagenomes \
-                scaffolds=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/assemblies/scaffolds \
+                read_storage=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/mapping/reads_for_mapping \
+                indices=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/mapping/indices \
                 output=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/mapping"
 output = /home/GLBRCORG/bpeterson26/BLiMMP/reports/readMappingAssemblies/outs/mapping_$(metagenome)_to_$(assembly).out
 error = /home/GLBRCORG/bpeterson26/BLiMMP/reports/readMappingAssemblies/errs/mapping_$(metagenome)_to_$(assembly).err
 log = /home/GLBRCORG/bpeterson26/BLiMMP/reports/readMappingAssemblies/logs/mapping_$(metagenome)_to_$(assembly).log
 
-queue metagenome,assembly from /home/GLBRCORG/bpeterson26/BLiMMP/metadata/mapping_key_pairsRemaining.tsv
+queue metagenome,assembly from /home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/mapping/reports/mapping_key.tsv
