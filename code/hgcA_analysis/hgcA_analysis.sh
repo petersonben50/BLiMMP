@@ -25,28 +25,27 @@ source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
 conda activate bioinformatics
 PYTHONPATH=''
 PERL5LIB=''
-scripts=~/BLiMMP/code
+scripts=~/BLiMMP/code/HomeBio/fasta_manipulation/
 ORFs=~/BLiMMP/dataEdited/assemblies/ORFs
 mkdir ~/BLiMMP/dataEdited/hgcA_analysis
 mkdir ~/BLiMMP/dataEdited/hgcA_analysis/identification
 cd ~/BLiMMP/dataEdited/hgcA_analysis/identification
-mkdir 2020
+mkdir 2020 2021
 cd ~/BLiMMP/dataEdited
 
-cat ~/BLiMMP/metadata/assembly_list.txt | while read line
+cat ~/BLiMMP/metadata/assembly_list.txt | while read assembly
 do
-  assembly=`echo $line | awk -F '\t' '{ print $1 }'`
-  year=`echo $line | awk -F '\t' '{ print $2 }'`
-  echo "Searching for hgcA in" $assembly "from" $year
+  year=`echo $assembly | cut -d"_" -f1 | sed 's/BLI/20/'`
   if [ -e $ORFs/$assembly.faa ]; then
     if [ ! -e hgcA_analysis/identification/$year/$assembly\_hgcA_report.txt ]; then
-      echo "Search for hgcA in" $assembly
+      echo "Search for hgcA in" $assembly "from" $year
       hmmsearch --tblout hgcA_analysis/identification/$year/$assembly\_hgcA.out \
                 --cpu 4 \
                 --cut_tc \
                 ~/references/hgcA/hgcA.hmm \
                 $ORFs/$assembly.faa \
                 > hgcA_analysis/identification/$year/$assembly\_hgcA_report.txt
+      echo "Extracting hgcA sequences from" $assembly
       python $scripts/extract_protein_hitting_HMM.py \
               hgcA_analysis/identification/$year/$assembly\_hgcA.out \
               $ORFs/$assembly.faa \
@@ -59,6 +58,7 @@ do
   fi
 done
 
+
 ######################
 # Concatenate and align all hgcA seqs for curation
 ######################
@@ -66,15 +66,15 @@ chmod +x /home/GLBRCORG/bpeterson26/BLiMMP/code/convert_stockhold_to_fasta.py
 cd ~/BLiMMP/dataEdited/hgcA_analysis/identification/
 cat 202*/*_hgcA.faa > hgcA_raw.faa
 # Align seqs
-hmmalign -o hgcA_raw.sto \
-            ~/references/hgcA/hgcA.hmm \
-            hgcA_raw.faa
-$scripts/convert_stockhold_to_fasta.py hgcA_raw.sto
+muscle -align hgcA_raw.faa -output hgcA_raw.afa
 
-# Curate the hgcA list
-# See notes in md file.
+# Identify which sequences to remove (see notes in md file)
 # Then:
+scripts=~/BLiMMP/code/HomeBio/fasta_manipulation/
 cd ~/BLiMMP/dataEdited/hgcA_analysis/identification/
+python $scripts/remove_fasta_seqs_using_list_of_headers.py --fasta_file hgcA_raw.afa \
+                                                            --headers_to_remove seqs_to_remove.txt \
+                                                            --output_file hgcA_good.afa
 grep '>' hgcA_good.afa | \
     sed 's/>//' \
     > hgcA_good.txt
@@ -436,6 +436,12 @@ $cdhit/cd-hit -g 1 \
               -i phylogeny/raxml/hgcA_for_tree.faa \
               -o derep_references/hgcA_ref.faa \
               -c 0.97 \
+              -n 5 \
+              -d 0
+$cdhit/cd-hit -g 1 \
+              -i phylogeny/raxml/hgcA_for_tree.faa \
+              -o derep_references/hgcA_ref_80.faa \
+              -c 0.80 \
               -n 5 \
               -d 0
 

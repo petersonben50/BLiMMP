@@ -8,23 +8,20 @@ This is the markdown script walking through the analysis of the *hgcA* content o
 *Identify putative hgcA genes with HMM*
 
 I used the HMM I built for the 5M project to search through the open reading frames from the assemblies for HgcA-like sequences.
-These results were stored in folders by year.
-At this point, it's just for 2020.
+These results were stored in folders by year, since I only mapped metagenomes to assemblies from the same year.
+Thus, depth calculations will be by year.
 I then pulled out the amino acid sequences for each of the putative HgcA sequences.
+No reads were identified from BLI21_assembly101.
 
 *Concatenate and align all hgcA seqs for curation*
 
 I then collected all the HgcA amino acid sequences and aligned them against the HgcA HMM.
-This alignment I downloaded to my computer and inspected in Geneious.
+This alignment I downloaded to my computer and inspected using Geneious.
+Don't have the paid version, so this is a little wonky.
 To include the sequence in analysis, it needed to have the cap helix domain and predicted transmembrane domains, or at least the length at the C-terminus end that normally is occupied by the transmembrane domains.
-
-Removal notes:
-- 001: Removed two seqs, one for missing cap helix and one for missing TM domains. Two more seqs are truncated at N-terminus, but included them here anyways.
-- 002: Removed two seqs for missing cap helix. Removed 4 for not having the TM domain. There's one that's pretty truncated at the C-terminus, only one TM domain. Few others that appear truncated at N-terminus.
-- 003: One hit, and it didn't have any predicted TM domains, so cut it.
-- 004: One seq removed for missing predicted TM domains.
-- 005: Two seqs removed for missing predicted TM domains.
-- coassembly: Five seqs removed for missing predicted TM domains, and three removed for missing cap helix domain. Two sequences were truncated but included (one truncated at C-terminus and one at N-terminus).
+I saved my notes on this here: `dataEdited/hgcA_analysis/identification/hgcA_raw_inclusion_notes.xlsx`.
+The sequence IDs of the sequences to be removed were copied here: `dataEdited/hgcA_analysis/identification/seqs_to_remove.txt`.
+I then uploaded this file to GLBRC.
 
 I then saved out this curated alignment as `hgcA_good.faa`.
 
