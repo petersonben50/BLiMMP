@@ -138,6 +138,13 @@ Hg.data <- rbind(Hg.data,
                  solids.HG.data)
 
 
+#### Change dates so data from a single trip are listed on one day ####
+# This is how the other geochemical data is stored.
+unique(Hg.data$sampleDate)
+Hg.data$sampleDate[which(Hg.data$sampleDate == "2021-09-11")] <- "2021-09-10"
+Hg.data$sampleDate[which(Hg.data$sampleDate == "2020-09-03")] <- "2020-09-02"
+
+
 
 #### Read out data ####
 write.csv(Hg.data,
