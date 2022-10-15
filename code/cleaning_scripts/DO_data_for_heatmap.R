@@ -95,13 +95,25 @@ for (position.of.interest in 1:length(sonde.files)) {
 #### Remove all data after 2021-08-02 ####
 # The sonde crapped out after this date
 MMO.data <- MMO.data %>%
-  filter(sampleDate <= as.Date("2021-08-02"))
+  filter(sampleDate <= as.Date("2021-08-02")) %>%
+  group_by(sampleDate, depth) %>%
+  summarise(do_raw = mean(do_raw))
 
 
 
 #### All data ####
 all.data <- rbind(MMO.data,
                   exo.data.2020)
+
+
+#### Remove incomplete profiles ####
+all.data <- all.data %>%
+  spread(key = depth,
+         value = do_raw) %>%
+  filter(!is.na(`19`)) %>%
+  arrange(sampleDate) %>%
+  ungroup()
+
 
 #### Save out data ####
 saveRDS(all.data,
