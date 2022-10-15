@@ -137,6 +137,13 @@ all.data.2020.clean <- all.data.2020 %>%
 all.data.both.years <- rbind(all.data.2020.clean,
                              all.data.clean)
 
+
+#### Convert ppb to ppm ####
+all.data.both.years <- all.data.both.years %>%
+  mutate(constituent = gsub("ppb", "ppm", constituent),
+         concentration = concentration / 1000)
+
+
 #### Save out data ####
 saveRDS(all.data.both.years,
         "dataEdited/waterChemistry/ICP/2020_2021_Fe_Mn_data.rds")
