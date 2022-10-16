@@ -108,98 +108,34 @@ ls *_nonrRNA_splitFiles_* > nonrRNA_splitFiles_list.txt
 # Run submission file to identify IS reads
 chmod +x /home/GLBRCORG/bpeterson26/BLiMMP/code/sortmerna_featureOfInterest.sh
 condor_submit /home/GLBRCORG/bpeterson26/BLiMMP/code/sortmerna_featureOfInterest_internalStandard.sub
-
-# Check to make sure they're done:
-cd ~/BLiMMP/dataEdited/metatranscriptomes/workingDirectory_IS
-find * -empty | wc -l
-# We have 1330 files that are empty.
-# Seven of these are sortmernaTempIS files. The jobs they correspond to,
-# some appear to have been completed, others just have empty IS and nonIS
-# files.
-# Need to look at this more closely:
-mkdir reads_IS reads_nonIS logs
-#mv *_nonRNA_IS.BLI* reads_IS
-#mv *_nonRNA_nonIS.BLI* reads_nonIS
-#mv *.log logs
-# When I tried to do this, it reported that one of the file was busy.
-# This file was one of the ones listed as empty. Perhaps they're still
-# being written even through the job is done? Let's look:
-find * -empty | head
-# First one is BLI20_MT_001_nonrRNA_splitFiles_di
-# The log and both split files are empty.
-cd ~/BLiMMP/reports/metatranscriptomes
-ls */*BLI20_MT_001_nonrRNA_splitFiles_di*
-cat errs/sortmerna_IS_BLI20_MT_001_nonrRNA_splitFiles_di.err
-# Got it. The submission scripts generated an error
-# that a folder was already in existance. Two potential
-# explanations:
-# 1. I started the run, stopped it, then didn't delete all
-#    the old files. This is unlikely, I usually reset the
-#    the directory when I start anew. But possible.
-# 2. I noticed that at times, it seems that jobs were sent
-#    back, in that the jobs that were idle would increase,
-#    usually only by 2 or so. So, a job may start, reconsider,
-#    then stop, but already have started creating files.
-#    If this is the case, at the start of the submission
-#    file we just need to add a script to delete that folder
-#    if it exists.
-# Interesting that those folders do not exist now.
-
-# Looks like if things went well, there are no error outputs:
-cd ~/BLiMMP/reports/metatranscriptomes/errs
-find * -empty | wc -l
-find sortmerna_IS_BLI2* -empty | wc -l
-# Damn, only 4921.
-cd ~/BLiMMP/dataEdited/metatranscriptomes/workingDirectory_IS
-wc -l nonrRNA_splitFiles_list.txt
-# Out of 5621. That's a lot that failed.
-
-# Let's try again. Reset, new folder:
-cd ~/BLiMMP/dataEdited/metatranscriptomes
-mv workingDirectory_IS original_workingDirectory_IS
-mkdir workingDirectory_IS temp_nonrRNA
-mv original_workingDirectory_IS/*fastq temp_nonrRNA
-cat original_workingDirectory_IS/nonrRNA_splitFiles_list.txt | while read subset
-do
-  mv original_workingDirectory_IS/$subset workingDirectory_IS/$subset
-done
-mv original_workingDirectory_IS/nonrRNA_splitFiles_list.txt workingDirectory_IS/nonrRNA_splitFiles_list.txt
-condor_submit /home/GLBRCORG/bpeterson26/BLiMMP/code/sortmerna_featureOfInterest_internalStandard.sub
-
-cd ~/BLiMMP/dataEdited/metatranscriptomes/workingDirectory_IS
-find * -empty | wc -l
-find * -empty
-# Looks like these temporary empty files form. BLI20_MT_001_nonrRNA_splitFiles_ir has some empties
-# in ~/BLiMMP/dataEdited/metatranscriptomes/workingDirectory_IS, but there's no error message from
-# the submission file about pre-existing files, at least not yet. The out file says it's on the
-# testing files step, not yet to aligning.
-# Hmm, several hours later it's still testing. Might need to re-run this one.
-
-# Yep, getting the same error that the directory already exists. I think the
-# job is starting, resetting, and that's throwing an error. Maybe we need to
-# just delete the folder before it starts?
-# This has happened a lot already. Okay. In the submission file, add a
+# Troubleshooting scripts found in code/metatranscriptomes/sandbox/troubleshooting_IS_sortmerna.sh
 
 
+#########################
 # Count up the reads mapping to IS and separated merged files
-cd ~/HeCaMT/dataEdited/metatranscriptomes/workingDirectory
+#########################
+screen -S IS_mRNA_counting
 scripts=/home/glbrc.org/bpeterson26/programs/sortmerna-2.1b/scripts/
-echo -e 'mtID\tIS_reads\tMT_reads' > $transcriptomeDirectory/reports/mt_read_counts_IS.tsv
-cat ~/HeCaMT/metadata/mtID_list_2017test.txt | while read mtID
+transcriptomeDirectory=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/metatranscriptomes
+cd $transcriptomeDirectory
+mkdir IS_reads mRNA_reads
+echo -e 'mtID\tIS_reads\tMT_reads' > reports/mt_read_counts_IS.tsv
+cat /home/GLBRCORG/bpeterson26/BLiMMP/metadata/metatranscriptome_list.txt | while read mtID
 do
-  echo "Counting rRNA reads for" $mtID
-  IS_lines=`cat $mtID\_nonrRNA_splitFiles_*_nonRNA_IS.$mtID* | wc -l`
+  echo "Counting internal standard reads for" $mtID
+  cat workingDirectory_IS/nonRNA_IS.$mtID* > IS_reads/$mtID\_IS_reads.fastq
+  IS_lines=`cat IS_reads/$mtID\_IS_reads.fastq | wc -l`
   IS_counts=`expr $IS_lines / 4`
 
-  echo "Counting non-rRNA reads for" $mtID
-  cat $mtID\_nonrRNA_splitFiles_*_nonRNA_nonIS.$mtID* > $mtID\_forAnalysis.fastq
-  mt_lines=`cat $mtID\_nonrRNA.fastq | wc -l`
+  echo "Counting mRNA reads for" $mtID
+  cat workingDirectory_IS/nonRNA_nonIS.$mtID* > mRNA_reads/$mtID\_mRNA_reads.fastq
+  mt_lines=`cat mRNA_reads/$mtID\_mRNA_reads.fastq | wc -l`
   mt_counts=`expr $mt_lines / 4`
 
-  echo -e "$mtID\t$IS_counts\t$mt_counts" >> $transcriptomeDirectory/reports/mt_read_counts_IS.tsv
+  echo -e "$mtID\t$IS_counts\t$mt_counts" >> reports/mt_read_counts_IS.tsv
 
-  echo "Un-merging reads for" $mtID
-  $scripts/unmerge-paired-reads.sh $mtID\_forAnalysis.fastq \
-                                    $transcriptomeDirectory/$mtID\_R1.fastq \
-                                    $transcriptomeDirectory/$mtID\_R2.fastq
+  echo "Un-merging mRNA reads for" $mtID
+  $scripts/unmerge-paired-reads.sh mRNA_reads/$mtID\_mRNA_reads.fastq \
+                                    mRNA_reads/$mtID\_mRNA_R1.fastq \
+                                    mRNA_reads/$mtID\_mRNA_R2.fastq
 done
