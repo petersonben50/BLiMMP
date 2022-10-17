@@ -116,7 +116,7 @@ cat $geneName\_list.txt | \
 # Caculate coverage of scaffold with $geneName
 #########################
 rm -f $geneName\_scg_coverage.tsv
-awk -F '\t' '{ print $1 }' $metagenome_list | while read metagenome
+cat $metagenome_list | while read metagenome
 do
   conda activate bioinformatics
   PERL5LIB=""
