@@ -101,25 +101,26 @@ PYTHONPATH=""
 PERL5LIB=""
 references=~/BLiMMP/references/hgcA
 workingDirectory=~/BLiMMP/dataEdited/hgcA_analysis
-scripts=~/BLiMMP/code
+scripts=~/BLiMMP/code/HomeBio/fasta_manipulation/
 mkdir $workingDirectory/classification
 
-# Generate fasta file of reference alignment
-cp -avr ~/Everglades/references/hgcA/Hg-MATE-Db.v1.ISOCELMAG_HgcA_full.refpkg $references/
-cd $references/Hg-MATE-Db.v1.ISOCELMAG_HgcA_full.refpkg
-$scripts/convert_stockhold_to_fasta.py Hg-MATE-Db.v1.ISOCELMAG_HgcA_full.stockholm
-mv Hg-MATE-Db.v1.ISOCELMAG_HgcA_full.afackholm $workingDirectory/classification/Hg-MATE-Db.v1.ISOCELMAG_HgcA_full.afa
-
 # Generate alignment of sequences of interest
+cd $references/Hg-MATE-Db.v1.ISOCELMAG_HgcA_full.refpkg
+python $scripts/convert_stockhold_to_fasta.py Hg-MATE-Db.v1.ISOCELMAG_HgcA_full.stockholm
+mv Hg-MATE-Db.v1.ISOCELMAG_HgcA_full.afackholm $workingDirectory/classification/Hg-MATE-Db.v1.ISOCELMAG_HgcA_full.afa
 cd $workingDirectory
-muscle -in identification/hgcA_good.faa \
-        -out classification/hgcA_muscle.afa
-cd classification/
+$scripts/cleanFASTA.py classification/Hg-MATE-Db.v1.ISOCELMAG_HgcA_full.afa
+sed -e '/^[A-Z]/s/-//g' classification/Hg-MATE-Db.v1.ISOCELMAG_HgcA_full.afa_tempCleanedFile > classification/Hg-MATE-Db.v1.ISOCELMAG_HgcA_full.faa
+sed -i -e '/^-/s/-//g' classification/Hg-MATE-Db.v1.ISOCELMAG_HgcA_full.faa
+rm -f classification/Hg-MATE-Db.v1.ISOCELMAG_HgcA_full.afa_tempCleanedFile
 
-# Combine the alignments of seqs from this study and references
-muscle -profile -in1 hgcA_muscle.afa \
-        -in2 Hg-MATE-Db.v1.ISOCELMAG_HgcA_full.afa \
-        -out hgcA_for_classification.afa
+cat identification/hgcA_good.faa \
+    classification/Hg-MATE-Db.v1.ISOCELMAG_HgcA_full.faa \
+    > classification/hgcA_for_classification.faa
+cd classification/
+sed -i 's/\*//' hgcA_for_classification.faa
+muscle -super5 hgcA_for_classification.faa \
+        -output hgcA_for_classification.afa
 # Convert to stockholm format
 python $scripts/convert_fasta_to_stockholm.py hgcA_for_classification.afa
 conda deactivate
