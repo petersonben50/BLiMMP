@@ -15,8 +15,8 @@ library(tidyverse)
 refpkg_path <- "references/Hg-MATE-Db.v1.ISOCELMAG_HgcA_full.refpkg"
 taxonomy <- refpkg(refpkg_path,
                    type = "taxonomy")
-sqlite_file <- "dataEdited/hgcA_analysis/classification/output/Hg_MATE_classify"
-jplace_file <- "dataEdited/hgcA_analysis/classification/output/hgcA_for_classification.jplace"
+sqlite_file <- "dataEdited/hgcA_analysis/classification/Hg_MATE_classify"
+jplace_file <- "dataEdited/hgcA_analysis/classification/hgcA_for_classification.jplace"
 pplace_object <- read_sqlite(sqlite_file,
                              jplace_file)
 
