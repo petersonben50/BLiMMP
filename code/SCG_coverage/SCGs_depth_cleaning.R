@@ -12,8 +12,9 @@ library(tidyverse)
 scg.abundance <- read.table("dataEdited/scg_abundance/scg_coverage.tsv",
                             sep = "\t",
                             stringsAsFactors = FALSE,
-                            col.names = c("geneID", "metagenomeID", "coverage")) 
-
+                            col.names = c("geneID", "metagenomeID", "coverage")) %>%
+  group_by(geneID, metagenomeID) %>%
+  summarise(coverage = mean(coverage))
 
 
 #### Plot out raw data ####
@@ -26,7 +27,7 @@ scg.abundance %>%
   geom_line(mapping = aes(group = geneID)) +
   geom_point() +
   theme_classic() +
-  stat_summary(geom = "point", fun = "mean",
+  stat_summary(geom = "point", fun = "median",
                col = "black", fill = "red",
                size = 3, shape = 24) +
   theme(axis.text.x = element_text(angle = 90))
@@ -36,7 +37,7 @@ dev.off()
 #### Generate normalization factor for each metagenomes ####
 mean.scg.abundance <- scg.abundance %>%
   group_by(metagenomeID) %>%
-  summarize(coverage = mean(coverage))
+  summarize(coverage = median(coverage))
 # Normalize to a coverage of 100
 normalized.mean.scg.abundance <- mean.scg.abundance %>%
   mutate(NF = 100 / coverage)

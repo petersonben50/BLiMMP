@@ -9,8 +9,8 @@
 # Get set up
 ######################
 mkdir /home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/scg_abundance
-mkdir ~/BLiMMP/reports/scgAbund
-cd ~/BLiMMP/reports/scgAbund
+mkdir /home/GLBRCORG/bpeterson26/BLiMMP/reports/scgAbund
+cd /home/GLBRCORG/bpeterson26/BLiMMP/reports/scgAbund
 mkdir outs errs logs
 
 
