@@ -138,4 +138,5 @@ do
   $scripts/unmerge-paired-reads.sh mRNA_reads/$mtID\_mRNA_reads.fastq \
                                     mRNA_reads/$mtID\_mRNA_R1.fastq \
                                     mRNA_reads/$mtID\_mRNA_R2.fastq
+  rm -f mRNA_reads/$mtID\_mRNA_reads.fastq
 done
