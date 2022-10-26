@@ -37,9 +37,22 @@ count.data <- count.data %>%
 
 
 #### Calculate normalization metric using internal standard ####
-volume.filtered.data <- read.csv("metadata/metatranscriptome_metadata.csv") %>%
-  select(metatranscriptomeID, startDate, depth, volumeFiltered)
+length.of.IS <- 1371 # nucleotides
+molar.mass.IS <- 441530 # g/mol
+mass.IS.added <- 12 # ng
+number.of.IS.copies.added <- (mass.IS.added * 10^-9) / molar.mass.IS * (6.02*10^23)
 
+normalization.data <- count.data %>%
+  select(mtID, IS_reads) %>%
+  mutate(IS_copies = number.of.IS.copies.added,
+         IS_length = length.of.IS) %>%
+  mutate(NF_copies_per_reads_per_kbase = number.of.IS.copies.added / (IS_reads / length.of.IS*1000)) %>%
+  select(mtID, NF_copies_per_reads_per_kbase) %>%
+  left_join(read.csv("metadata/metatranscriptome_metadata.csv") %>%
+              select(metatranscriptomeID, volumeFiltered) %>%
+              rename(mtID = metatranscriptomeID)) %>%
+  as.data.frame()
+saveRDS(normalization.data)
 
 
 #### Set up pseudomapping key ####
@@ -60,7 +73,7 @@ metatranscriptomes <- count.data %>%
 pseudomapping.key <- full_join(metatranscriptomes,
                                assemblies) %>%
   select(-year)
-write.table(mapping.key,
+write.table(pseudomapping.key,
             file = "dataEdited/metatranscriptomes/reports/pseudomapping_key.tsv",
             quote = FALSE,
             sep = "\t",
