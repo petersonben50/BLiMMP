@@ -1,0 +1,23 @@
+##################
+# kallisto_pseudoalignment.sub
+# Submission script for pseudo-alignment
+# of MT reads to ORFs.
+
+# Benjamin D. Peterson
+##################
+
+request_cpus = 8
+request_memory = 120GB
+
+executable = /home/GLBRCORG/bpeterson26/BLiMMP/code/kallisto_pseudoalignment.sh
+
+environment = "mtID=$(mtID) \
+                assemblyID=$(assemblyID) \
+                outputDirectory=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/metatranscriptomes/alignment \
+                readsLocation=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/metatranscriptomes/mRNA_reads \
+                referenceDirectory=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/metatranscriptomes/alignment/index"
+output = /home/GLBRCORG/bpeterson26/BLiMMP/reports/metatranscriptomes/outs/kallisto_$(mtID)_to_$(assemblyID).out
+error = /home/GLBRCORG/bpeterson26/BLiMMP/reports/metatranscriptomes/errs/kallisto_$(mtID)_to_$(assemblyID).err
+log = /home/GLBRCORG/bpeterson26/BLiMMP/reports/metatranscriptomes/logs/kallisto_$(mtID)_to_$(assemblyID).log
+
+queue mtID,assemblyID from /home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/metatranscriptomes/reports/pseudomapping_key.tsv
