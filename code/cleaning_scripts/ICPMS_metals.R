@@ -55,10 +55,15 @@ dup.samples <- all.data %>%
 all.data %>%
   filter(sampleID %in% dup.samples) %>%
   arrange(constituent, filteredInField, startDate, depth)
-# These are all pretty close. We'll just keep rep #1
+# These are all pretty close. We'll randomly assign either rep 1 or 2
+# to each duplicate for purposes of calculating particulate
+
 all.data <- all.data %>%
   group_by(startDate, depth, filteredInField, constituent) %>%
-  summarize(concentration = mean(concentration))
+  mutate(replicate = row_number()) %>%
+  ungroup() %>%
+  as.data.frame() %>%
+  select(startDate, depth, filteredInField, constituent, replicate, concentration)
 
 
 #### 2021 data: Calculate particulate Mn ####
@@ -114,7 +119,10 @@ all.data.2020 %>%
 # Let's average these values
 all.data.2020 <- all.data.2020 %>%
   group_by(startDate, depth, filteredInField, constituent) %>%
-  summarize(concentration = mean(concentration))
+  mutate(replicate = row_number()) %>%
+  ungroup() %>%
+  as.data.frame() %>%
+  select(startDate, depth, filteredInField, constituent, replicate, concentration)
 
 
 

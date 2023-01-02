@@ -45,12 +45,13 @@ Hg.data <- Hg.data.raw %>%
     # No incubation data
     !(constituent %in% c("UMHG", "UTHG")),
     # No data from corewater sampling trips
-    !(sampleDate %in% c(as.Date("2020-08-14"),
-                        as.Date("2020-09-24"))),
+    # !(sampleDate %in% c(as.Date("2020-08-14"),
+    #                     as.Date("2020-09-24"))),
     # We have two surface samples listed... not sure why,
     # and not sure why one is listed on 2021-09-11. Let's 
     # just remove that one, we only need one here.
-    !(sampleDate == "2021-09-11" & depth == 0.0 & sampleTime == "1300")
+    !(sampleDate == "2021-09-11" & depth == 0.0 & sampleTime == "1300"),
+    depth < 30
     )
 rm(Hg.data.raw)
 
@@ -93,8 +94,8 @@ perMEHG.data <- Hg.data %>%
   select(-detection_flag) %>%
   spread(key = constituent,
          value = concentration) %>%
-  mutate(perFMHG = FMHG_NG.L / FTHG_NG.L * 100,
-         perPMHG = PMHG_NG.L / PTHG_NG.L * 100) %>%
+  mutate(perFMHG = round(FMHG_NG.L / FTHG_NG.L * 100, 1),
+         perPMHG = round(PMHG_NG.L / PTHG_NG.L * 100, 1)) %>%
   gather(key = constituent,
          value = concentration,
          -c(1:5)) %>%
@@ -118,13 +119,13 @@ solids.HG.data <- Hg.data %>%
 # One of the duplicates is missing an SPM values.
 # Let's just use the SPM value from the other dup
 # to calculate the per g values.
-solids.HG.data[(solids.HG.data$sampleDate == "2020-10-10" &
-                  solids.HG.data$sampleTime == "1800"), "SPM_MG.L"] <- solids.HG.data[(solids.HG.data$sampleDate == "2020-10-10" &
-                                                                                         solids.HG.data$sampleTime == "1820"), "SPM_MG.L"]
+# solids.HG.data[(solids.HG.data$sampleDate == "2020-10-10" &
+#                   solids.HG.data$sampleTime == "1800"), "SPM_MG.L"] <- solids.HG.data[(solids.HG.data$sampleDate == "2020-10-10" &
+#                                                                                          solids.HG.data$sampleTime == "1820"), "SPM_MG.L"]
 solids.HG.data <- solids.HG.data %>%
-  mutate(PMHG_NG.G = PMHG_NG.L / SPM_MG.L * 1000,
-         PTHG_NG.G = PTHG_NG.L / SPM_MG.L * 1000,
-         PiHG_NG.G = PiHg_NG.L / SPM_MG.L * 1000) %>%
+  mutate(PMHG_NG.G = round(PMHG_NG.L / SPM_MG.L * 1000, 1),
+         PTHG_NG.G = round(PTHG_NG.L / SPM_MG.L * 1000, 1),
+         PiHG_NG.G = round(PiHg_NG.L / SPM_MG.L * 1000, 1)) %>%
   gather(key = constituent,
          value = concentration,
          -c(1:5)) %>%
@@ -135,7 +136,8 @@ solids.HG.data <- solids.HG.data %>%
          concentration, constituent, detection_flag, corewater)
 # Add solids concentrations to dataset
 Hg.data <- rbind(Hg.data,
-                 solids.HG.data)
+                 solids.HG.data) %>%
+  filter(constituent != "SPM_NA")
 
 
 #### Change dates so data from a single trip are listed on one day ####
@@ -143,6 +145,24 @@ Hg.data <- rbind(Hg.data,
 unique(Hg.data$sampleDate)
 Hg.data$sampleDate[which(Hg.data$sampleDate == "2021-09-11")] <- "2021-09-10"
 Hg.data$sampleDate[which(Hg.data$sampleDate == "2020-09-03")] <- "2020-09-02"
+
+
+#### Fix errant depths ####
+Hg.data$depth[which(Hg.data$sampleDate == "2020-08-14" &
+                           Hg.data$depth == 21.5)] <- 21.8
+Hg.data$depth[which(Hg.data$sampleDate == "2020-09-02" &
+                      Hg.data$depth == 11.1)] <- 11.0
+Hg.data$depth[which(Hg.data$sampleDate == "2020-09-02" &
+                      Hg.data$depth == 13.6)] <- 13.2
+
+
+#### Add replicate info ####
+Hg.data <- Hg.data %>%
+  group_by(sampleDate, depth, constituent) %>%
+  mutate(replicate = row_number()) %>%
+  ungroup() %>%
+  as.data.frame() %>%
+  select(sampleDate, depth, constituent, replicate, concentration, detection_flag, corewater)
 
 
 

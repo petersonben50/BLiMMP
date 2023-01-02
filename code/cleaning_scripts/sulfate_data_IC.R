@@ -13,7 +13,7 @@ library(tidyverse)
 
 
 #### Prepare metadata ####
-S.metadata <- read_xlsx("metadata/chem_S.xlsx") %>%
+S.metadata <- read_xlsx("metadata/raw_metadata/chem_S.xlsx") %>%
   select(-notes) %>%
   filter(!(sulfurID %in% c("BLI20_TS_043",
                            "BLI20_TS_044",
@@ -177,12 +177,14 @@ WC.metadata <- read.csv("metadata/processedMetadata/sulfide_WC.csv",
 waterDepth = 24
 
 WC.results <- S.results %>%
-  inner_join(WC.metadata) %>%
+  left_join(WC.metadata) %>%
   arrange(sulfurID) %>%
   mutate(depthOriginal = depth) %>%
   mutate(corewater = grepl(pattern = "-",
                            x = depthOriginal)) %>%
-  mutate(sulfate_uM = concentration / 96.07 * 1000)
+  mutate(sulfate_uM = round(concentration / 96.07 * 1000,
+                            1)) %>%
+  filter(!is.na(sampleID))
 WC.results[WC.results$corewater, ] <- WC.results[WC.results$corewater, ] %>%
   mutate(depth = paste("-",
                        strsplit(depth, "-") %>% sapply("[", 2),
@@ -190,7 +192,16 @@ WC.results[WC.results$corewater, ] <- WC.results[WC.results$corewater, ] %>%
            as.numeric() / 100) %>%
   mutate(depth = depth + (waterDepth * corewater))
 
-# Save out data
+
+#### Add replicate numbers ####
+WC.results <- WC.results %>%
+  arrange(sulfurID) %>%
+  group_by(startDate, depth, corewater) %>%
+  mutate(replicate = row_number()) %>%
+  ungroup()
+
+
+#### Save out data ####
 write.csv(WC.results,
           "dataEdited/waterChemistry/sulfate/WC_data.csv",
           row.names = FALSE,

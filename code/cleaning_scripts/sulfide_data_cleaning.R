@@ -739,8 +739,9 @@ write.csv(MA.results,
 WC.metadata <- read.csv("metadata/processedMetadata/sulfide_WC.csv",
                         stringsAsFactors = FALSE)
 
-waterDepth = 24
 
+#### Calculate depth of corewater samples ####
+waterDepth = 24
 WC.results <- S.results %>%
   inner_join(WC.metadata) %>%
   arrange(sulfurID) %>%
@@ -755,9 +756,17 @@ WC.results[WC.results$corewater, ] <- WC.results[WC.results$corewater, ] %>%
   mutate(depth = depth + (waterDepth * corewater))
 
 
+#### Add replicate info ####
+WC.results <- WC.results %>%
+  group_by(startDate, depth) %>%
+  mutate(replicate = row_number()) %>%
+  ungroup() %>%
+  as.data.frame()
 
+
+#### Save out data ####
 write.csv(WC.results,
-          "dataEdited/waterColumn_sulfide_data.csv",
+          "dataEdited/waterChemistry/sulfide/WC_data.csv",
           row.names = FALSE,
           quote = FALSE)
 

@@ -8,16 +8,15 @@ setwd("~/Documents/research/BLiMMP/")
 library(lubridate)
 library(readxl)
 library(tidyverse)
-cb.translator <- readRDS("/Users/benjaminpeterson/Box/ancillary_science_stuff/colors/colorblind_friendly_colors_R/colorblind_friendly_colors.rds")
 source("code/BLiMMP_functions.R")
 
 #### Add metadata ####
-sample.metadata <- read_xlsx("metadata/1_trip_IDs.xlsx") %>%
+sample.metadata <- read_xlsx("metadata/raw_metadata/1_trip_IDs.xlsx") %>%
   select(tripID, startDate) %>%
-  left_join(read_xlsx("metadata/2_sample_IDs.xlsx")) %>%
+  left_join(read_xlsx("metadata/raw_metadata/2_sample_IDs.xlsx")) %>%
   select(sampleID, depth, startDate) %>%
   filter(year(startDate) == 2021)
-DGM.metadata <- read_xlsx("metadata/Hg_DGM.xlsx") %>%
+DGM.metadata <- read_xlsx("metadata/raw_metadata/Hg_DGM.xlsx") %>%
   mutate(trapNumber = paste("Trap ", trapNumber, sep = "")) %>%
   select(sampleID, trapNumber) %>%
   left_join(sample.metadata) %>%
@@ -64,7 +63,16 @@ all.data <- rbind(DGM.data.Sept.clean,
                   DGM.data.Oct.clean)
 
 
+#### Add replicate info ####
+all.data <- all.data %>%
+  arrange(startDate, depth) %>%
+  group_by(startDate, depth) %>%
+  mutate(replicate = row_number()) %>%
+  ungroup() %>%
+  data.frame()
+
 
 #### Save out data ####
 saveRDS(all.data,
         "dataEdited/Hg/DGM_2021_data.rds")
+
