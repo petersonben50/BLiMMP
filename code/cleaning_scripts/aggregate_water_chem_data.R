@@ -73,7 +73,12 @@ all.data <- metals.data %>%
   rbind(sulfide.data) %>%
   rbind(Hg.data) %>%
   rbind(DGM.data) %>%
-  ungroup()
+  ungroup() %>%
+  filter(!is.na(concentration))
+
+
+#### Anything under 0, set to 0 ####
+all.data$concentration[all.data$concentration < 0] <- 0
 
 
 #### Make data wide ####
@@ -97,6 +102,6 @@ all.data.wide <- all.data %>%
 
 
 #### Save data ####
-write.csv(all.data,
+write.csv(all.data.wide,
           file = "dataFinal/water_chem_data.csv",
           row.names = FALSE)

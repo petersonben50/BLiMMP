@@ -1,4 +1,4 @@
-#### code/cleaning_scripts/clean_exo_data.R ####
+#### code/cleaning_scripts/exo_data_cleaning ####
 # Benjamin D. Peterson
 
 # This scripts reads in the sonde data collected on the Exo
@@ -11,6 +11,7 @@ rm(list = ls())
 setwd("~/Documents/research/BLiMMP")
 library(dplyr)
 library(readxl)
+library(tidyverse)
 
 
 #### 2019-08-21 ####
@@ -181,3 +182,44 @@ clean.exo.data(file.name = "EXO_SD_FLAME_13E101468_101421_153815.xlsx",
                output.name = "2021-10-14_profile.csv",
                custom.header.names = custom.header.names.vector,
                pH.sensor.present = FALSE)
+
+
+
+#### Combine all exo data ####
+rm(list = ls())
+
+# Load up all incubation data
+list.o.results <- list.files(path = "dataEdited/exo",
+                             pattern = "_profile.csv",
+                             full.names = TRUE)
+list.o.results <- grep(pattern = "2019",
+                       list.o.results,
+                       value = TRUE,
+                       invert = TRUE)
+
+for (file.name in list.o.results) {
+  this.data <- read.csv(file.name,
+                        stringsAsFactors = FALSE) %>%
+    mutate(date = gsub(pattern = "_profile.csv",
+                       replacement = "",
+                       file.name) %>%
+             strsplit("/") %>% sapply("[", 3)) %>%
+    select("date", "depth", "Temp_C", "ODO_sat",
+           "Turbidity_FNU")
+  if (file.name == list.o.results[1]) {
+    exo.data <- this.data
+  } else {
+    exo.data <- rbind(exo.data,
+                      this.data)
+  }
+}
+
+
+#### Clean up DO data ####
+exo.data$ODO_sat[exo.data$ODO_sat < 0] <- 0
+
+
+#### Save data out ####
+write.csv(exo.data,
+          "dataFinal/exo_data.csv",
+          row.names = FALSE)

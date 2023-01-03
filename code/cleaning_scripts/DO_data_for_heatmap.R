@@ -116,5 +116,6 @@ all.data <- all.data %>%
 
 
 #### Save out data ####
-saveRDS(all.data,
-        "dataEdited/DO_profiles/DO_profiles_data.rds")
+write.csv(all.data,
+          "dataFinal/DO_profiles_data.csv",
+          row.names = FALSE)
