@@ -12,7 +12,6 @@ knitr::opts_knit$set(root.dir = new.wd)
 ```
 
 ```{r, load_functions, include = FALSE}
-getwd()
 source("code/BLiMMP_functions.R")
 ```
 
@@ -157,6 +156,9 @@ generate_geochem_plots(date.of.interest = "2021-09-10")
 generate_geochem_plots(date.of.interest = "2021-10-14")
 
 ```
+
+
+
 
 
 ### Plot DGM profiles
