@@ -14,23 +14,10 @@ library(tidyverse)
 
 
 #### Generate table of MG sample site information ####
-
-sample.data <-
-# Read in sample metadata
-  read_xlsx("metadata/raw_metadata/2_sample_IDs.xlsx") %>%
-            select(sampleID, tripID, depth) %>%
-  # Read in trip metadata
-  left_join(read_xlsx("metadata/raw_metadata/1_trip_IDs.xlsx") %>%
-              select(tripID, startDate))
-
-all.data <-
-# Read in filter metadata
-read_xlsx("metadata/raw_metadata/NA_IDs.xlsx") %>%
-  select(filterID, sampleID, volumeFiltered) %>%
-  # Read in extraction metadata
-  right_join(read_xlsx("dataEdited/dnaExtractions/DNA_extractions.xlsx") %>%
-               filter(filterID != "NA") %>%
-               select(filterID, extractionID)) %>%
+sample.data <- read.csv("metadata/processedMetadata/filter_metadata.csv") %>%
+  select(filterID, sampleID, startDate, depth, volumeFiltered)
+all.data <- read_xlsx("dataEdited/dnaExtractions/DNA_extractions.xlsx") %>%
+                        filter(!(filterID %in% c("NA", "blank"))) %>%
   left_join(sample.data) %>%
   # Read in metagenome metadata
   right_join(rbind(read_xlsx("dataEdited/dnaSequencing/2020/samplePrep/KMBP010_dilutions.xlsx") %>%
