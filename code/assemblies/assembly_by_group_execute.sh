@@ -1,5 +1,10 @@
 #!/bin/sh
 
+##################
+# assembly_by_group_execute.sh
+
+# Benjamin D. Peterson
+##################
 
 ######################
 # Assemblies by metaSPAdes
@@ -21,8 +26,8 @@ if [ ! -e $output/$assembly/scaffolds.fasta ]; then
                                     --readLocation $read_storage \
                                     --mergedReads yes \
                                     --output $output/$assembly \
-                                    --threads 36 \
-                                    --memory 1400
+                                    --threads 22 \
+                                    --memory 990
 else
   echo $assembly "already assembled"
 fi
