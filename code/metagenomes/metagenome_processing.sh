@@ -152,33 +152,3 @@ mash dist -S 50 \
           BLI_MG_sketches.msh \
           > BLI_MG_sketches.dist
 
-
-
-##########################################################
-##########################################################
-# Assemble needed sequences using EMIRGE
-##########################################################
-##########################################################
-mkdir ~/BLiMMP/dataEdited/16S_from_MG
-mkdir ~/BLiMMP/dataEdited/16S_from_MG/emirge_output
-mkdir ~/BLiMMP/reports/emirge
-
-######################
-# Run EMIRGE on all samples
-######################
-cd ~/BLiMMP/dataEdited/16S_from_MG
-emirge_output=~/BLiMMP/dataEdited/16S_from_MG/emirge_output
-rm -f MGs_needing_emirge.txt
-grep 'BLI2' $ancillary_info/naming_key.tsv | while read line
-do
-  metagenomeID=`echo $line | awk '{ print $2 }'`
-  if [ ! -d $emirge_output/$metagenomeID ]; then
-    echo "EMIRGE has not been run on" $metagenomeID
-    echo $metagenomeID >> MGs_needing_emirge.txt
-  else
-    echo "EMIRGE was already run on" $metagenomeID
-  fi
-done
-
-chmod +x /home/GLBRCORG/bpeterson26/HellsCanyon/code/executables/emirge_run.sh
-condor_submit /home/GLBRCORG/bpeterson26/BLiMMP/code/emirge_run.sub
