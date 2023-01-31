@@ -20,7 +20,7 @@ source("code/BLiMMP_functions.R")
 ```{r temperature heatmaps, echo = FALSE}
 # Read in data
 library(readxl)
-temperature.data <- read.csv("dataFinal/tempurature_buoy_data.csv")
+temperature.data <- read.csv("dataFinal/temperature_buoy_data.csv")
 sampling.location.info <- read_xlsx("dataEdited/incubations/incubation_sites_notes.xlsx")
 
 
