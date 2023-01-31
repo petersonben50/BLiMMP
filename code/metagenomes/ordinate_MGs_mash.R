@@ -7,7 +7,7 @@ setwd("~/Documents/research/BLiMMP/")
 library(lubridate)
 library(tidyverse)
 library(vegan)
-
+source("code/BLiMMP_functions.R")
 
 #### Read in distance data ####
 
@@ -71,7 +71,6 @@ NMDS.screen(clean.dist.data.matrix)
 
 
 #### Make plot ####
-
 plot.nmds <- function(distance.matrix = clean.dist.data.matrix,
                       dimensions = 4) {
   
@@ -97,9 +96,53 @@ plot.nmds <- function(distance.matrix = clean.dist.data.matrix,
     geom_text(aes(label = site.info))
   
 }
-
-
 plot.nmds(clean.dist.data.matrix,
           dimensions = 3)
 
 
+
+#### Make cleaner plot with colors and shapes ####
+MG.date <- MG.data$startDate
+names(MG.date) <- MG.data$metagenomeID
+MG.color.vector <- cb.translator[c("skyblue", "bluishgreen")]
+names(MG.color.vector) <- unique(year(MG.data$startDate))
+MG.shape.vector <- c(1, 16)
+names(MG.shape.vector) <- unique(month(MG.data$startDate))
+
+MG. <- MG.data$startDate
+names(MG.date) <- MG.data$metagenomeID
+
+
+clean.plot.nmds <- function(distance.matrix = clean.dist.data.matrix,
+                            dimensions = 4) {
+  
+  # Run NMDS ordination
+  nmds.sites <- metaMDS(distance.matrix,
+                        k = dimensions)
+  
+  # Set up dataframe for plotting
+  data.scores = cbind(NMDS1 = nmds.sites$points[, "MDS1"],
+                      NMDS2 = nmds.sites$points[, "MDS2"],
+                      metagenomeID = rownames(nmds.sites$points)) %>%
+    as.data.frame() %>%
+    left_join(MG.data %>%
+                select(metagenomeID, startDate, depth))
+  data.scores$NMDS1 = as.numeric(data.scores$NMDS1)
+  data.scores$NMDS2 = as.numeric(data.scores$NMDS2)
+  # Plot data
+  ggplot(data.scores, aes(x = NMDS1,
+                          y = NMDS2,
+                          col = as.character(year(startDate)),
+                          shape = as.character(month(startDate)))) + 
+    geom_point(size = 2) + 
+    theme(axis.text.y = element_text(colour = "black", size = 12, face = "bold"), 
+          axis.text.x = element_text(colour = "black", face = "bold", size = 12), 
+          axis.title.x = element_text(face = "bold", size = 14, colour = "black"), 
+          panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2)) + 
+    labs(x = "NMDS1", y = "NMDS2") +
+    geom_text(aes(label = depth),
+              nudge_y = 0.003)
+  
+}
+plot.nmds(clean.dist.data.matrix,
+          dimensions = 3)
