@@ -32,7 +32,7 @@ mapping.key <- full_join(metagenomes,
                          assemblies) %>%
   select(-year)
 write.table(mapping.key,
-            file = "dataEdited/assemblies/reports/mapping_key.tsv",
+            file = "metadata/lists/mapping_key.tsv",
             quote = FALSE,
             sep = "\t",
             row.names = FALSE,
