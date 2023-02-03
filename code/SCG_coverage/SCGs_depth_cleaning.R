@@ -35,20 +35,20 @@ dev.off()
 
 
 #### Generate normalization factor for each metagenomes ####
-mean.scg.abundance <- scg.abundance %>%
+median.scg.abundance <- scg.abundance %>%
   group_by(metagenomeID) %>%
   summarize(coverage = median(coverage))
 # Normalize to a coverage of 100
-normalized.mean.scg.abundance <- mean.scg.abundance %>%
+normalized.median.scg.abundance <- median.scg.abundance %>%
   mutate(NF = 100 / coverage)
 
 
 #### Generate normalization vector for each metagenomes ####
 
-normalization.vector <- normalized.mean.scg.abundance$NF
-names(normalization.vector) <- normalized.mean.scg.abundance$metagenomeID
+normalization.vector <- normalized.median.scg.abundance$NF
+names(normalization.vector) <- normalized.median.scg.abundance$metagenomeID
 saveRDS(normalization.vector,
         "dataEdited/scg_abundance/scg_normalization_vector.rds")
-write.csv(normalized.mean.scg.abundance,
+write.csv(normalized.median.scg.abundance,
           "dataEdited/scg_abundance/scg_abundance_normalized_table.csv",
           row.names = FALSE)
