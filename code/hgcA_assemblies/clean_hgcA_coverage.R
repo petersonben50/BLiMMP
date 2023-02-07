@@ -27,7 +27,6 @@ metadata.df <- read.csv("metadata/metagenome_metadata.csv")
 
 
 #### Read in and normalize depth data ####
-
 raw.depth.counts <- lapply(list.o.depths,
                            function(fileName) {
                              
@@ -66,7 +65,7 @@ rm(raw.depth.counts,
 
 
 #### Add hgcA seq ID ####
-hgcA.list <- readLines("dataEdited/hgcA_analysis/dereplication/hgcA_final_abundance_list.txt")
+hgcA.list <- readLines("dataEdited/hgcA_analysis/identification/hgcA_good.txt")
 hgcA.df <- data.frame(hgcA_ID = hgcA.list,
                       scaffoldID = paste(hgcA.list %>% strsplit("_") %>% sapply("[",1),
                                          hgcA.list %>% strsplit("_") %>% sapply("[",2),

@@ -1,4 +1,4 @@
-#### code/hgcA_analysis/hgcA_dereplication.R ####
+#### code/hgcA_analysis/aggregate_hgcA_info.R ####
 # Benjamin D. Peterson
 
 
@@ -7,6 +7,7 @@ rm(list = ls())
 setwd("~/Documents/research/BLiMMP/")
 library(readxl)
 library(tidyverse)
+mt.NF.vector <- readRDS("dataEdited/metatranscriptomes/normalization_vector.rds")
 
 
 #### Generate data frame of seqs ####
@@ -21,27 +22,26 @@ rm(hgcA.list)
 
 
 #### Include hgcB info ####
-hgcB.list <- readLines("dataEdited/hgcA_analysis/hgcB/downstream_genes_present.txt")
-hgcB.df <- data.frame(hgcB_ID = hgcB.list,
-                      scaffoldID = paste(hgcB.list %>% strsplit("_") %>% sapply("[",1),
-                                         hgcB.list %>% strsplit("_") %>% sapply("[",2),
-                                         hgcB.list %>% strsplit("_") %>% sapply("[",3),
-                                         sep = "_"))
-hgcA.df <- left_join(hgcA.df,
-                     hgcB.df)
-rm(hgcB.df,
-   hgcB.list)
+####################### NEED TO LOOK MANUALLY FOR HGCB ##################
+# hgcB.list <- readLines("dataEdited/hgcA_analysis/hgcB/downstream_genes_present.txt")
+# hgcB.df <- data.frame(hgcB_ID = hgcB.list,
+#                       scaffoldID = paste(hgcB.list %>% strsplit("_") %>% sapply("[",1),
+#                                          hgcB.list %>% strsplit("_") %>% sapply("[",2),
+#                                          hgcB.list %>% strsplit("_") %>% sapply("[",3),
+#                                          sep = "_"))
+# hgcA.df <- left_join(hgcA.df,
+#                      hgcB.df)
+# rm(hgcB.df,
+#    hgcB.list)
 
 
-#### Add classification data ####
+#### Add auto classification data ####
 hgcA.classification <- read.csv("dataEdited/hgcA_analysis/classification/hgcA_taxonomy_table.csv") %>%
   mutate(classification = paste(phylum, class, order,
                                 family, genus, species,
                                 sep = ";"),
          hgcA_ID = seqID) %>%
   select(hgcA_ID, classification)
-
-
 hgcA.df <- hgcA.df %>%
   full_join(hgcA.classification)
 rm(hgcA.classification)
@@ -59,52 +59,31 @@ rm(clustering.info)
 
 
 
-# USE AUTO-GENERATED REPRESENTATIVES FOR NOW
-hgcA.final.list <- hgcA.df %>%
-  filter(representative == TRUE) %>%
-  select(hgcA_ID) %>%
-  unlist(use.names = FALSE)
-hgcA.final.list %>%
-  writeLines("dataEdited/hgcA_analysis/dereplication/hgcA_final_list.txt")
 
-hgcA.final.list %>%
-  writeLines("dataEdited/hgcA_analysis/dereplication/hgcA_final_abundance_list.txt")
+#### Add depth information ####
+
+depth.df <- read.csv("dataEdited/hgcA_analysis/depth/hgcA_coverage.csv") %>%
+  select(hgcA_ID, metagenomeID, coverage) %>%
+  spread(key = metagenomeID,
+         value = coverage,
+         fill = 0)
+hgcA.df <- hgcA.df %>%
+  full_join(depth.df)
 
 
 
-# #### Read out data for dereplication ####
-# write.csv(hgcA.df,
-#           "dataEdited/hgcA_analysis/dereplication/hgcA_dereplication_data.csv",
-#           row.names = FALSE)
-# rm(hgcA.df)
-# 
-# 
-# #### Read data back in ####
-# hgcA.df <- read_xlsx("dataEdited/hgcA_analysis/hgcA_dereplication.xlsx")
-# 
-# hgcA.df %>%
-#   filter(representative == TRUE) %>%
-#   select(seqID) %>%
-#   unlist(use.names = FALSE) %>%
-#   writeLines("dataEdited/hgcA_analysis/hgcA_rep_list.txt")
-# 
-# hgcA.df %>%
-#   filter(usedForAbundance == TRUE) %>%
-#   select(seqID) %>%
-#   unlist(use.names = FALSE) %>%
-#   writeLines("dataEdited/hgcA_analysis/hgcA_repAbundance_list.txt")
-# 
-# 
-# #### Add in other info about hgcA ####
-# hgcA.manual.taxonomy <- read_xlsx("dataEdited/hgcA_analysis/phylogeny/manual_taxonomy.xlsx") %>%
-#   left_join(hgcA.df %>% select(seqID, clstr)) %>%
-#   select(clstr, manual_classification)
-# hgcA.df <- hgcA.df %>%
-#   left_join(hgcA.manual.taxonomy)
-# 
-# 
-# #### Save out data ####
-# saveRDS(hgcA.df,
-#         "dataEdited/hgcA_analysis/hgcA_information.rds")
-# write.csv(hgcA.df,
-#           "dataEdited/hgcA_analysis/hgcA_information.csv")
+#### Add hgcA MT abundance info ####
+MT.data <- read.table("dataEdited/hgcA_analysis/hgcA_MT_hits_clean.tsv",
+                      sep = '\t',
+                      col.names = c("mtID", "hgcA_ID", "length_gene", "eff_length", "counts", "tpm")) %>%
+  mutate(reads_per_base = counts / length_gene,
+         copies_per_liter = round(reads_per_base * mt.NF.vector[mtID])) %>%
+  select(hgcA_ID, mtID, copies_per_liter) %>%
+  spread(key = mtID,
+         value = copies_per_liter,
+         fill = 0)
+hgcA.df <- hgcA.df %>%
+  full_join(MT.data)
+write.csv(hgcA.df,
+          "~/Downloads/hgcA_data.csv",
+          row.names = FALSE)

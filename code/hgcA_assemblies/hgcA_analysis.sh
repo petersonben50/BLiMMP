@@ -158,6 +158,43 @@ guppy tog --pp \
 
 
 
+############################################
+############################################
+# Pull out depth of hgcA+ scaffolds
+############################################
+############################################
+
+screen -S BLI_hgcA_depth
+cd ~/BLiMMP/dataEdited/hgcA_analysis
+mkdir depth
+source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
+conda activate bioinformatics
+PERL5LIB=""
+PYTHONPATH=""
+
+cat /home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/metagenomes/reports/metagenome_list.txt | while read metagenome
+do
+  cat identification/hgcA_good.txt | while read gene
+  do
+    scaffold=$(echo $gene | awk -F '_' '{ print $1"_"$2"_"$3 }')
+    assembly=$(echo $gene | awk -F '_' '{ print $1"_"$2 }')
+    if [ -e ~/BLiMMP/dataEdited/mapping/$metagenome\_to_$assembly.bam ]; then
+      echo "Calculating coverage of" $metagenome "over" $scaffold
+      samtools depth -a -r $scaffold ~/BLiMMP/dataEdited/mapping/$metagenome\_to_$assembly.bam \
+          >> depth/$metagenome\_hgcA_depth_raw.tsv
+    else
+      echo $metagenome "not from same year as" $assembly "and" $gene "won't be found there"
+    fi
+  done
+
+  echo "Aggregating hgcA depth information for" $metagenome
+  python ~/BLiMMP/code/calculate_depth_length_contigs.py \
+            depth/$metagenome\_hgcA_depth_raw.tsv \
+            150 \
+            depth/$metagenome\_hgcA_depth.tsv
+  rm -f depth/$metagenome\_hgcA_depth_raw.tsv
+done
+
 
 
 ############################################
@@ -221,35 +258,40 @@ grep '>' hgcB/downstream_genes.faa | \
   sed 's/>//' > hgcB/downstream_genes_present.txt
 
 # Search adjacent genes with hgcB HMM
-cd ~/BLiMMP/dataEdited/hgcA_analysis
+cd ~/BLiMMP/dataEdited/hgcA_analysis/hgcB
 source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
 conda activate bioinformatics
 PYTHONPATH=''
 PERL5LIB=''
-scripts=~/BLiMMP/code
-hmmsearch --tblout hgcB/hgcB.out \
+scripts=~/BLiMMP/code/HomeBio/fasta_manipulation
+hmmsearch --tblout hgcB.out \
           --cpu 4 \
           -T 30 \
           ~/references/hgcA/hgcB_5M.HMM \
-          hgcB/downstream_genes.faa \
-          > hgcB/hgcB_report.txt
+          downstream_genes.faa \
+          > hgcB_report.txt
 
 # Check the hgcB hits
-rm -f hgcB/hgcB.faa
-grep -v "#" hgcB/hgcB.out | awk '{ print $1 }' | while read geneID
+rm -f hgcB.faa
+grep -v "#" hgcB.out | awk '{ print $1 }' | while read geneID
 do
-  grep -A 1 $geneID$ hgcB/downstream_genes.faa >> hgcB/hgcB.faa
+  grep -A 1 $geneID$ downstream_genes.faa >> hgcB.faa
 done
-grep '>' hgcB/hgcB.faa | wc -l
+sed -i 's/\*//' hgcB.faa
+grep '>' hgcB.faa | wc -l
 # Align sequences to HMM
-hmmalign -o hgcB/hgcB.sto \
-            ~/references/hgcA/hgcB_5M.HMM \
-            hgcB/hgcB.faa
+hmmalign --amino \
+         -o hgcB.sto \
+         ~/references/hgcA/hgcB_5M.HMM \
+         hgcB.faa
 # Convert alignment to fasta format
-$scripts/convert_stockhold_to_fasta.py hgcB/hgcB.sto
-
-
-# Check sequences in Geneious.
+python $scripts/convert_stockhold_to_fasta.py hgcB.sto
+python $scripts/cleanFASTA.py hgcB.afa
+mv -f hgcB.afa_tempCleanedFile hgcB.afa
+cat hgcB.afa | while read line; do echo ${line^^} >> hgcB_clean.afa; done
+sed -i 's/_ASSEMBLY/_assembly/' hgcB_clean.afa
+sed -i 's/_COASSEMBLY/_coassembly/' hgcB_clean.afa
+# Check sequences in alignment_hgcB.R.
 
 # Check GFF entries for cut hgcB seqs
 cd ~/BLiMMP/dataEdited/hgcA_analysis/scaffolds
@@ -265,11 +307,10 @@ grep '>' hgcB.faa | \
 cd ~/BLiMMP/dataEdited/hgcA_analysis/hgcB
 cat downstream_genes_present.txt hgcB.txt | \
   sort | \
-  uniq -u
-grep -A 1 'BLI20_assembly004_000000034765_5' downstream_genes.faa
-grep -A 1 'BLI20_assembly004_000000075580_2' downstream_genes.faa
-grep -A 1 'BLI20_assembly004_000000098923_1' downstream_genes.faa
-grep -A 1 'BLI20_coassembly_000000053122_2' downstream_genes.faa
+  uniq -u | while read gene
+  do
+    grep -A 1 $gene downstream_genes.faa
+  done
 
 
 
@@ -331,6 +372,24 @@ $cdhit/clstr2txt.pl dereplication/hgcA_good_acrossYear.faa.clstr \
 
 
 
+
+############################################
+############################################
+# Metatranscriptome counts
+############################################
+############################################
+MT_depth=~/BLiMMP/dataEdited/metatranscriptomes/alignment
+cd ~/BLiMMP/dataEdited/hgcA_analysis
+mkdir MT_abundance
+cat identification/hgcA_good.txt | while read hgcA_ID
+do
+  assemblyID=`echo $hgcA_ID | cut -d'_' -f1,2`
+  echo "Pulling out MT reads for" $hgcA_ID "from" $assemblyID
+  grep $hgcA_ID $MT_depth/BLI*_MT_*_to_$assemblyID\_abundance.tsv >> MT_abundance/hgcA_MT_hits.tsv
+done
+cd MT_abundance
+sed 's/\/home\/glbrc.org\/bpeterson26\/BLiMMP\/dataEdited\/metatranscriptomes\/alignment\///' hgcA_MT_hits.tsv | \
+  sed -e 's/_to_BLI2[0-1]_[a-z]*[0-9]*_abundance.tsv:/\t/' > hgcA_MT_hits_clean.tsv
 
 
 ############################################
@@ -445,42 +504,3 @@ $cdhit/cd-hit -g 1 \
               -c 0.80 \
               -n 5 \
               -d 0
-
-
-
-############################################
-############################################
-# Pull out depth of hgcA+ scaffolds
-############################################
-############################################
-
-screen -S BLI_hgcA_depth
-cd ~/BLiMMP/dataEdited/hgcA_analysis
-mkdir depth
-source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
-conda activate bioinformatics
-PERL5LIB=""
-PYTHONPATH=""
-
-awk -F '\t' '{ print $1 }' ~/BLiMMP/metadata/metagenome_list.txt | while read metagenome
-do
-  cat hgcA_final_abundance_list.txt | while read gene
-  do
-    scaffold=$(echo $gene | awk -F '_' '{ print $1"_"$2"_"$3 }')
-    assembly=$(echo $gene | awk -F '_' '{ print $1"_"$2 }')
-    if [ -e ~/BLiMMP/dataEdited/mapping/$metagenome\_to_$assembly.bam ]; then
-      echo "Calculating coverage of" $metagenome "over" $scaffold
-      samtools depth -a -r $scaffold ~/BLiMMP/dataEdited/mapping/$metagenome\_to_$assembly.bam \
-          >> depth/$metagenome\_hgcA_depth_raw.tsv
-    else
-      echo $metagenome "not from same year as" $assembly "and" $gene "won't be found there"
-    fi
-  done
-
-  echo "Aggregating hgcA depth information for" $metagenome
-  python ~/BLiMMP/code/calculate_depth_length_contigs.py \
-            depth/$metagenome\_hgcA_depth_raw.tsv \
-            150 \
-            depth/$metagenome\_hgcA_depth.tsv
-  rm -f depth/$metagenome\_hgcA_depth_raw.tsv
-done

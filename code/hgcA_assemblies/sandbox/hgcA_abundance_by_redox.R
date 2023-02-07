@@ -15,19 +15,6 @@ names(gray.vector) <- c("gray50", "gray30", "gray80")
 cb.translator <- c(cb.translator, gray.vector)
 
 
-#### Read in hgcA classification ####
-tax.data <- read_xlsx("dataEdited/hgcA_analysis/hgcA_taxonomy_assignment.xlsx") %>%
-  select(seqID, manual_classification_for_colors) %>%
-  rename(hgcA_ID = seqID)
-
-
-#### Read in color information ####
-hgcA.manual.taxonomy <- read_xlsx("dataEdited/hgcA_analysis/hgcA_taxonomy_assignment.xlsx",
-                                  sheet = "colors_to_use")
-color.vector.to.use <- cb.translator[hgcA.manual.taxonomy$colorsToUse]
-names(color.vector.to.use) <- hgcA.manual.taxonomy$classification
-
-
 #### Read in abundance data ####
 coverage.data <- read.csv("dataEdited/hgcA_analysis/depth/hgcA_coverage.csv") %>%
   select(-volumeFiltered)
@@ -43,6 +30,11 @@ all.data <- full_join(tax.data,
                                     "Oct-15.7m", "Oct-20.9m")),
          manual_classification_for_colors = fct_relevel(manual_classification_for_colors,
                                                         names(color.vector.to.use)))
+
+
+#### Save out combined data ####
+saveRDS(all.data,
+        "dataEdited/hgcA_analysis/hgcA_abundance_taxonomy.rds")
 
 
 #### hgcA abundance as points ####
@@ -79,8 +71,7 @@ all.data %>%
 hgcA.September <- all.data %>%
   filter(month(startDate) == 9) %>%
   mutate(depth.date = fct_relevel(depth.date,
-                                  rev( c("Sep-11m", "Sep-15.5m", "Sep-20.7m",
-                                         "Oct-15.7m", "Oct-20.9m")))) %>%
+                                  rev( c("Sep-11m", "Sep-15.5m", "Sep-20.7m")))) %>%
   group_by(depth.date) %>%
   summarise(coverage = sum(coverage)) %>%
   ggplot(aes(x = depth.date,
@@ -98,8 +89,7 @@ hgcA.September <- all.data %>%
 hgcA.October <- all.data %>%
   filter(month(startDate) == 10) %>%
   mutate(depth.date = fct_relevel(depth.date,
-                                  rev( c("Sep-11m", "Sep-15.5m", "Sep-20.7m",
-                                         "Oct-15.7m", "Oct-20.9m")))) %>%
+                                  rev( c("Oct-15.7m", "Oct-20.9m")))) %>%
   group_by(depth.date) %>%
   summarise(coverage = sum(coverage)) %>%
   ggplot(aes(x = depth.date,
@@ -120,6 +110,8 @@ hgcA.tax.September <- all.data %>%
   mutate(depth.date = fct_relevel(depth.date,
                                   rev( c("Sep-11m", "Sep-15.5m", "Sep-20.7m",
                                          "Oct-15.7m", "Oct-20.9m")))) %>%
+  group_by(depth.date, manual_classification_for_colors) %>%
+  summarise(coverage = sum(coverage)) %>%
   ggplot(aes(x = depth.date,
              y = coverage,
              fill = manual_classification_for_colors)) +
@@ -129,30 +121,31 @@ hgcA.tax.September <- all.data %>%
   coord_flip() +
   xlab(element_blank()) +
   ylab("hgcA coverage") +
-  ylim(c(0, 7)) +
-  theme(legend.position = "none")
+  ylim(c(0, 14)) +
+  theme(legend.position = c(0.8, 0.5),
+        legend.title = element_blank())
 
 
 #### hgcA taxonomy abundance as side-by-side bars: October ####
 hgcA.tax.October <- all.data %>%
   filter(month(startDate) == 10) %>%
   mutate(depth.date = fct_relevel(depth.date,
-                                  rev( c("Sep-11m", "Sep-15.5m", "Sep-20.7m",
-                                         "Oct-15.7m", "Oct-20.9m")))) %>%
+                                  rev( c("Oct-15.7m", "Oct-20.9m")))) %>%
+  group_by(depth.date, manual_classification_for_colors) %>%
+  summarise(coverage = sum(coverage)) %>%
   ggplot(aes(x = depth.date,
              y = coverage,
              fill = manual_classification_for_colors)) +
   geom_bar(stat = "identity",
            position = "dodge") +
-  scale_fill_manual(values=color.vector.to.use,
+  scale_fill_manual(values = color.vector.to.use,
                     guide = guide_legend(reverse = TRUE)) +
   xlab(element_blank()) +
   ylab("hgcA coverage") +
-  ylim(c(0, 7)) +
+  ylim(c(0, 14)) +
   theme_classic() +
   coord_flip() +
-  theme(legend.position = c(0.8, 0.5),
-        legend.title = element_blank())
+  theme(legend.position = "none")
 
 
 #### Arrange plots ####
@@ -168,7 +161,7 @@ total.hgcA.depth <- all.data %>%
   group_by(depth.date) %>%
   summarize(total.coverage = sum(coverage))
 
-all.data %>%
+group.abundance <- all.data %>%
   group_by(depth.date, manual_classification_for_colors) %>%
   summarise(coverage = sum(coverage)) %>%
   full_join(total.hgcA.depth) %>%
@@ -176,3 +169,11 @@ all.data %>%
   select(-c(coverage, total.coverage)) %>%
   spread(key = depth.date,
          value = fraction.abundance)
+group.abundance
+
+
+respiratory.methylators <- group.abundance %>%
+  filter(manual_classification_for_colors %in% c("Desulfobacterales",
+                                                 "Geobacter",
+                                                 "Bacteroidetes"))
+colSums(respiratory.methylators[, -1])

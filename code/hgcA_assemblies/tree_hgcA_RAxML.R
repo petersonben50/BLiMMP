@@ -167,3 +167,15 @@ ggtree(hgcA.tree.rootless,
                  y = 80,
                  width = 0.5)
 dev.off()
+
+
+
+#### Save out rootless tree ####
+saveRDS(hgcA.tree.rootless,
+        "dataEdited/hgcA_analysis/phylogeny/hgcA_clean_tree_noRoot.rds")
+
+
+#### Save out color vector ####
+saveRDS(color.vector.to.use,
+        "dataEdited/hgcA_analysis/phylogeny/hgcA_clean_tree_noRoot_color_vector.rds")
+

@@ -42,6 +42,17 @@ I then downloaded the files I needed (`Hg_MATE_classify`, `hgcA_for_classificati
 
 
 
+**Pull out depth of hgcA+ scaffolds**
+
+I then pulled out the depths of the hgcA+ scaffolds.
+This was set up to run with multiple years if need be, so once we get 2021 metagenomes I'll be set to run this.
+I calculated the depth as the average coverage over each nucleotide in the scaffold except for the nucleotides within 150 bp of either end of the scaffold.
+
+I downloaded the aggregated depths to my local computer.
+Then I aggregated the data using a R script: `code/hgcA_analysis/clean_hgcA_abundance.R`.
+This data was normalized to the SCG coverage I calculated for each metagenome.
+
+
 **Genomic context for hgcA**
 
 *First pull out hgcA+ scaffolds*
@@ -53,23 +64,26 @@ Next I identified the scaffolds that contained *hgcA* and pulled out the fna fil
 Using the GFF entries, I identified the ORF downstream from each hgcA sequence (if there was one on the scaffold).
 I pulled out all these ORFs, then searched through them using an HMM I built from hgcB genes for the 5M project to see if they were hgcB.
 I pulled out the hits and aligned them to the HMM.
-I downloaded the alignment to my local computer and inspected it in Geneious.
+I downloaded the alignment to my local computer and inspected using the `alignment_hgcB.R` script.
 
-There were 38 hits, out of 42 identified downstream genes.
-All but 3 of these hits had the expected C(M/I)ECGAC motif that confirmed it was hgcB.
-The other three were cut off before that motif.
-These sequences were all truncated though, according to the GFFs, so we'll include them as true hgcB seqs since the alignment at the N-terminus end was pretty good.
-Two of these genes, BLI20_assembly004_000000016181_3 and BLI20_coassembly_000000077989_5 had a long trailing sequence at the C-terminus.
-The trailing sequence was identical between the two and are from two different assemblies, so it might be from the same organism.
+There were 148 hits, out of 169 identified downstream genes.
+All but 6 of these hits had the expected C(M/I)ECGAC motif that confirmed it was hgcB.
+The other six were cut off before that motif.
+These sequences were all at the end of the scaffold according to the GFFs, suggesting that they are just truncated.
+Thus, we'll include them as true hgcB seqs since the alignment at the N-terminus end was pretty good.
+Three of these genes, BLI21_assembly106_000000092827_1, BLI20_assembly004_000000016181_3 and BLI20_coassembly_000000077989_5 had a long trailing sequence at the C-terminus.
+The trailing sequence was identical between the two that were from BLI20 and are from two different assemblies, so it might be from the same organism.
+The sequence from BLI21 is not quite as long as the ones from the BLI20 assembly.
+According to the auto-classification, they're associated with the PVC superphylum.
 This trailing sequence includes a segment that had a hit for a thioredoxin motif using MotifFinder, but the score is very low.
 Not sure what this is here, but we'll include it for now.
+In all, we just kept all the hgcB hits.
 
-Okay, we'll just keep all the hgcB hits.
-Now, let's take a closer look at the genes that didn't have a hit downstream.
-- BLI20_assembly004_000000034765_5: Looks like this might actually be an hgcB sequence, as it has the CIGCGMCA motif. Yeah, going to include this as likely hgcB. Very short.
-- BLI20_assembly004_000000075580_2: No motifs found. This gene is on the opposite strand from the hgcA, and is truncated. Ends 13 bp down from the end of the hgcA. Classified as no hgcB.
-- BLI20_assembly004_000000098923_1: Also very short (MSPLPTLRYIETAVTLQLDP) and has no hits in MOTIF. Overlaps with hgcA. Not out of the question that this is hgcB actually based on the similarity to the hgcB alignments. I would say this one is small enough that we could say the downstream gene is truncated and therefore can't comment on presence of hgcB.
-- BLI20_coassembly_000000053122_2: Big gene here. Elongation factor Tu GTP binding domain. Starts 200 bp downstream of hgcA. Unlikely that there's an unseen hgcB in there, but worth looking.
+We'll take a closer look at the downstream genes that didn't hit the hgcB HMM later.
+I inspected them manually and ran them through [MOTIF](https://www.genome.jp/tools/motif/).
+Notes on this here: ``
+
+
 
 *Isolate gene neighborhoods*
 
@@ -159,14 +173,3 @@ I then masked the alignment at 50% gaps, which seems to work well.
 I exported it (`hgcA_for_tree_masked.afa`) and uploaded it to the GLBRC.
 I then ran RAxML (v8.2.11) on it to generate a ML tree.
 I used rapid bootstrapping with automatic detection of limits and autodetection of the mutation model.
-
-
-**Pull out depth of hgcA+ scaffolds**
-
-I then pulled out the depths of the hgcA+ scaffolds.
-This was set up to run with multiple years if need be, so once we get 2021 metagenomes I'll be set to run this.
-I calculated the depth as the average coverage over each nucleotide in the scaffold except for the nucleotides within 150 bp of either end of the scaffold.
-
-I downloaded the aggregated depths to my local computer.
-Then I aggregated the data using a R script: `code/hgcA_analysis/clean_hgcA_coverage.R`.
-This data was normalized to the SCG coverage I calculated for each metagenome.
