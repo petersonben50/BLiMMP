@@ -11,26 +11,53 @@ setwd("/Users/benjaminpeterson/Documents/research/BLiMMP/")
 library(tidyverse)
 
 
-#### Generate mapping key file ####
+#### Generate mapping key file (original one, joined by year) ####
+# Map metagenomes to assemblies from the same year.
+# For now.
+# metagenomes <- read.table("dataEdited/metagenomes/reports/naming_key.tsv",
+#                           sep = '\t') %>%
+#   rename(metagenomeID = V2) %>%
+#   select(metagenomeID) %>%
+#   filter(grepl("BLI", metagenomeID)) %>%
+#   mutate(year = metagenomeID %>%
+#            strsplit("_") %>% sapply("[", 1) %>%
+#            gsub("BLI", "20", .))
+# assemblies <- read.table("dataEdited/assemblies/all_assemblies_stats.txt",
+#                          header = TRUE) %>%
+#   select(assemblyID) %>%
+#   mutate(year = assemblyID %>%
+#            strsplit("_") %>% sapply("[", 1) %>%
+#            gsub("BLI", "20", .))
+# mapping.key <- full_join(metagenomes,
+#                          assemblies) %>%
+#   select(-year)
+# write.table(mapping.key,
+#             file = "metadata/lists/mapping_key.tsv",
+#             quote = FALSE,
+#             sep = "\t",
+#             row.names = FALSE,
+#             col.names = FALSE)
+
+
+
+#### Generate mapping key file (new one: all by all) ####
 # Map metagenomes to assemblies from the same year.
 # For now.
 metagenomes <- read.table("dataEdited/metagenomes/reports/naming_key.tsv",
                           sep = '\t') %>%
   rename(metagenomeID = V2) %>%
-  select(metagenomeID) %>%
-  filter(grepl("BLI", metagenomeID)) %>%
-  mutate(year = metagenomeID %>%
-           strsplit("_") %>% sapply("[", 1) %>%
-           gsub("BLI", "20", .))
-assemblies <- read.table("dataEdited/assemblies/reports/all_assemblies_stats.txt",
+  mutate(mapTo = "all") %>%
+  select(metagenomeID, mapTo)
+assemblies <- read.table("dataEdited/assemblies/all_assemblies_stats.txt",
                          header = TRUE) %>%
   select(assemblyID) %>%
-  mutate(year = assemblyID %>%
-           strsplit("_") %>% sapply("[", 1) %>%
-           gsub("BLI", "20", .))
+  mutate(mapTo = "all") %>%
+  select(assemblyID, mapTo)
+
 mapping.key <- full_join(metagenomes,
-                         assemblies) %>%
-  select(-year)
+                         assemblies,
+                         multiple = "all") %>%
+  select(-mapTo)
 write.table(mapping.key,
             file = "metadata/lists/mapping_key.tsv",
             quote = FALSE,
