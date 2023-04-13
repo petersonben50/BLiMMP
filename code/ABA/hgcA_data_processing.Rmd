@@ -1,0 +1,124 @@
+---
+title: "hgcA_processing"
+author: "Benjamin D. Peterson"
+date: "2023-04-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+rm(list = ls())
+#setwd("/Users/benjaminpeterson/Documents/research/BLiMMP")
+library(tidyverse)
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(echo = TRUE)
+new.wd <- gsub("\\/[[:alpha:]]+\\/[[:alpha:]]+$", "", getwd())
+knitr::opts_knit$set(root.dir = new.wd)
+rm(new.wd)
+```
+
+```{r read_in_faa, include = FALSE }
+library(Biostrings)
+hgcA.faa <- readAAStringSet("dataEdited/ABA/hgcA/hgcA.faa")
+# Store the HMM score in the metadata
+metadata(hgcA.faa)$HMM_scores <- strsplit(hgcA.faa@ranges@NAMES, " ") %>% sapply("[", 2) %>% data.frame()
+names(hgcA.faa) <- strsplit(names(hgcA.faa), " ") %>% sapply("[", 1)
+```
+
+I identified *hgcA* genes in the assemblies using my custom GID workflow from HomeBio. I loaded the alignment into Geneious and manually inspected the alignment to remove sequences that hit our exclusion criteria, which are as follows:
+
+1. Missing the canonical cap helix domain
+2. Truncated at the C-terminus end and have fewer than 250 amino acids in the alignment. Essentially for this criteria we want to ensure that the transmembrane domains at the N-terminus are represented. 
+
+While the excluded sequences are likely incompletely assembled *hgcA* sequences, we prefer to err on the side of caution when it comes to identifying *hgcA*. A preview of the notes on the sequences we excluded are below:
+
+```{r hgcA_excluded_seqs, echo = FALSE}
+excluded.seqs <- readxl::read_xlsx("dataEdited/ABA/hgcA/hgcA_hits_to_exclude.xlsx")
+excluded.seqs
+
+```
+
+In the interest of including all the information we have, I generated a dataframe that includes all of the identified sequences with a column denoting the ones that passed criteria and are included in the downstream analyses. The "verified_hgcA" column will be a TRUE/FALSE column, with TRUE marking the sequences that pass the criteria. I included the length of the sequences here as well.
+
+
+```{r hgcA_ID_notes, return = FALSE}
+hgcA.data <- data.frame(seqID = names(hgcA.faa),
+                        HMM_score = metadata(hgcA.faa)$HMM_scores,
+                        length = width(hgcA.faa)) %>%
+  left_join(excluded.seqs) %>%
+  mutate(verified_hgcA = is.na(reason_for_exclusion))
+rm(excluded.seqs)
+```
+
+
+Next I added in the clustering information and scaffold names. It looks like CD-HIT automatically assigns one of the longest sequences in the cluster as the cluster representative, which is fine with me, so that's what I used for the phylogenetic analysis. 
+
+```{r hgcA_cluster_scaffold, include = FALSE}
+hgcA.clstr.data <- read.table("dataEdited/ABA/hgcA/hgcA_cluster_data.tsv",
+                              header = TRUE) %>%
+  dplyr::rename(seqID = id) %>%
+  mutate(cluster_ID = paste("BLI_hgcA_clstr_", stringr::str_pad(clstr, width = 4, side = "left", pad = 0),
+                            sep = "")) %>%
+  select(seqID, cluster_ID, clstr_rep)
+hgcA.scaf.assembly <- read.table("dataEdited/ABA/hgcA/hgcA_G2A.tsv",
+                                 col.names = c("seqID", "assemblyID")) %>%
+  mutate(scaffoldID = paste(strsplit(seqID, "_") %>% sapply("[", 1),
+                            strsplit(seqID, "_") %>% sapply("[", 2),
+                            strsplit(seqID, "_") %>% sapply("[", 3),
+                            sep = "_"))
+
+hgcA.data <- hgcA.data %>%
+  left_join(hgcA.clstr.data) %>%
+  left_join(hgcA.scaf.assembly)
+rm(hgcA.clstr.data, hgcA.scaf.assembly)
+```
+
+Then I processed the coverage data by normalizing to the coverage of the 16 ribosomal proteins, which are single copy core genes (SCG). See Sorek et al, 2007 for data on identification of these genes as SCG.
+
+```{r coverage_normalization}
+normalized.coverage.vector <- readRDS("dataEdited/scg_abundance/scg_normalization_vector.rds")
+hgcA.coverage <- read.table("dataEdited/ABA/hgcA/hgcA_coverage.tsv",
+                            col.names = c("scaffoldID", "coverage", "length_of_scaffold", "metagenomeID")) %>%
+  mutate(NF = normalized.coverage.vector[metagenomeID],
+         coverage_normalized = coverage*NF) %>%
+  select(-c(coverage, NF)) %>%
+  spread(key = metagenomeID,
+         value = coverage_normalized)
+hgcA.data <- hgcA.data %>%
+  left_join(hgcA.coverage)
+rm(normalized.coverage.vector,
+   hgcA.coverage)
+#testing <- hgcA.data %>% filter(verified_hgcA) %>% gather(key = metagenomeID, value = coverage, -c(1:10)) %>% group_by(cluster_ID, metagenomeID) %>% summarise(coverage = mean(coverage)) %>% ungroup() %>% group_by(metagenomeID) %>% summarise(coverage = sum(coverage)) %>%left_join(read.csv("metadata/metagenome_metadata.csv"))
+
+```
+
+
+Since in my analyses I average the coverage of all the sequences in a cluster for each metagenome, I wanted to make sure that the sequences within a cluster have similar abundance patterns. 
+
+
+
+Although we'll average across the cluster for depth calculations, we will want to identify one sequences from each cluster that can be used for phylogenetic reconstruction. Thus, we'll save out a list with that dereplicated list to `dataEdited/ABA/hgcA/hgcA_for_phylogeny.faa`.
+```{r save out hgcA_for_phylogeny}
+hgcA.seqs.to.keep <- hgcA.data %>%
+  filter(verified_hgcA) %>%
+  select(seqID) %>%
+  unlist(use.names = FALSE)
+hgcA.for.phylogeny.faa <- hgcA.faa[hgcA.seqs.to.keep]
+hgcA.for.phylogeny.faa
+
+writeXStringSet(hgcA.for.phylogeny.faa,
+                filepath = "dataEdited/ABA/hgcA/hgcA_for_phylogeny.faa",
+                format = "fasta",
+                width = 6000)
+```
+
+
+<!-- ```{r abundance} -->
+<!-- hgcA.cov <- read.table("dataEdited/ABA/hgcA/hgcA_coverage", -->
+<!--                        sep = '\t', -->
+<!--                        col.names = c("scaffoldID", "coverage", "length", "metagenomeID")) -->
+<!-- ``` -->
+
+
+### References
+
+Sorek, R., Y. Zhu, C. J. Creevey, M. P. Francino, P. Bork, and E. M. Rubin. “Genome-Wide Experimental Determination of Barriers to Horizontal Gene Transfer.” Science 318, no. 5855 (November 30, 2007): 1449–52. https://doi.org/10.1126/science.1147112.
