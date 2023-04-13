@@ -12,76 +12,58 @@
 
 ############################################
 ############################################
-# Identify hgcA sequences
+# Identify hgcA sequences with GID
 ############################################
 ############################################
 
-######################
-# Identify putative hgcA genes with HMM
-######################
-
-screen -S BLI_hgcA_search
 source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
 conda activate bioinformatics
 PYTHONPATH=''
-PERL5LIB=''
-scripts=~/BLiMMP/code/HomeBio/fasta_manipulation/
-ORFs=~/BLiMMP/dataEdited/assemblies/ORFs
-mkdir ~/BLiMMP/dataEdited/hgcA_analysis
-mkdir ~/BLiMMP/dataEdited/hgcA_analysis/identification
-cd ~/BLiMMP/dataEdited/hgcA_analysis/identification
-mkdir 2020 2021
-cd ~/BLiMMP/dataEdited
+PATH="/home/GLBRCORG/bpeterson26/BLiMMP/code/HomeBio/bin:$PATH"
 
-cat ~/BLiMMP/metadata/assembly_list.txt | while read assembly
-do
-  year=`echo $assembly | cut -d"_" -f1 | sed 's/BLI/20/'`
-  if [ -e $ORFs/$assembly.faa ]; then
-    if [ ! -e hgcA_analysis/identification/$year/$assembly\_hgcA_report.txt ]; then
-      echo "Search for hgcA in" $assembly "from" $year
-      hmmsearch --tblout hgcA_analysis/identification/$year/$assembly\_hgcA.out \
-                --cpu 4 \
-                --cut_tc \
-                ~/references/hgcA/hgcA.hmm \
-                $ORFs/$assembly.faa \
-                > hgcA_analysis/identification/$year/$assembly\_hgcA_report.txt
-      echo "Extracting hgcA sequences from" $assembly
-      python $scripts/extract_protein_hitting_HMM.py \
-              hgcA_analysis/identification/$year/$assembly\_hgcA.out \
-              $ORFs/$assembly.faa \
-              hgcA_analysis/identification/$year/$assembly\_hgcA.faa
-    else
-      echo "Search is already done in" $assembly
-    fi
-  else
-    echo "Genes aren't predicted for" $assembly
-  fi
-done
+#cd ~/BLiMMP/code
+#git clone https://github.com/petersonben50/HomeBio
+#cd HomeBio
+#git pull
+HomeBio=~/BLiMMP/code/HomeBio/bin
 
-
-######################
-# Concatenate and align all hgcA seqs for curation
-######################
-chmod +x /home/GLBRCORG/bpeterson26/BLiMMP/code/convert_stockhold_to_fasta.py
-cd ~/BLiMMP/dataEdited/hgcA_analysis/identification/
-cat 202*/*_hgcA.faa > hgcA_raw.faa
-# Align seqs
-muscle -align hgcA_raw.faa -output hgcA_raw.afa
-
-# Identify which sequences to remove (see notes in md file)
-# Then:
-scripts=~/BLiMMP/code/HomeBio/fasta_manipulation/
-cd ~/BLiMMP/dataEdited/hgcA_analysis/identification/
-python $scripts/remove_fasta_seqs_using_list_of_headers.py --fasta_file hgcA_raw.afa \
-                                                            --headers_to_remove seqs_to_remove.txt \
-                                                            --output_file hgcA_good.afa
-grep '>' hgcA_good.afa | \
-    sed 's/>//' \
-    > hgcA_good.txt
-sed 's/-//g' hgcA_good.afa > hgcA_good.faa
+# Set up dataset
+# rm -fr ~/BLiMMP/dataEdited/ABA/hgcA
+mkdir ~/BLiMMP/dataEdited/ABA
+python3 $HomeBio/ABA_GID.py --orf_folder ~/BLiMMP/dataEdited/assemblies/ORFs/ \
+                  --hmm ~/references/hgcA/hgcA.hmm \
+                  --output_location ~/BLiMMP/dataEdited/ABA/hgcA \
+                  --output_prefix hgcA \
+                  --metagenome_list /home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/metagenomes/reports/metagenome_list.txt \
+                  --metagenomes_location /home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/mapping/ \
+                  --reference_aa_dataset ~/references/13105370/Hg-MATE-Db.v1.01142021_ISOCELMAG_HgcA.fas \
+              > ~/BLiMMP/dataEdited/ABA/GID_log_hgcA.txt
 
 
 
+
+############################################
+############################################
+# Generate tree for classification
+############################################
+############################################
+cd ~/BLiMMP/dataEdited/ABA/hgcA
+sed -e '/^[A-Z]/s/-//g' ~/BLiMMP/references/hgcA/Hg-MATE-Db.v1.ISOCELMAG_HgcA_full.refpkg/Hg-MATE-Db.v1.ISOCELMAG_HgcA_full_align-bmge.fasta > working_directory/HgMATE_rough_phy_db_all.faa
+sed -i -e '/^-/s/-//g' working_directory/HgMATE_rough_phy_db_all.faa
+cd-hit -g 1 \
+        -i working_directory/HgMATE_rough_phy_db_all.faa \
+        -o working_directory/HgMATE_rough_phy_db.faa \
+        -c 0.70 \
+        -n 5 \
+        -d 0
+cat hgcA_for_phylogeny.faa \
+    working_directory/HgMATE_rough_phy_db.faa \
+    > working_directory/hgcA_for_phylogeny_with_refs.faa
+muscle -align working_directory/hgcA_for_phylogeny_with_refs.faa \
+        -output working_directory/hgcA_for_phylogeny_with_refs.afa
+FastTree working_directory/hgcA_for_phylogeny_with_refs.afa \
+    > hgcA_phylogeny.tree
+# Download this to my local computer.
 
 
 
@@ -157,43 +139,6 @@ guppy tog --pp \
 
 
 
-
-############################################
-############################################
-# Pull out depth of hgcA+ scaffolds
-############################################
-############################################
-
-screen -S BLI_hgcA_depth
-cd ~/BLiMMP/dataEdited/hgcA_analysis
-mkdir depth
-source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
-conda activate bioinformatics
-PERL5LIB=""
-PYTHONPATH=""
-
-cat /home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/metagenomes/reports/metagenome_list.txt | while read metagenome
-do
-  cat identification/hgcA_good.txt | while read gene
-  do
-    scaffold=$(echo $gene | awk -F '_' '{ print $1"_"$2"_"$3 }')
-    assembly=$(echo $gene | awk -F '_' '{ print $1"_"$2 }')
-    if [ -e ~/BLiMMP/dataEdited/mapping/$metagenome\_to_$assembly.bam ]; then
-      echo "Calculating coverage of" $metagenome "over" $scaffold
-      samtools depth -a -r $scaffold ~/BLiMMP/dataEdited/mapping/$metagenome\_to_$assembly.bam \
-          >> depth/$metagenome\_hgcA_depth_raw.tsv
-    else
-      echo $metagenome "not from same year as" $assembly "and" $gene "won't be found there"
-    fi
-  done
-
-  echo "Aggregating hgcA depth information for" $metagenome
-  python ~/BLiMMP/code/calculate_depth_length_contigs.py \
-            depth/$metagenome\_hgcA_depth_raw.tsv \
-            150 \
-            depth/$metagenome\_hgcA_depth.tsv
-  rm -f depth/$metagenome\_hgcA_depth_raw.tsv
-done
 
 
 
@@ -352,26 +297,6 @@ rm -f *_neighborhood.*
 
 
 
-############################################
-############################################
-# Dereplication
-############################################
-############################################
-
-cd ~/BLiMMP/dataEdited/hgcA_analysis
-mkdir dereplication
-cdhit=~/programs/cdhit-master
-$cdhit/cd-hit -g 1 \
-              -i identification/hgcA_good.faa \
-              -o dereplication/hgcA_good_acrossYear.faa \
-              -c 0.97 \
-              -n 5 \
-              -d 0
-$cdhit/clstr2txt.pl dereplication/hgcA_good_acrossYear.faa.clstr \
-  > dereplication/hgcA_good_acrossYear.tsv
-
-
-
 
 ############################################
 ############################################
@@ -397,46 +322,6 @@ sed 's/\/home\/glbrc.org\/bpeterson26\/BLiMMP\/dataEdited\/metatranscriptomes\/a
 # Phylogenetic analysis of hgcA
 ############################################
 ############################################
-
-#########################
-# Generate rough tree with Hg-MATE seqs using FastTree
-#########################
-
-screen -S BLI_hgcA_tree
-cd ~/BLiMMP/dataEdited/hgcA_analysis
-workingDirectory=~/BLiMMP/dataEdited/hgcA_analysis/phylogeny
-scripts=~/BLiMMP/code/generalUse
-references=~/BLiMMP/references/hgcA
-mkdir $workingDirectory
-
-# Pull out sequences for phylogenetic analysis.
-cd ~/BLiMMP/dataEdited/hgcA_analysis/
-rm -f phylogeny/hgcA_for_phylogeny.faa
-cat hgcA_final_list.txt | while read hgcA
-do
-  echo "Including" $hgcA "in phylogenetic analysis"
-  grep -A 1 $hgcA identification/hgcA_good.faa >> phylogeny/hgcA_for_phylogeny.faa
-done
-
-# Generate alignment of hgcA sequences from this study
-cd $workingDirectory
-source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
-conda activate bioinformatics
-PYTHONPATH=""
-PERL5LIB=''
-muscle -in hgcA_for_phylogeny.faa \
-        -out hgcA_for_phylogeny.afa
-
-# Generate consensus alignment
-muscle -profile \
-        -in1 hgcA_for_phylogeny.afa \
-        -in2 $references/Hg-MATE-Db.v1.ISOCELMAG_HgcA_full.refpkg/Hg-MATE-Db.v1.ISOCELMAG_HgcA_full_align-bmge.fasta \
-        -out hgcA_for_phylogeny_ref.afa
-
-# Generate rough tree
-FastTree hgcA_for_phylogeny_ref.afa \
-    > rough_hgcA.tree
-# Download this to my local computer.
 
 #########################
 # Generate good tree with Hg-MATE seqs using RAxML
