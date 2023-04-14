@@ -23,7 +23,7 @@ PATH="/home/GLBRCORG/bpeterson26/BLiMMP/code/HomeBio/bin:$PATH"
 
 #cd ~/BLiMMP/code
 #git clone https://github.com/petersonben50/HomeBio
-#cd HomeBio
+#cd ~/BLiMMP/code/HomeBio
 #git pull
 HomeBio=~/BLiMMP/code/HomeBio/bin
 
@@ -61,7 +61,10 @@ cat hgcA_for_phylogeny.faa \
     > working_directory/hgcA_for_phylogeny_with_refs.faa
 muscle -align working_directory/hgcA_for_phylogeny_with_refs.faa \
         -output working_directory/hgcA_for_phylogeny_with_refs.afa
-FastTree working_directory/hgcA_for_phylogeny_with_refs.afa \
+trimal -in working_directory/hgcA_for_phylogeny_with_refs.afa \
+        -out working_directory/hgcA_for_phylogeny_with_refs_cleaned.afa \
+        -gt 0.5
+FastTree working_directory/hgcA_for_phylogeny_with_refs_cleaned.afa \
     > hgcA_phylogeny.tree
 # Download this to my local computer.
 
