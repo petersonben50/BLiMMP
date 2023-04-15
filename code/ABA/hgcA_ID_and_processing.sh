@@ -67,7 +67,7 @@ trimal -in working_directory/hgcA_for_phylogeny_with_refs.afa \
 FastTree working_directory/hgcA_for_phylogeny_with_refs_cleaned.afa \
     > hgcA_phylogeny.tree
 # Download this to my local computer.
-
+conda deactivate
 
 
 ############################################
@@ -75,74 +75,13 @@ FastTree working_directory/hgcA_for_phylogeny_with_refs_cleaned.afa \
 # Classify hgcA seqs with pplacer workflow
 ############################################
 ############################################
-
-mkdir ~/BLiMMP/references
-mkdir ~/BLiMMP/references/hgcA
-
-screen -S BLI_hgcA_pplacer
-source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
-conda activate bioinformatics
+conda activate hgcA_classifier
 PYTHONPATH=""
 PERL5LIB=""
-references=~/BLiMMP/references/hgcA
-workingDirectory=~/BLiMMP/dataEdited/hgcA_analysis
-scripts=~/BLiMMP/code/HomeBio/fasta_manipulation/
-mkdir $workingDirectory/classification
-
-# Generate alignment of sequences of interest
-cd $references/Hg-MATE-Db.v1.ISOCELMAG_HgcA_full.refpkg
-python $scripts/convert_stockhold_to_fasta.py Hg-MATE-Db.v1.ISOCELMAG_HgcA_full.stockholm
-mv Hg-MATE-Db.v1.ISOCELMAG_HgcA_full.afackholm $workingDirectory/classification/Hg-MATE-Db.v1.ISOCELMAG_HgcA_full.afa
-cd $workingDirectory
-$scripts/cleanFASTA.py classification/Hg-MATE-Db.v1.ISOCELMAG_HgcA_full.afa
-sed -e '/^[A-Z]/s/-//g' classification/Hg-MATE-Db.v1.ISOCELMAG_HgcA_full.afa_tempCleanedFile > classification/Hg-MATE-Db.v1.ISOCELMAG_HgcA_full.faa
-sed -i -e '/^-/s/-//g' classification/Hg-MATE-Db.v1.ISOCELMAG_HgcA_full.faa
-rm -f classification/Hg-MATE-Db.v1.ISOCELMAG_HgcA_full.afa_tempCleanedFile
-
-cat identification/hgcA_good.faa \
-    classification/Hg-MATE-Db.v1.ISOCELMAG_HgcA_full.faa \
-    > classification/hgcA_for_classification.faa
-cd classification/
-sed -i 's/\*//' hgcA_for_classification.faa
-muscle -super5 hgcA_for_classification.faa \
-        -output hgcA_for_classification.afa
-# Convert to stockholm format
-python $scripts/convert_fasta_to_stockholm.py hgcA_for_classification.afa
-conda deactivate
-
-# Run pplacer
-conda activate hgcA_classifier
-pplacer -p \
-        --keep-at-most 1 \
-        --max-pend 1 \
-        -c $references/Hg-MATE-Db.v1.ISOCELMAG_HgcA_full.refpkg/ \
-        hgcA_for_classification.sto
-
-# Make sqlite database of reference
-rppr prep_db \
-      --sqlite Hg_MATE_classify \
-      -c $references/Hg-MATE-Db.v1.ISOCELMAG_HgcA_full.refpkg
-
-# Generate taxonomic assignments using guppy
-guppy classify -c $references/Hg-MATE-Db.v1.ISOCELMAG_HgcA_full.refpkg \
-               --pp \
-               --sqlite Hg_MATE_classify \
-               hgcA_for_classification.jplace
-
-# Save out this data to csv
-guppy to_csv --point-mass \
-              --pp \
-              -o hgcA_classification.csv \
-              hgcA_for_classification.jplace
-
-# Visualize placements on FastTree
-guppy tog --pp \
-          -o hgcA_classification.nwk \
-          hgcA_for_classification.jplace
-
-
-
-
+python $HomeBio/HG_hgcA_AutoClass.py --fasta_file /home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/ABA/hgcA/hgcA.faa \
+                                    --ref_package /home/GLBRCORG/bpeterson26/BLiMMP/references/hgcA/Hg-MATE-Db.v1.ISOCELMAG_HgcA_full.refpkg \
+                                    --output_name hgcA_for_autoClass \
+                                    --output_location /home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/ABA/hgcA
 
 
 ############################################
