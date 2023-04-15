@@ -72,27 +72,6 @@ hgcA.data <- hgcA.data %>%
 rm(hgcA.clstr.data, hgcA.scaf.assembly)
 ```
 
-Then I processed the coverage data by normalizing to the coverage of the 16 ribosomal proteins, which are single copy core genes (SCG). See Sorek et al, 2007 for data on identification of these genes as SCG.
-
-```{r coverage_normalization, echo = 1:3, message = FALSE}
-normalized.coverage.vector <- readRDS("dataEdited/scg_abundance/scg_normalization_vector.rds")
-hgcA.coverage <- read.table("dataEdited/ABA/hgcA/hgcA_coverage.tsv",
-                            col.names = c("scaffoldID", "coverage", "length_of_scaffold", "metagenomeID")) %>%
-  mutate(NF = normalized.coverage.vector[metagenomeID],
-         coverage_normalized = coverage*NF) %>%
-  select(-c(coverage, NF)) %>%
-  spread(key = metagenomeID,
-         value = coverage_normalized)
-hgcA.data <- hgcA.data %>%
-  left_join(hgcA.coverage)
-rm(normalized.coverage.vector,
-   hgcA.coverage)
-#testing <- hgcA.data %>% filter(verified_hgcA) %>% gather(key = metagenomeID, value = coverage, -c(1:10)) %>% group_by(cluster_ID, metagenomeID) %>% summarise(coverage = mean(coverage)) %>% ungroup() %>% group_by(metagenomeID) %>% summarise(coverage = sum(coverage)) %>%left_join(read.csv("metadata/metagenome_metadata.csv"))
-
-```
-
-
-Since in my analyses I average the coverage of all the sequences in a cluster for each metagenome, I wanted to make sure that the sequences within a cluster have similar abundance patterns. 
 
 ----
 
@@ -219,6 +198,65 @@ hgcA.data <- left_join(hgcA.data,
 ```
 
 
+
+```{r taxonomy_by_autoClass, message = FALSE}
+
+library(BoSSA)
+library(phyloseq)
+library(tidyverse)
+sqlite_file <- "dataEdited/ABA/hgcA/hgcA_for_autoClass.sqlite"
+jplace_file <- "dataEdited/ABA/hgcA/hgcA_for_autoClass.jplace"
+pplace_object <- read_sqlite(sqlite_file,
+                             jplace_file)
+refpkg_path <- "references/Hg-MATE-Db.v1.ISOCELMAG_HgcA_full.refpkg"
+taxonomy <- refpkg(refpkg_path,
+                   type = "taxonomy")
+taxonomy.table <- pplace_to_taxonomy(pplace_object,
+                                     taxonomy,
+                                     tax_name = TRUE,
+                                     rank = c("phylum", "class", "order",
+                                              "family", "genus", "species"))
+taxonomy.table.df <- as.data.frame(taxonomy.table) %>%
+  mutate(seqID = row.names(taxonomy.table)) %>%
+  select(seqID, phylum, class, order,
+         family, genus, species) %>%
+  dplyr::rename(autoclass_phylum = phylum,
+                autoclass_class = class,
+                autoclass_order = order,
+                autoclass_family = family,
+                autoclass_genus = genus,
+                autoclass_species = species) %>%
+  mutate(autoclass_phylum = autoclass_phylum %>%
+           strsplit(" <") %>% sapply("[", 1))
+hgcA.data <- hgcA.data %>%
+  left_join(taxonomy.table.df)
+
+```
+
+
+# Abundance data for *hgcA*
+
+Then I processed the coverage data by normalizing to the coverage of the 16 ribosomal proteins, which are single copy core genes (SCG). See Sorek et al, 2007 for data on identification of these genes as SCG.
+
+```{r coverage_normalization, echo = 1:3, message = FALSE}
+normalized.coverage.vector <- readRDS("dataEdited/scg_abundance/scg_normalization_vector.rds")
+hgcA.coverage <- read.table("dataEdited/ABA/hgcA/hgcA_coverage.tsv",
+                            col.names = c("scaffoldID", "coverage", "length_of_scaffold", "metagenomeID")) %>%
+  mutate(NF = normalized.coverage.vector[metagenomeID],
+         coverage_normalized = coverage*NF) %>%
+  select(-c(coverage, NF)) %>%
+  spread(key = metagenomeID,
+         value = coverage_normalized)
+hgcA.data <- hgcA.data %>%
+  left_join(hgcA.coverage)
+rm(normalized.coverage.vector,
+   hgcA.coverage)
+#testing <- hgcA.data %>% filter(verified_hgcA) %>% gather(key = metagenomeID, value = coverage, -c(1:10)) %>% group_by(cluster_ID, metagenomeID) %>% summarise(coverage = mean(coverage)) %>% ungroup() %>% group_by(metagenomeID) %>% summarise(coverage = sum(coverage)) %>%left_join(read.csv("metadata/metagenome_metadata.csv"))
+
+```
+
+
+Since in my analyses I average the coverage of all the sequences in a cluster for each metagenome, I wanted to make sure that the sequences within a cluster have similar abundance patterns. 
 
 ### References
 
