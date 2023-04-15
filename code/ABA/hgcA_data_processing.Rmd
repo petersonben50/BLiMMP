@@ -258,6 +258,15 @@ rm(normalized.coverage.vector,
 
 Since in my analyses I average the coverage of all the sequences in a cluster for each metagenome, I wanted to make sure that the sequences within a cluster have similar abundance patterns. 
 
+----
+# Save out data
+
+```{r save_out_data}
+write.csv(hgcA.data,
+          "dataFinal/hgcA_data.csv",
+          row.names = FALSE)
+
+```
 ### References
 
 Sorek, R., Y. Zhu, C. J. Creevey, M. P. Francino, P. Bork, and E. M. Rubin. “Genome-Wide Experimental Determination of Barriers to Horizontal Gene Transfer.” Science 318, no. 5855 (November 30, 2007): 1449–52. https://doi.org/10.1126/science.1147112.
