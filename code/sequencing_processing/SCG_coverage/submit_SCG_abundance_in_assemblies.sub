@@ -1,5 +1,5 @@
 ##################
-# SCG_abundance_in_assemblies.sub
+# submit_SCG_abundance_in_assemblies.sub
 # Submission script for pulling out the abundances of
 # single copy genes (SCGs) from metagenomes.
 

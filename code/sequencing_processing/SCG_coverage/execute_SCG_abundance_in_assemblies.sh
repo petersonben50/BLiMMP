@@ -11,8 +11,7 @@
 
 # Will read in these variables from
 # submission file:
-# geneName,scripts,scgHmms_location,scgHmms_key,assembly_list
-# assembly_location,metagenome_list,metagenome_location
+# geneName
 
 
 #########################
@@ -34,7 +33,8 @@ python3 $HomeBio/bin/ABA_SiCoGeCo.py --gene_name $geneName \
                                       --assembly_location /home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/assemblies/ORFs \
                                       --metagenome_list /home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/metagenomes/reports/metagenome_list.txt \
                                       --mapping_location /home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/mapping \
-                                      --output_directory /home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/scg_coverage \
+                                      --output_directory /home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/scg_coverage/processing_directory \
+                                      --homebio_location /home/GLBRCORG/bpeterson26/BLiMMP/code/HomeBio \
                                       --number_threads 7 \
                                       --length_to_trim 150 \
                                       --use_na
