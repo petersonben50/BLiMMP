@@ -1,0 +1,128 @@
+---
+title: "BLI_SCG"
+author: "Benjamin D. Peterson"
+date: "2023-05-09"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+rm(list = ls())
+# setwd("/Users/benjaminpeterson/Documents/research/BLiMMP")
+#new.wd <- "/Users/benjaminpeterson/Documents/research/BLiMMP"
+library(tidyverse)
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(echo = TRUE)
+new.wd <- gsub("\\/[[:alpha:]]+\\/[[:alpha:]]+_[[:alpha:]]+\\/[[:alpha:]]+_[[:alpha:]]+$", "", getwd())
+knitr::opts_knit$set(root.dir = new.wd)
+rm(new.wd)
+path_to_files <- "dataEdited/scg_coverage/"
+```
+
+# Determine clustering cutoffs
+
+```{r read_in_initial_cluster_data}
+list_o_files <- list.files(path = path_to_files, pattern = "tsv")
+cluster_files <- grep("cluster_data", list_o_files, value = TRUE)
+
+cluster_files_data <- list()
+for (cluster_file in cluster_files) {
+  gene_name = cluster_file %>% strsplit("_") %>% sapply("[", 1)
+  cluster_files_data[[gene_name]] <- read.table(paste(path_to_files, cluster_file,
+                                                      sep = ""),
+                                                header = TRUE,
+                                                sep = '\t') %>%
+    mutate(percent_ID = gsub(pattern = "%", "", percent_ID),
+           percent_ID = gsub(pattern = "\\*", "100", percent_ID),
+           percent_ID = as.numeric(percent_ID))
+}
+```
+
+
+
+```{r check_out_cutoffs}
+par(mfrow = c(4,4),
+    mar = c(3, 3, 1,1),
+    mgp=c(1.5,0.4,0),
+    tck=-0.008)
+for (gene in cluster_files_data) {
+  hist(gene$percent_ID, breaks = 100,
+       xlim = c(92, 100),
+       ylim = c(0, 400))
+  abline(v = 99.5,
+         col = "red")
+}
+
+```
+
+
+# Generate final SCG gene abundance
+
+First we just need a list of all the identified genes for each gene type.
+
+```{r read_in_final_cluster_info}
+G2A_files <- list.files(path = path_to_files, pattern = "G2A.tsv")
+
+gene_data <- list()
+for (G2A_file in G2A_files) {
+  gene_name_to_use = G2A_file %>% strsplit("_") %>% sapply("[", 1)
+  gene_data[[gene_name_to_use]] <- read.table(paste(path_to_files, G2A_file,
+                                                      sep = ""),
+                                                header = FALSE,
+                                                col.names = c("geneID", "assemblyID"),
+                                                sep = '\t') %>%
+    select(geneID) %>%
+    mutate(scaffoldID = paste(geneID %>% strsplit("_") %>% sapply("[", 1),
+                              geneID %>% strsplit("_") %>% sapply("[", 2),
+                              geneID %>% strsplit("_") %>% sapply("[", 3)))
+}
+all_data_df <- do.call(rbind,
+                        gene_data)
+```
+
+
+```{r read_in_final_cluster_info}
+list_o_cluster_files <- list.files(path = path_to_files, pattern = "finalCluster.tsv")
+
+final_cluster_data <- list()
+for (cluster_file in list_o_cluster_files) {
+  gene_name_to_use = cluster_file %>% strsplit("_") %>% sapply("[", 1)
+  final_cluster_data[[gene_name_to_use]] <- read.table(paste(path_to_files, cluster_file,
+                                                      sep = ""),
+                                                header = TRUE,
+                                                sep = '\t') %>%
+    mutate(gene_name = gene_name_to_use,
+           clstr_ID = paste(gene_name_to_use, "_", clstr_ID,
+                            sep = "")) %>%
+    select(geneID, gene_name, clstr_ID)
+}
+all_data_df <- left_join(all_data_df,
+                         do.call(rbind,
+                                 final_cluster_data))
+rm(final_cluster_data, list_o_cluster_files)
+```
+
+
+```{r add_in_coverage_data}
+coverage_files <- list.files(path = path_to_files, pattern = "coverage.tsv")
+
+coverage_data <- list()
+for (coverage_file in coverage_files) {
+  gene_name_to_use = coverage_file %>% strsplit("_") %>% sapply("[", 1)
+  coverage_data[[gene_name_to_use]] <- read.table(paste(path_to_files, coverage_file,
+                                                      sep = ""),
+                                                header = TRUE,
+                                                sep = '\t')
+}
+# Coverage is same
+coverage_data_df <- do.call(rbind,
+                            coverage_data) %>%
+  group_by(metagenomeID, scaffoldID) %>%
+  summarize(coverage = mean(coverage))
+
+rm(coverage_data, coverage_file)
+```
+
+
+
+
+
