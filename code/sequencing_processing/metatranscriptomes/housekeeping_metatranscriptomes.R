@@ -32,9 +32,12 @@ count.data %>%
   unlist(use.names = FALSE) %>%
   any()
 
+#### Clean up spreadsheet and save out for reporting in manuscript ####
 count.data <- count.data %>%
   select(mtID, MT_reads, IS_reads, percent_non_rRNA_as_IS, rRNA_reads, percent_rRNA, total_reads)
-
+write.csv(count.data,
+          "results/seq_data_tables/metatranscriptome_numbers.csv",
+          row.names = FALSE)
 
 #### Calculate normalization metric using internal standard ####
 length.of.IS <- 1371 # nucleotides
@@ -46,33 +49,38 @@ normalization.data <- count.data %>%
   select(mtID, IS_reads) %>%
   mutate(IS_copies = number.of.IS.copies.added,
          IS_length = length.of.IS) %>%
-  mutate(NF_copies_per_reads_per_kbase = number.of.IS.copies.added / (IS_reads / length.of.IS*1000)) %>%
-  select(mtID, NF_copies_per_reads_per_kbase) %>%
+  mutate(NF_copies_per_readsPerBp = number.of.IS.copies.added / (IS_reads / length.of.IS)) %>%
+  select(mtID, NF_copies_per_readsPerBp) %>%
   left_join(read.csv("metadata/metatranscriptome_metadata.csv") %>%
               select(metatranscriptomeID, volumeFiltered) %>%
               rename(mtID = metatranscriptomeID)) %>%
+  mutate(NF_counts_per_readsPerBp_per_L = NF_copies_per_readsPerBp / (volumeFiltered / 1000)) %>%
   as.data.frame()
-saveRDS(normalization.data)
+
+
+
+#### Convert to vector and save out normalization data ####
+normalization.vector <- normalization.data$NF_counts_per_readsPerBp_per_L
+names(normalization.vector) <- normalization.data$mtID
+saveRDS(normalization.vector,
+        "dataEdited/metatranscriptomes/normalization_vector.rds")
+
 
 
 #### Set up pseudomapping key ####
 # Map metatranscriptomes to ORFs from assemblies from the same year.
-assemblies <- read.table("dataEdited/assemblies/reports/all_assemblies_stats.txt",
+assemblies <- read.table("dataEdited/assemblies/all_assemblies_stats.txt",
                          header = TRUE) %>%
   select(assemblyID) %>%
-  mutate(year = assemblyID %>%
-           strsplit("_") %>% sapply("[", 1) %>%
-           gsub("BLI", "20", .))
+  unlist(use.names = FALSE)
 metatranscriptomes <- count.data %>%
-  mutate(year = mtID %>%
-           strsplit("_") %>% sapply("[", 1) %>%
-           gsub("BLI", "20", .)) %>%
-  select(mtID, year)
+  select(mtID) %>%
+  unlist(use.names = FALSE)
 
 # Join by year
-pseudomapping.key <- full_join(metatranscriptomes,
-                               assemblies) %>%
-  select(-year)
+pseudomapping.key <- cbind(rep(metatranscriptomes, length(assemblies)),
+                           rep(assemblies, length(metatranscriptomes)) %>%
+                             sort())
 write.table(pseudomapping.key,
             file = "dataEdited/metatranscriptomes/reports/pseudomapping_key.tsv",
             quote = FALSE,
