@@ -20,14 +20,13 @@ path_to_files <- "dataEdited/scg_coverage/"
 
 # Determine clustering cutoffs
 
-```{r read_in_initial_cluster_data}
-list_o_files <- list.files(path = path_to_files, pattern = "tsv")
-cluster_files <- grep("cluster_data", list_o_files, value = TRUE)
+```{r read_in_initial_cluster_data, include = FALSE}
+cluster_files <- list.files(path = path_to_files, pattern = "cluster_data.tsv")
 
 cluster_files_data <- list()
 for (cluster_file in cluster_files) {
-  gene_name = cluster_file %>% strsplit("_") %>% sapply("[", 1)
-  cluster_files_data[[gene_name]] <- read.table(paste(path_to_files, cluster_file,
+  gene_name_to_use = cluster_file %>% strsplit("_") %>% sapply("[", 1)
+  cluster_files_data[[gene_name_to_use]] <- read.table(paste(path_to_files, cluster_file,
                                                       sep = ""),
                                                 header = TRUE,
                                                 sep = '\t') %>%
@@ -35,31 +34,48 @@ for (cluster_file in cluster_files) {
            percent_ID = gsub(pattern = "\\*", "100", percent_ID),
            percent_ID = as.numeric(percent_ID))
 }
+rm(cluster_files, cluster_file, gene_name_to_use)
 ```
 
+In the initial SiCoGeCo workflow, I clustered the nucleic acid sequences at 80% identity to get a sense for the distribution and try to identify an inflection point where I suspected the true cutoff to be.
+For amino acids in other workflows, I've used 97%, but the amino acids here are nearly identical, and many from the same assembly are clustering at over 99%.
+That's why I decided to use nucleic acids instead.
+First look at the distribution.
 
-
-```{r check_out_cutoffs}
+```{r check_out_cutoffs, echo = FALSE}
 par(mfrow = c(4,4),
     mar = c(3, 3, 1,1),
     mgp=c(1.5,0.4,0),
     tck=-0.008)
-for (gene in cluster_files_data) {
-  hist(gene$percent_ID, breaks = 100,
+for (gene_number in 1:length(cluster_files_data)) {
+  data.to.use <- cluster_files_data[[gene_number]]
+  hist(data.to.use$percent_ID, breaks = 100,
        xlim = c(92, 100),
-       ylim = c(0, 400))
+       ylim = c(0, 400),
+       xlab = "Percent identify",
+       ylab = "Counts",
+       main = names(cluster_files_data[gene_number]))
   abline(v = 99.5,
          col = "red")
 }
-
+gene_number <- 1
+rm(gene, gene_name_to_use, cluster_files_data)
 ```
+
+There is no clear inflection point, it looks like it just might be just under 100%.
+I'm going to go with 99.5 to make sure we're not missing sequences have differed by 1 nucleotide due to assembly error.
+I would guess that this is going to miss some genes that should be clustered together, so might present an overestimate of the bacterial population.
+
 
 
 # Generate final SCG gene abundance
 
 First we just need a list of all the identified genes for each gene type.
+I'm doing this to make sure that CD-HIT isn't leaving out anything, which, as it turns out, it's not doing.
+But I'll keep it this way for now.
+Generated the scaffold name from this as well, to link to the coverage data.
 
-```{r read_in_final_cluster_info}
+```{r read_in_g2a_file}
 G2A_files <- list.files(path = path_to_files, pattern = "G2A.tsv")
 
 gene_data <- list()
@@ -73,14 +89,19 @@ for (G2A_file in G2A_files) {
     select(geneID) %>%
     mutate(scaffoldID = paste(geneID %>% strsplit("_") %>% sapply("[", 1),
                               geneID %>% strsplit("_") %>% sapply("[", 2),
-                              geneID %>% strsplit("_") %>% sapply("[", 3)))
+                              geneID %>% strsplit("_") %>% sapply("[", 3),
+                              sep = "_"),
+           gene_name = gene_name_to_use)
 }
 all_data_df <- do.call(rbind,
                         gene_data)
+rm(G2A_files, G2A_file, gene_data, gene_name_to_use)
 ```
 
 
-```{r read_in_final_cluster_info}
+Next I added the clustering information.
+
+```{r read_in_final_cluster_info, message = FALSE}
 list_o_cluster_files <- list.files(path = path_to_files, pattern = "finalCluster.tsv")
 
 final_cluster_data <- list()
@@ -95,14 +116,19 @@ for (cluster_file in list_o_cluster_files) {
                             sep = "")) %>%
     select(geneID, gene_name, clstr_ID)
 }
-all_data_df <- left_join(all_data_df,
-                         do.call(rbind,
-                                 final_cluster_data))
-rm(final_cluster_data, list_o_cluster_files)
+final_cluster_df <- do.call(rbind,
+                            final_cluster_data)
+all_data_df <- full_join(all_data_df,
+                         final_cluster_df)
+rm(final_cluster_data, list_o_cluster_files, cluster_file, gene_name_to_use, final_cluster_df)
 ```
 
+Finally, I added the coverage information.
+Since some of the genes of interest are on the same scaffolds, I clustered them by metagenomeID and scaffoldID.
+They should have the same coverage, so I just calculated the mean.
+I checked the standard deviation, just to make sure, and it confirmed that they're the same.
 
-```{r add_in_coverage_data}
+```{r add_in_coverage_data, warning = FALSE, message = FALSE}
 coverage_files <- list.files(path = path_to_files, pattern = "coverage.tsv")
 
 coverage_data <- list()
@@ -113,16 +139,72 @@ for (coverage_file in coverage_files) {
                                                 header = TRUE,
                                                 sep = '\t')
 }
-# Coverage is same
 coverage_data_df <- do.call(rbind,
                             coverage_data) %>%
   group_by(metagenomeID, scaffoldID) %>%
-  summarize(coverage = mean(coverage))
-
-rm(coverage_data, coverage_file)
+  summarize(coverage_sd = sd(coverage),
+            coverage_mean = mean(coverage)) %>%
+  ungroup()
+coverage_data_df %>%
+  filter(coverage_sd > 0)
+coverage_data_df <- coverage_data_df %>%
+  rename(coverage = coverage_mean) %>%
+  select(-coverage_sd) %>%
+  spread(key = metagenomeID,
+         value = coverage)
+all_data_df <- left_join(all_data_df,
+                         coverage_data_df)
+rm(coverage_data, coverage_files, coverage_file, coverage_data_df, gene_name_to_use)
 ```
 
+Now I had all my data together, so I simply clustered it by metagenomeID and clusterID to get the total SCG coverage for each metagenome, first averaging over genes within a cluster, then summing over the gene types in a given metagenome.
 
+```{r calculate_final_SCG_coverage, message = FALSE, warning = FALSE}
+final_data_df <- all_data_df %>%
+  gather(key = metagenomeID,
+         value = coverage,
+         -c(1:4)) %>%
+  group_by(clstr_ID, gene_name, metagenomeID) %>%
+  summarise(coverage_mean = mean(coverage)) %>%
+  ungroup() %>%
+  group_by(gene_name, metagenomeID) %>%
+  summarise(coverage_total = sum(coverage_mean)) %>%
+  ungroup()
+```
 
+I generated a plot to see what the distribution looks like over all the metagenomes.
 
+```{r plot_total_abundances, echo = FALSE}
+final_data_df %>%
+  ggplot(aes(x = metagenomeID,
+             y = coverage_total)) +
+  geom_line(mapping = aes(group = gene_name)) +
+  geom_point() +
+  ylim(c(0, 7000)) +
+  theme_bw() +
+  stat_summary(geom = "point", fun = "median",
+             col = "black", fill = "red",
+             size = 3, shape = 24) +
+  theme(axis.text.x = element_text(angle = 90),
+        axis.title.x = element_blank())
 
+```
+
+Pretty consistent with what I've calculated previously, but definitely higher overall coverage, and proportionally more coverage in 2021.
+Last step, calculate the normalization vector and save it out.
+
+```{r calculate_NF}
+median_scg_abundance <- final_data_df %>%
+  group_by(metagenomeID) %>%
+  summarize(coverage_for_normalization = median(coverage_total))
+# Normalize to a coverage of 100
+normalized_median_scg_abundance <- median_scg_abundance %>%
+  mutate(NF = 100 / coverage_for_normalization)
+
+normalization.vector <- normalized_median_scg_abundance$NF
+names(normalization.vector) <- normalized_median_scg_abundance$metagenomeID
+saveRDS(normalization.vector,
+        "dataEdited/scg_coverage/scg_normalization_vector.rds")
+```
+
+ 
