@@ -34,6 +34,6 @@ python3 $HomeBio/bin/ABA_GID.py --orf_folder ~/BLiMMP/dataEdited/assemblies/ORFs
                   --metatranscriptome_location /home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/metatranscriptomes/alignment \
                   --reference_aa_dataset $HomeBio/reference_data/sequence_databases/narG/NarG_luke_database.faa \
                   --number_threads 30 \
-                  --cluster_cutoff 0.8
+                  --cluster_cutoff 0.8 \
                   > ~/BLiMMP/dataEdited/ABA/GID_log_narG.txt
 
