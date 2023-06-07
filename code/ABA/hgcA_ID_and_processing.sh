@@ -239,26 +239,6 @@ rm -f *_neighborhood.*
 
 
 
-
-############################################
-############################################
-# Metatranscriptome counts
-############################################
-############################################
-MT_depth=~/BLiMMP/dataEdited/metatranscriptomes/alignment
-cd ~/BLiMMP/dataEdited/hgcA_analysis
-mkdir MT_abundance
-cat identification/hgcA_good.txt | while read hgcA_ID
-do
-  assemblyID=`echo $hgcA_ID | cut -d'_' -f1,2`
-  echo "Pulling out MT reads for" $hgcA_ID "from" $assemblyID
-  grep $hgcA_ID $MT_depth/BLI*_MT_*_to_$assemblyID\_abundance.tsv >> MT_abundance/hgcA_MT_hits.tsv
-done
-cd MT_abundance
-sed 's/\/home\/glbrc.org\/bpeterson26\/BLiMMP\/dataEdited\/metatranscriptomes\/alignment\///' hgcA_MT_hits.tsv | \
-  sed -e 's/_to_BLI2[0-1]_[a-z]*[0-9]*_abundance.tsv:/\t/' > hgcA_MT_hits_clean.tsv
-
-
 ############################################
 ############################################
 # Phylogenetic analysis of hgcA

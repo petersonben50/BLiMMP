@@ -1,0 +1,440 @@
+---
+title: "TEAP_data_processing"
+author: "Benjamin D. Peterson"
+date: "2023-05-23"
+output: html_document
+---
+
+```{r setup, include = FALSE}
+rm(list = ls())
+library(ggtree)
+library(tidyverse)
+library(treeio)
+
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(echo = TRUE)
+new.wd <- gsub("\\/[[:alpha:]]+\\/[[:alpha:]]+$", "", getwd())
+knitr::opts_knit$set(root.dir = new.wd)
+rm(new.wd)
+#knitr::opts_knit$set(root.dir = "/Users/benjaminpeterson/Documents/research/BLiMMP")
+```
+
+First, I read in the metadata for both MGs and MTs:
+  
+```{r MG_MT_metadata, include = FALSE}
+MG_metadata <- read.csv("metadata/metagenome_metadata.csv") %>%
+  rename(omicID = metagenomeID) %>%
+  mutate(seqType = "MG") %>%
+  select(omicID, startDate, depth, seqType)
+MT_metadata <- read.csv("metadata/metatranscriptome_metadata.csv") %>%
+  rename(omicID = metatranscriptomeID) %>%
+  mutate(seqType = "MT") %>%
+  select(omicID, startDate, depth, seqType)
+omic_metadata <- rbind(MG_metadata,
+                       MT_metadata)
+rm(MG_metadata, MT_metadata)
+NFs.expression <- readRDS("dataEdited/metatranscriptomes/normalization_vector.rds")
+```
+
+# NarG sequences
+
+### Confirm sequences are *NarG*
+
+First I plotted the tree that was generated.
+
+```{r NarG_tree, fig.height = 12}
+narG_tree <- read.newick("dataEdited/ABA/narG/narG.tree")
+narG_tree_rooted <- phangorn::midpoint(narG_tree)
+rm(narG_tree)
+ggtree(narG_tree_rooted) +
+  geom_tiplab(size = 2) +
+  geom_text2(aes(subset = !isTip, label = node),
+             size = 1.5,
+             hjust = 1,
+             vjust = -1) +
+  geom_treescale(x = 9)
+```
+
+Many of the identified sequences are actually cytoplasmic NxrA sequences.
+I removed those.
+
+```{r remove_nxrA_seqs}
+narG_tree_subset <- tree_subset(narG_tree_rooted,
+                                node = 176,
+                                levels_back = 0)
+rm(narG_tree_rooted)
+ggtree(narG_tree_subset) +
+  geom_tiplab(size = 2) +
+  geom_text2(aes(subset = !isTip, label = node),
+             size = 1.5,
+             hjust = 1,
+             vjust = -1) +
+  geom_treescale(x = 9)
+```
+
+### Cluster NarG sequences
+
+Next, I looked at the clustering data to determine a good cut-off to use.
+
+```{r narg_clstr_data_check }
+narg_seq_list <- grep(pattern = "^BLI",
+                      narG_tree_subset$tip.label,
+                      value = TRUE)
+narg_clstr_data <- read.table("dataEdited/ABA/narG/narG_cluster_data.tsv",
+                              header = TRUE) %>%
+  filter(id %in% narg_seq_list)
+plot(y = gsub("%", "", narg_clstr_data$clstr_iden) %>% as.numeric() %>% sort(decreasing = TRUE),
+     x = 1:length(narg_clstr_data$clstr_iden),
+     xlab = "",
+     ylab = "Percent ID",
+     pch = 16)
+abline(h = 97, col = "red")
+abline(h = 99, col = "black")
+rm(narg_clstr_data, narG_tree_subset)
+```
+
+Tough one to pick a cutoff for, but 97 vs. 99 is only a difference of two based on this dataset.
+Let's go with 99%.
+I went back into the *narG* processing sheet and reran cd-hit with the 0.99 cutoff.
+Then I brought that data into R.
+
+### Aggregate and inspect NarG data
+```{r narg_clstr_data }
+narg_data <- read.table("dataEdited/ABA/narG/narG_derep_99.tsv",
+                              header = TRUE) %>%
+  filter(geneID %in% narg_seq_list) %>%
+  mutate(geneName = "narG") %>%
+  select(geneID, geneName, clstr_ID, length) %>%
+  mutate(contigID = gsub('_[[:digit:]]+$', '', x = geneID))
+rm(narg_seq_list)
+```
+
+Add in the metagenome and metatranscriptome data as well:
+
+```{r narG_coverage_data, warning = FALSE, message = FALSE}
+normalized.coverage.vector <- readRDS("dataEdited/scg_coverage/scg_normalization_vector.rds")
+narG_MG <- read.table("dataEdited/ABA/narG/narG_MG_coverage.tsv",
+                      header = FALSE,
+                      col.names = c("contigID", "coverage", "contigLength", "metagenomeID")) %>%
+  mutate(NF = normalized.coverage.vector[metagenomeID],
+         coverage_normalized = coverage*NF) %>%
+  select(contigID, metagenomeID, coverage_normalized) %>%
+  spread(key = metagenomeID, value = coverage_normalized)
+narG_MT <- read.table("dataEdited/ABA/narG/narG_MT_coverage.tsv",
+                        header = TRUE) %>%
+  mutate(counts_per_bp = counts/effective_length,
+         million_counts_per_liter = counts_per_bp*NFs.expression[mtID]/1000000) %>%
+  select(geneID, mtID, million_counts_per_liter) %>%
+  spread(key = mtID,
+         value = million_counts_per_liter)
+narg_data <- left_join(narg_data, narG_MG) %>%
+  left_join(narG_MT)
+rm(narG_MT, narG_MG)
+```
+
+Inspect the metagenome and metatranscriptome abundance.
+
+```{r check_narG_data, fig.height=10, echo = FALSE, warning=FALSE, message = FALSE}
+plot_data <- narg_data %>%
+  gather(key = omicID,
+         value = coverage,
+         -c(1:5)) %>%
+  group_by(clstr_ID, omicID) %>%
+  summarise(coverage = mean(coverage)) %>%
+  ungroup() %>%
+  group_by(omicID) %>%
+  summarise(coverage = sum(coverage)) %>%
+  ungroup() %>%
+  left_join(omic_metadata) %>%
+  mutate(date_depth = paste(startDate, "-", depth, "m",
+                            sep = "")) 
+  
+narG_MG <- plot_data %>%
+  filter(seqType == "MG") %>%
+  ggplot(aes(x = date_depth,
+             y = coverage)) +
+  geom_point() +
+  facet_wrap(~seqType,
+             nrow = 2) +
+  theme_bw() +
+  ylim(c(0, 10)) +
+  theme(axis.text.x = element_text(angle = 90,
+                                   vjust = 0.5,
+                                   hjust=1)) +
+  xlab("")
+narG_MT <- plot_data %>%
+  filter(seqType == "MT") %>%
+  ggplot(aes(x = date_depth,
+             y = log(coverage, 10))) +
+  geom_point() +
+  facet_wrap(~seqType,
+             nrow = 2) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90,
+                                   vjust = 0.5,
+                                   hjust=1)) +
+  xlab("")
+ggpubr::ggarrange(narG_MG,
+                  narG_MT,
+                  ncol = 1,
+                  nrow = 2)
+rm(plot_data, narG_MT, narG_MG)
+```
+
+
+
+
+
+
+
+# DsrA sequences
+
+### Identify reductive vs. oxidative *dsrA* genes
+
+```{r DsrA_tree_root_node_ID, fig.height = 40, include = FALSE}
+dsrA_tree <- read.newick("dataEdited/ABA/dsrA/dsrA.tree")
+ggtree(dsrA_tree) +
+  geom_tiplab(size = 2) +
+  geom_text2(aes(subset = !isTip, label = node),
+             size = 2.5,
+             hjust = 1,
+             vjust = -1) +
+  geom_treescale(x = 9)
+```
+
+The first step was to look at the tree that I generated and identify the rooting node.
+The node leading to the DsrB seqs is 738, so we'll root on that.
+Next, I needed to split up the sequences by reductive vs. oxidative DsrA sequences.
+To do this, I looked at the rooted tree with the nodes labeled:
+  
+```{r DsrA_tree_rooted, fig.height = 40}
+dsrA_tree_rooted <- root(phy = dsrA_tree,
+                         node = 738)
+ggtree(dsrA_tree_rooted) +
+  geom_tiplab(size = 2) +
+  geom_treescale(x = 9) +
+  geom_text2(aes(subset = !isTip, label = node),
+             size = 2.5,
+             hjust = 1,
+             vjust = -1)
+rm(dsrA_tree)
+```
+
+The branch of oxidative DsrA sequences is a subtree of the whole tree, so I pulled out those sequence IDs to mark as oxidative (node 476).
+Quick check to make sure this is right:
+  
+```{r oxi_DsrA_tree, fig.height = 10}
+oxi_dsrA_tree_rooted <- tree_subset(dsrA_tree_rooted,
+                                    node = 476,
+                                    levels_back = 0)
+ggtree(oxi_dsrA_tree_rooted) +
+  geom_tiplab(size = 2) +
+  geom_treescale(x = 9) +
+  geom_text2(aes(subset = !isTip, label = node),
+             size = 2.5,
+             hjust = 1,
+             vjust = -1)
+```
+
+This looks correct.
+Next, I classified all the sequences from this study in that tree as oxidative, and the remaining DsrA seqs as reductive.
+
+```{r classify_dsrA_seqs}
+dsrA_seqs <- grep("BLI2[0-1]_",
+                  dsrA_tree_rooted$tip.label,
+                  value = TRUE)
+oxi_dsrA_seqs <- grep("BLI2[0-1]_",
+                      oxi_dsrA_tree_rooted$tip.label,
+                      value = TRUE)
+red_dsrA_seqs <- dsrA_seqs[-which(dsrA_seqs %in% oxi_dsrA_seqs)]
+dsrA_type_vector <- c(rep("oxi_dsrA", length(oxi_dsrA_seqs)),
+                      rep("red_dsrA", length(red_dsrA_seqs)))
+names(dsrA_type_vector) <- c(oxi_dsrA_seqs, red_dsrA_seqs)
+rm(oxi_dsrA_seqs, red_dsrA_seqs, dsrA_seqs, oxi_dsrA_tree_rooted, dsrA_tree_rooted)
+```
+
+
+### Cluster sequences
+
+Next I looked at the clustering values that we used to determine a clustering cutoff:
+  
+```{r dsrA_clstr_data_check, echo = FALSE}
+dsrA_clstr_data <- read.table("dataEdited/ABA/dsrA/dsrA_cluster_data.tsv",
+                              header = TRUE)
+plot(y = gsub("%", "", dsrA_clstr_data$clstr_iden) %>% as.numeric() %>% sort(decreasing = TRUE),
+     x = 1:length(dsrA_clstr_data$clstr_iden),
+     xlab = "",
+     ylab = "Percent ID",
+     pch = 16)
+abline(h = 97, col = "red")
+rm(dsrA_clstr_data)
+```
+
+Using a cutoff of 0.97 here will work, so I re-clustered everything with CD-HIT at that 97% cutoff:
+
+```{zsh engine.opts='-i'}
+conda activate bioinformatics
+cd-hit -g 1 \
+        -i dataEdited/ABA/dsrA/dsrA.faa \
+        -o dataEdited/ABA/dsrA/dsrA_clustered.faa \
+        -c 0.97 \
+        -n 5 \
+        -d 0
+python ../../programs/HomeBio/bin/FM_CDHIT_parsing.py --clstr_in dataEdited/ABA/dsrA/dsrA_clustered.faa.clstr \
+                                                  --clstr_out dataEdited/ABA/dsrA/dsrA_clustered_97.tsv
+rm dataEdited/ABA/dsrA/dsrA_clustered.faa dataEdited/ABA/dsrA/dsrA_clustered.faa.clstr
+```
+
+
+### Aggregate and inspect dsrA data
+
+Now that all of the sequences have been clustered, I read them in and aggregated the cluster info with the MG and MT data.
+
+```{r dsrA_clstr_data }
+dsrA_data <- read.table("dataEdited/ABA/dsrA/dsrA_clustered_97.tsv",
+                              header = TRUE) %>%
+  mutate(geneName = dsrA_type_vector[geneID]) %>%
+  select(geneID, geneName, clstr_ID, length) %>%
+  mutate(contigID = gsub('_[[:digit:]]+$', '', x = geneID))
+rm(dsrA_type_vector)
+
+dsrA_MG <- read.table("dataEdited/ABA/dsrA/dsrA_MG_coverage.tsv",
+                      header = FALSE,
+                      col.names = c("contigID", "coverage", "contigLength", "metagenomeID")) %>%
+  mutate(NF = normalized.coverage.vector[metagenomeID],
+         coverage_normalized = coverage*NF) %>%
+  select(contigID, metagenomeID, coverage_normalized) %>%
+  spread(key = metagenomeID, value = coverage_normalized)
+dsrA_MT <- read.table("dataEdited/ABA/dsrA/dsrA_MT_coverage.tsv",
+                        header = TRUE) %>%
+  mutate(counts_per_bp = counts/effective_length,
+         million_counts_per_liter = counts_per_bp*NFs.expression[mtID]/1000000) %>%
+  select(geneID, mtID, million_counts_per_liter) %>%
+  spread(key = mtID,
+         value = million_counts_per_liter)
+dsrA_data <- left_join(dsrA_data, dsrA_MG) %>%
+  left_join(dsrA_MT)
+rm(dsrA_MG, dsrA_MT)
+```
+
+
+```{r check_red_dsrA_data, fig.height=10, echo = FALSE, warning=FALSE, message = FALSE}
+plot_data_red_dsrA <- dsrA_data %>%
+  filter(geneName == "red_dsrA") %>%
+  gather(key = omicID,
+         value = coverage,
+         -c(1:5)) %>%
+  group_by(clstr_ID, omicID) %>%
+  summarise(coverage = mean(coverage)) %>%
+  ungroup() %>%
+  group_by(omicID) %>%
+  summarise(coverage = sum(coverage)) %>%
+  ungroup() %>%
+  left_join(omic_metadata) %>%
+  mutate(date_depth = paste(startDate, "-", depth, "m",
+                            sep = "")) 
+  
+dsrA_MG <- plot_data_red_dsrA %>%
+  filter(seqType == "MG") %>%
+  ggplot(aes(x = date_depth,
+             y = coverage)) +
+  geom_point() +
+  facet_wrap(~seqType,
+             nrow = 2) +
+  theme_bw() +
+  ylim(c(0, 5)) +
+  theme(axis.text.x = element_text(angle = 90,
+                                   vjust = 0.5,
+                                   hjust=1)) +
+  xlab("")
+dsrA_MT <- plot_data_red_dsrA %>%
+  filter(seqType == "MT") %>%
+  ggplot(aes(x = date_depth,
+             y = coverage)) +
+  geom_point() +
+  facet_wrap(~seqType,
+             nrow = 2) +
+  theme_bw() +
+  # ylim(c(0, 4)) +
+  theme(axis.text.x = element_text(angle = 90,
+                                   vjust = 0.5,
+                                   hjust=1)) +
+  xlab("")
+ggpubr::ggarrange(dsrA_MG,
+                  dsrA_MT,
+                  ncol = 1,
+                  nrow = 2)
+rm(plot_data_red_dsrA, dsrA_MG, dsrA_MT)
+```
+
+Look at oxidative DsrA as well:
+
+```{r check_oxi_dsrA_data, fig.height=10, echo = FALSE, warning=FALSE, message = FALSE}
+plot_data_oxi_dsrA <- dsrA_data %>%
+  filter(geneName == "oxi_dsrA") %>%
+  gather(key = omicID,
+         value = coverage,
+         -c(1:5)) %>%
+  group_by(clstr_ID, omicID) %>%
+  summarise(coverage = mean(coverage)) %>%
+  ungroup() %>%
+  group_by(omicID) %>%
+  summarise(coverage = sum(coverage)) %>%
+  ungroup() %>%
+  left_join(omic_metadata) %>%
+  mutate(date_depth = paste(startDate, "-", depth, "m",
+                            sep = "")) 
+  
+dsrA_MG <- plot_data_oxi_dsrA %>%
+  filter(seqType == "MG") %>%
+  ggplot(aes(x = date_depth,
+             y = coverage)) +
+  geom_point() +
+  facet_wrap(~seqType,
+             nrow = 2) +
+  theme_bw() +
+  ylim(c(0, 25)) +
+  theme(axis.text.x = element_text(angle = 90,
+                                   vjust = 0.5,
+                                   hjust=1)) +
+  xlab("")
+dsrA_MT <- plot_data_oxi_dsrA %>%
+  filter(seqType == "MT") %>%
+  ggplot(aes(x = date_depth,
+             y = coverage)) +
+  geom_point() +
+  facet_wrap(~seqType,
+             nrow = 2) +
+  theme_bw() +
+  ylim(c(0, 550)) +
+  theme(axis.text.x = element_text(angle = 90,
+                                   vjust = 0.5,
+                                   hjust=1)) +
+  xlab("")
+ggpubr::ggarrange(dsrA_MG,
+                  dsrA_MT,
+                  ncol = 1,
+                  nrow = 2)
+rm(plot_data_oxi_dsrA, dsrA_MG, dsrA_MT)
+```
+
+
+
+
+# Aggregate all TEAP data
+
+```{r aggregate_TEAP_data}
+TEAP_data <- rbind(narg_data,
+                   dsrA_data) %>%
+  mutate(clstr_ID = paste(geneName, "-",
+                          stringr::str_pad(string = clstr_ID,
+                                           side = "left",
+                                           pad = "0",
+                                           width = 3),
+                          sep = ""))
+write.csv(x = TEAP_data,
+          file = "dataFinal/TEAP_data.csv",
+          quote = FALSE,
+          row.names = FALSE)
+```
+

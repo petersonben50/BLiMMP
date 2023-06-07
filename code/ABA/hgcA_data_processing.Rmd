@@ -230,16 +230,18 @@ taxonomy.table.df <- as.data.frame(taxonomy.table) %>%
            strsplit(" <") %>% sapply("[", 1))
 hgcA.data <- hgcA.data %>%
   left_join(taxonomy.table.df)
-
+rm(sqlite_file, jplace_file, pplace_object, refpkg_path, taxonomy, taxonomy.table, taxonomy.table.df)
 ```
 
 
 # Abundance data for *hgcA*
 
 Then I processed the coverage data by normalizing to the coverage of the 16 ribosomal proteins, which are single copy core genes (SCG). See Sorek et al, 2007 for data on identification of these genes as SCG.
+SCG abundance values were calculated using the SiCoGeCo workflow from [HomeBio](https://github.com/petersonben50/HomeBio).
+
 
 ```{r coverage_normalization, echo = 1:3, message = FALSE}
-normalized.coverage.vector <- readRDS("dataEdited/scg_abundance/scg_normalization_vector.rds")
+normalized.coverage.vector <- readRDS("dataEdited/scg_coverage/scg_normalization_vector.rds")
 hgcA.coverage <- read.table("dataEdited/ABA/hgcA/hgcA_coverage.tsv",
                             col.names = c("scaffoldID", "coverage", "length_of_scaffold", "metagenomeID")) %>%
   mutate(NF = normalized.coverage.vector[metagenomeID],
@@ -251,7 +253,26 @@ hgcA.data <- hgcA.data %>%
   left_join(hgcA.coverage)
 rm(normalized.coverage.vector,
    hgcA.coverage)
-#testing <- hgcA.data %>% filter(verified_hgcA) %>% gather(key = metagenomeID, value = coverage, -c(1:10)) %>% group_by(cluster_ID, metagenomeID) %>% summarise(coverage = mean(coverage)) %>% ungroup() %>% group_by(metagenomeID) %>% summarise(coverage = sum(coverage)) %>%left_join(read.csv("metadata/metagenome_metadata.csv"))
+
+```
+
+# Expression data for *hgcA*
+
+Last, I generated expression data for each of the *hgcA* sequences. First, I searched through the pseudoalignment data for the number of metatranscriptomic reads that map to each *hgcA* sequence. This is the data that was pulled into this file.
+
+```{r expression_normalization, echo = 1:3, message = FALSE}
+NFs.expression <- readRDS("dataEdited/metatranscriptomes/normalization_vector.rds")
+hgcA.expr <- read.table("dataEdited/ABA/hgcA/hgcA_MT_coverage.tsv",
+                        header = TRUE) %>%
+  mutate(counts_per_bp = counts/effective_length,
+         million_counts_per_liter = counts_per_bp*NFs.expression[mtID]/1000000) %>%
+  select(seqID, mtID, million_counts_per_liter) %>%
+  spread(key = mtID,
+         value = million_counts_per_liter)
+hgcA.data <- hgcA.data %>%
+  left_join(hgcA.expr)
+rm(NFs.expression,
+   hgcA.expr)
 
 ```
 

@@ -37,3 +37,16 @@ python3 $HomeBio/bin/ABA_GID.py --orf_folder ~/BLiMMP/dataEdited/assemblies/ORFs
                   --cluster_cutoff 0.8 \
                   > ~/BLiMMP/dataEdited/ABA/GID_log_narG.txt
 
+############################################
+############################################
+# Cluster seqs at defined cut-off
+############################################
+############################################
+cd-hit -g 1 \
+        -i ~/BLiMMP/dataEdited/ABA/narG/narG.faa \
+        -o ~/BLiMMP/dataEdited/ABA/narG/working_directory/narG_derep_99.faa \
+        -c 0.99 \
+        -n 5 \
+        -d 0
+python $HomeBio/bin/FM_CDHIT_parsing.py --clstr_in  ~/BLiMMP/dataEdited/ABA/narG/working_directory/narG_derep_99.faa.clstr \
+                                        --clstr_out ~/BLiMMP/dataEdited/ABA/narG/narG_derep_99.tsv
