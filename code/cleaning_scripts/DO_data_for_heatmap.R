@@ -107,7 +107,8 @@ if (class(dt1$flag_fdom)!="factor") dt1$flag_fdom<- as.factor(dt1$flag_fdom)
 #### Select needed data and read it out ####
 DO_data <- dt1 %>%
   select(sampledate, depth, do_raw) %>%
-  filter(year(sampledate) %in% c(2020, 2021))
+  filter(year(sampledate) %in% c(2020, 2021)) %>%
+  rename(sampleDate = sampledate)
 write.csv(DO_data,
           "dataFinal/DO_profiles_data.csv",
           row.names = FALSE)
