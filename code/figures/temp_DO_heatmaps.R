@@ -17,7 +17,7 @@ cb_translator <- readRDS("references/colorblind_friendly_colors.rds")
 temp_range_to_plot <- c(5, 31)
 temp_color_object <- viridis(20)
 DO_range_to_plot <- c(0, 18)
-DO_color_object <- colorRampPalette(c(cb_translator["black"] , cb_translator["blue"], cb_translator["bluishgreen"], cb_translator["orange"]),
+DO_color_object <- colorRampPalette(c(cb_translator["black"] , cb_translator["blue"], cb_translator["bluishgreen"], cb_translator["orange"], cb_translator["orange"]),
                                     bias = 1, space = "rgb")
 axis_tick_label_size <- 0.7
 axis_label_size <- 0.8
