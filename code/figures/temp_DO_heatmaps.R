@@ -153,6 +153,7 @@ pigment_plot <- function(start_date = "2021-05-01",
        col = "blue",
        pch = 16,
        ylim = c(-0.5, 3),
+       xlim = c(yday(start_date), yday(end_date)),
        cex = 0.5,
        xaxt = 'n', yaxt = 'n',
        xaxs = 'i', yaxs = 'i',
@@ -190,10 +191,10 @@ pigment_plot <- function(start_date = "2021-05-01",
        padj = 0)
   
   #### Add axis labels ####
-  mtext("Depth (m)",
+  mtext("Relative\nfluoresence units",
         side = 2,
-        line = 0.85,
-        cex = axis_label_size)
+        line = 0.65,
+        cex = axis_label_size*0.8)
 }
 
 
@@ -275,9 +276,9 @@ DO_heatmap <- function(year_to_plot = 2021,
 
 #### Set up plot areas ####
 
-header_top_vertArea <- c(0.965, 1.0)
-header_middle_vertArea <- c(0.585, 0.62)
-header_bottom_vertArea <- c(0.325, 0.36)
+header_top_vertArea <- c(0.97, 1.0)
+header_middle_vertArea <- c(0.59, 0.62)
+header_bottom_vertArea <- c(0.33, 0.36)
 
 header_left_horiArea <- c(0.005, 0.21)
 header_right_horiArea <- c(0.565, 0.77)
@@ -343,8 +344,8 @@ plot(c(0,3), c(0,1),
      type = 'n', axes = F,
      xlab = '', ylab = '', main = '') 
 legend("bottom",
-       legend = c("Phycocyanin\n(RFU)",
-                  "Chlorophyll\n(RFU)"),
+       legend = c("Phycocyanin",
+                  "Chlorophyll"),
        pch = 16,
        col = c("blue", "green"),
        cex = axis_tick_label_size - 0.1,
