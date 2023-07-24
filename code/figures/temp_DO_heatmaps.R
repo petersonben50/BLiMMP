@@ -1,14 +1,23 @@
+#### code/figures/temp_DO_heatmaps.R ####
+# Benjamin D. Peterson
+
+
+#### Set up shop ####
 rm(list = ls())
 setwd("/Users/benjaminpeterson/Documents/research/BLiMMP")
-
 library(akima)
 library(lattice)
 library(readxl)
 library(tidyverse)
 library(viridis)
+
+
+
+#### Read in data ####
 temperature_data <- read.csv("dataFinal/temperature_buoy_data.csv")
 DO_data <- read.csv("dataFinal/DO_profiles_data.csv") %>%
   mutate(sampleDate = as.Date(sampleDate))
+pigment_data <- read.csv("dataFinal/pigment_profiles_data.csv")
 sampling_location_info <- read_xlsx("dataEdited/incubations/incubation_sites_notes.xlsx")
 cb_translator <- readRDS("references/colorblind_friendly_colors.rds")
 
@@ -127,6 +136,67 @@ heatmap_of_temp <- function(year_to_plot = 2020,
 }
 
 
+#### Function to plot chlorophyll a data ####
+pigment_plot <- function(start_date = "2021-05-01",
+                         end_date = "2021-11-15") {
+  
+  par(mar = c(0, 0, 0, 0),
+      tck = -0.008)
+  
+  pigment_data_to_plot <- pigment_data %>%
+    filter(sampleDate > start_date,
+           sampleDate < end_date)
+  
+  #### Plot data ####
+  plot(x = yday(pigment_data_to_plot$sampleDate),
+       y = pigment_data_to_plot$mean_phyco_rfu,
+       col = "blue",
+       pch = 16,
+       ylim = c(-0.5, 3),
+       cex = 0.5,
+       xaxt = 'n', yaxt = 'n',
+       xaxs = 'i', yaxs = 'i',
+       xlab = "", ylab = "")
+  lines(x = yday(pigment_data_to_plot$sampleDate),
+        y = pigment_data_to_plot$mean_phyco_rfu,
+        col = "blue",
+        pch = 16)
+  points(x = yday(pigment_data_to_plot$sampleDate),
+         y = pigment_data_to_plot$mean_chlor_rfu,
+         col = "green",
+         cex = 0.5,
+         pch = 16)
+  lines(x = yday(pigment_data_to_plot$sampleDate),
+        y = pigment_data_to_plot$mean_chlor_rfu,
+        col = "green",
+        pch = 16)
+  
+  #### Add axis scales ####
+  par(mgp = c(1.5, 0.2, 0))
+  axis(2,
+       at = seq(0, 3, by = 1),
+       labels = seq(0, 3, by = 1),
+       cex.axis = axis_tick_label_size,
+       las = 1)
+  par(mgp = c(1.5, -0.1, 0))
+  dates_to_plot_on_axes <- seq(from = as.Date(start_date),
+                               to = as.Date(end_date),
+                               by = 'months') 
+  axis(1,
+       at = yday(dates_to_plot_on_axes),
+       labels = month(dates_to_plot_on_axes,label = TRUE,abbr = TRUE),
+       cex.axis = axis_tick_label_size,
+       gap.axis = -1,
+       padj = 0)
+  
+  #### Add axis labels ####
+  mtext("Depth (m)",
+        side = 2,
+        line = 0.85,
+        cex = axis_label_size)
+}
+
+
 #### Function to plot heatmap of DO ####
 # DO.profile.data = DO.data,
 # year.of.interest,
@@ -204,9 +274,18 @@ DO_heatmap <- function(year_to_plot = 2021,
 
 
 #### Set up plot areas ####
-top_row_vertArea <- c(0.62, 0.96)
-middle_row_vertArea <- c(0.48, 0.60)
-bottom_row_vertArea <- c(0.01, 0.35)
+
+header_top_vertArea <- c(0.965, 1.0)
+header_middle_vertArea <- c(0.585, 0.62)
+header_bottom_vertArea <- c(0.325, 0.36)
+
+header_left_horiArea <- c(0.005, 0.21)
+header_right_horiArea <- c(0.565, 0.77)
+
+top_row_vertArea <- c(0.67, 0.96)
+middle_row_vertArea <- c(0.41, 0.58)
+bottom_row_vertArea <- c(0.03, 0.32)
+
 left_horiArea <- c(0.06, 0.43)
 center_horiArea <- c(0.45, 0.56)
 right_horiArea <- c(0.62, 0.99)
@@ -218,8 +297,12 @@ cairo_pdf("results/figures/temp_DO_heatmaps.pdf",
           height = 7)
 split.screen(rbind(c(left_horiArea, top_row_vertArea), c(center_horiArea, top_row_vertArea), c(right_horiArea, top_row_vertArea),
                    c(left_horiArea, middle_row_vertArea), c(center_horiArea, middle_row_vertArea), c(right_horiArea, middle_row_vertArea),
-                   c(left_horiArea, bottom_row_vertArea), c(center_horiArea, bottom_row_vertArea), c(right_horiArea, bottom_row_vertArea)))
+                   c(left_horiArea, bottom_row_vertArea), c(center_horiArea, bottom_row_vertArea), c(right_horiArea, bottom_row_vertArea),
+                   c(header_left_horiArea, header_top_vertArea),c(header_right_horiArea, header_top_vertArea),
+                   c(header_left_horiArea, header_middle_vertArea), c(header_right_horiArea, header_middle_vertArea),
+                   c(header_left_horiArea, header_bottom_vertArea), c(header_right_horiArea, header_bottom_vertArea)))
 
+#### Generate temperature plots ####
 screen(1)
 heatmap_of_temp(2020,
                 start_date = "2020-05-01",
@@ -249,6 +332,35 @@ screen(3)
 heatmap_of_temp(2021,
                 start_date = "2021-05-01",
                 end_date = "2021-11-10")
+
+#### Generate pigment plots ####
+screen(4)
+pigment_plot(start_date = "2020-05-01",
+             end_date = "2020-11-15")
+screen(5)
+par(mar = c(0, 0, 0, 0))
+plot(c(0,3), c(0,1),
+     type = 'n', axes = F,
+     xlab = '', ylab = '', main = '') 
+legend("bottom",
+       legend = c("Phycocyanin\n(RFU)",
+                  "Chlorophyll\n(RFU)"),
+       pch = 16,
+       col = c("blue", "green"),
+       cex = axis_tick_label_size - 0.1,
+       bty = 'n',
+       pt.cex = 1.5,
+       y.intersp = 2)
+# text(x = -0.4, y = 0.9,
+#      pos = 4,
+#      labels = "Pigment\ntype",
+#      cex = axis_tick_label_size + 0.1)
+screen(6)
+pigment_plot(start_date = "2021-05-01",
+             end_date = "2021-11-15")
+
+
+
 
 #### Generate DO plots ####
 screen(7)
@@ -283,7 +395,22 @@ DO_heatmap(2021,
            end_date = "2021-11-10")
 
 
-
+#### Generate headers ####
+header_x <- 0
+header_y <- 0.3
+header_adj <- c(0, 0)
+screen(10)
+text(x = header_x, y = header_y, adj = header_adj, "A.")
+screen(11)
+text(x = header_x, y = header_y, adj = header_adj, "B.")
+screen(12)
+text(x = header_x, y = header_y, adj = header_adj, "C.")
+screen(13)
+text(x = header_x, y = header_y, adj = header_adj, "D.")
+screen(14)
+text(x = header_x, y = header_y, adj = header_adj, "E.")
+screen(15)
+text(x = header_x, y = header_y, adj = header_adj, "F.")
 
 dev.off()
 
