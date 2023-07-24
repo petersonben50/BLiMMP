@@ -337,7 +337,7 @@ heatmap_of_temp(2021,
 #### Generate pigment plots ####
 screen(4)
 pigment_plot(start_date = "2020-05-01",
-             end_date = "2020-11-15")
+             end_date = "2020-11-10")
 screen(5)
 par(mar = c(0, 0, 0, 0))
 plot(c(0,3), c(0,1),
@@ -358,7 +358,7 @@ legend("bottom",
 #      cex = axis_tick_label_size + 0.1)
 screen(6)
 pigment_plot(start_date = "2021-05-01",
-             end_date = "2021-11-15")
+             end_date = "2021-11-10")
 
 
 
