@@ -728,7 +728,7 @@ MA.results <- S.results %>%
 
 # Save out data
 write.csv(MA.results,
-          "dataEdited/incubation_sulfide_data.csv",
+          "dataFinal/incubation_sulfide_data.csv",
           row.names = FALSE,
           quote = FALSE)
 
