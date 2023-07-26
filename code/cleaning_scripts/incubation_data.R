@@ -14,20 +14,32 @@ library(tidyverse)
 
 
 #### Read in data ####
-incubation.metadata <- read.csv("metadata/processedMetadata/incubation_metadata.csv")
-MeHg.data <- read_xlsx("dataRaw/incubations/MeHg/MeHg_BENDOTA_SUMMARY.xlsx",
-                       col_names = c("bottleID", "MeHg_ambient_ppt", "MeHg_198_ppt", "MeHg_204_ppt", "MeHg_excess_DDL", "MeHg_DOA"),
-                       skip = 1)
-HgT.data <- read_xlsx("dataRaw/incubations/HgT/HgT_BENDOTA_SUMMARY.xlsx",
+incubation_metadata <- read.csv("metadata/processedMetadata/incubation_metadata.csv")
+MeHg_data_2020 <- read_xlsx("dataRaw/incubations/MeHg/2020_incubations/2020_BENDOTA_aggregated_data.xlsx",
+                            sheet = "keeper-data",
+                            skip = 1,
+                            col_names = c("bottleID", "MeHg_ambient_ppt", "MeHg_198_ppt", "MeHg_204_ppt", "MeHg_amb_DDL", "MeHg_excess_DDL", "MeHg_DOA"),
+                            col_types = c("text", rep("numeric", 5), "text", rep("skip", 6))) %>%
+  mutate(MeHg_DOA = as.Date(MeHg_DOA))
+MeHg_data_2021 <- read_xlsx("dataRaw/incubations/MeHg/2021_incubations/2021_BENDOTA_aggregated_data.xlsx",
+                            sheet = "keeper-data",
+                            skip = 1,
+                            col_names = c("bottleID", "MeHg_ambient_ppt", "MeHg_198_ppt", "MeHg_204_ppt", "MeHg_amb_DDL", "MeHg_excess_DDL", "MeHg_DOA"),
+                            col_types = c("text", rep("numeric", 5), "text", rep("skip", 6))) %>%
+  mutate(MeHg_DOA = as.Date(MeHg_DOA))
+MeHg_data <- rbind(MeHg_data_2020,
+                   MeHg_data_2021)
+rm(MeHg_data_2020, MeHg_data_2021)
+HgT_data <- read_xlsx("dataRaw/incubations/HgT/HgT_BENDOTA_SUMMARY.xlsx",
                       col_names = c("bottleID", "HgT_ambient_ppt", "HgT_198_ppt", "HgT_204_ppt", "HgT_excess_DDL", "HgT_DOA"),
                       skip = 1)
 
 
 
 #### Prepare MeHg data ####
-MeHg.data.clean <- right_join(incubation.metadata %>%
+MeHg_data_clean <- right_join(incubation_metadata %>%
                                 filter(constituent == "MeHg"),
-                              MeHg.data) %>%
+                              MeHg_data) %>%
   # Identify which samples measured Me198Hg above detection
   mutate(MeHg_198_above_DDL = (MeHg_198_ppt >= MeHg_excess_DDL)) %>%
   # Round off measurements to 3 decimal places
@@ -36,30 +48,31 @@ MeHg.data.clean <- right_join(incubation.metadata %>%
          MeHg_204_ppt = round(MeHg_204_ppt, 3)) %>%
   mutate(bottleID_MeHg = bottleID) %>%
   select(-c(bottleID, constituent))
-rm(MeHg.data)
+rm(MeHg_data)
 
 
 
 #### Prepare HgT data ####
-HgT.data.clean <- right_join(incubation.metadata %>%
+HgT_data_clean <- right_join(incubation_metadata %>%
                                filter(constituent == "HgT"),
-                             HgT.data) %>%
+                             HgT_data) %>%
   mutate(bottleID_HgT = bottleID) %>%
-  select(-c(bottleID, constituent))
-rm(HgT.data, incubation.metadata)
+  select(-c(bottleID, constituent)) %>%
+  filter(year(startDate) %in% c(2020, 2021))
+rm(HgT_data, incubation_metadata)
 
 
 
 #### Combine data ####
-Hg.incubation.data <- full_join(MeHg.data.clean,
-                                HgT.data.clean)
-rm(MeHg.data.clean,
-   HgT.data.clean)
+Hg_incubation_data <- full_join(MeHg_data_clean,
+                                HgT_data_clean)
+rm(MeHg_data_clean,
+   HgT_data_clean)
 
 
 
 #### Calculate percent MeHg for ambient, 198, and 204
-Hg.incubation.data <- Hg.incubation.data %>%
+Hg_incubation_data <- Hg_incubation_data %>%
   mutate(percent_amb_MeHg = MeHg_ambient_ppt / HgT_ambient_ppt * 100,
          percent_198_MeHg = MeHg_198_ppt / HgT_198_ppt * 100,
          percent_204_MeHg = MeHg_204_ppt / HgT_204_ppt * 100)
@@ -67,14 +80,14 @@ Hg.incubation.data <- Hg.incubation.data %>%
 
 
 #### Read out all data ####
-write.csv(Hg.incubation.data,
-          file = "dataEdited/incubation_Hg_data.csv",
+write.csv(Hg_incubation_data,
+          file = "dataFinal/incubation_Hg_conc_data.csv",
           row.names = FALSE)
 
 
 
 #### Calculate Kmet and 198HgT loss ####
-kmet.data <- Hg.incubation.data %>%
+kmet_data <- Hg_incubation_data %>%
   select(sampleID, incubationID,
          startDate, depth,
          t, treatment, durationInDays,
@@ -104,7 +117,7 @@ kmet.data <- Hg.incubation.data %>%
 
 
 #### Calculate Kdem and 204HgT loss ####
-kdem.data <- Hg.incubation.data %>%
+kdem_data <- Hg_incubation_data %>%
   select(sampleID, incubationID,
          startDate, depth,
          t, treatment, durationInDays,
@@ -134,12 +147,13 @@ kdem.data <- Hg.incubation.data %>%
 
 
 #### Combine all rate data ####
-all.rate.data <- full_join(kmet.data,
-                           kdem.data)
+Hg_rate_data <- full_join(kmet_data,
+                          kdem_data)
 
 
 
 #### Read out Kmet data ####
-write.csv(all.rate.data,
-          file = "dataEdited/incubation_Hg_rate_data.csv",
+write.csv(Hg_rate_data,
+          file = "dataFinal/incubation_Hg_rate_data.csv",
           row.names = FALSE)
+
