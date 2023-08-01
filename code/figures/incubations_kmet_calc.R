@@ -49,7 +49,8 @@ ambient.conditions <- Hg.Kmet.data %>%
              color = calculation,
              shape = sampleInfo,
              group = calculation)) +
-  geom_point(position = position_dodge(width = 0.5)) +
+  geom_point(position = position_dodge(width = 0.5),
+             na.rm = TRUE) +
   scale_color_manual(values = color_vector,
                      labels = condition_naming,
                      name = expression('K'['met']*' calculation method')) +
@@ -88,7 +89,8 @@ molybdate.amended <- Hg.Kmet.data %>%
              color = calculation,
              shape = sampleInfo,
              group = calculation)) +
-  geom_point(position = position_dodge(width = 0.5)) +
+  geom_point(position = position_dodge(width = 0.5),
+             na.rm = TRUE) +
   scale_color_manual(values = color_vector,
                      labels = condition_naming,
                      name = expression('K'['met']*' calculation method')) +
@@ -137,13 +139,34 @@ filtered.control <- Hg.Kmet.data %>%
          4:6) %>%
   ggplot(aes(x = sampleInfo,
              y = Kmet,
-             color = calculation)) +
-  geom_boxplot() +
-  theme_bw()+
-  theme(axis.text.x = element_text(angle = 45,
-                                   hjust = 1),
-        axis.title.x = element_blank()) +
+             color = calculation,
+             shape = sampleInfo,
+             group = calculation)) +
+  geom_point(position = position_dodge(width = 0.5),
+             na.rm = TRUE) +
+  scale_color_manual(values = color_vector,
+                     labels = condition_naming,
+                     name = expression('K'['met']*' calculation method')) +
+  scale_shape_manual(values = c(15, 1, 16, 2, 17, 3, 18, 4, 19, 5, 20)) +
+  theme_bw() +
+  theme(legend.position = c(0.8, 0.95),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_rect(colour = "black",
+                                    linewidth = 1),
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(colour = "black"),
+        axis.text.x =  element_text(colour = "black",
+                                    angle = 45,
+                                    hjust = 1),
+        axis.text.y = element_text(colour = "black"),
+        axis.ticks.x = element_line(colour = "black"),
+        axis.ticks.y = element_line(colour = "black"),
+        axis.line = element_blank(),
+        legend.background = element_rect(color = "black")) +
+  guides(shape = 'none') +
   ylim(c(-0.03, 0.03)) +
-  labs(title = "Kmet of ambient conditions")
+  ylab(expression('K'['met']*' '('day'^-1))) +
+  labs(title = expression('K'['met']*' of filtered controls'))
 filtered.control
 
