@@ -130,22 +130,22 @@ clean.sulfate.data.from <- function(data.file.name,
 
 
 #### Run cleaning function ####
-# clean.sulfate.data.from(data.file.name = "dataRaw/waterChemistry/sulfate/20210316_BENDOTA.xlsx",
-#                         processing.metadata.df = processing.metadata,
-#                         output.file.name = "dataEdited/waterChemistry/sulfate/20210316_BENDOTA.csv",
-#                         final.say = "YES")
-# clean.sulfate.data.from(data.file.name = "dataRaw/waterChemistry/sulfate/20210423_BENDOTA.xlsx",
-#                         processing.metadata.df = processing.metadata,
-#                         samples.to.remove = c("BLI20_TS_087", "BLI20_TS_088", "BLI20_TS_089", "BLI20_TS_090",
-#                                               "BLI20_TS_091", "BLI20_TS_092", "BLI20_TS_092_duplicate",
-#                                               "BLI20_TS_093", "BLI20_TS_094"),
-#                         output.file.name = "dataEdited/waterChemistry/sulfate/20210423_BENDOTA.csv")
-# clean.sulfate.data.from(data.file.name = "dataRaw/waterChemistry/sulfate/20211203_BENDOTA.xlsx",
-#                         processing.metadata.df = processing.metadata,
-#                         output.file.name = "dataEdited/waterChemistry/sulfate/20211203_BENDOTA.csv",
-#                         samples.to.remove = c(#"BLI21_TS_015", "BLI21_TS_014",
-#                                               "BLI21_TS_015_dup"),
-#                         final.say = "YES")
+clean.sulfate.data.from(data.file.name = "dataRaw/waterChemistry/sulfate/20210316_BENDOTA.xlsx",
+                        processing.metadata.df = processing.metadata,
+                        output.file.name = "dataEdited/waterChemistry/sulfate/20210316_BENDOTA.csv",
+                        final.say = "YES")
+clean.sulfate.data.from(data.file.name = "dataRaw/waterChemistry/sulfate/20210423_BENDOTA.xlsx",
+                        processing.metadata.df = processing.metadata,
+                        samples.to.remove = c("BLI20_TS_087", "BLI20_TS_088", "BLI20_TS_089", "BLI20_TS_090",
+                                              "BLI20_TS_091", "BLI20_TS_092", "BLI20_TS_092_duplicate",
+                                              "BLI20_TS_093", "BLI20_TS_094"),
+                        output.file.name = "dataEdited/waterChemistry/sulfate/20210423_BENDOTA.csv")
+clean.sulfate.data.from(data.file.name = "dataRaw/waterChemistry/sulfate/20211203_BENDOTA.xlsx",
+                        processing.metadata.df = processing.metadata,
+                        output.file.name = "dataEdited/waterChemistry/sulfate/20211203_BENDOTA.csv",
+                        samples.to.remove = c(#"BLI21_TS_015", "BLI21_TS_014",
+                                              "BLI21_TS_015_dup"),
+                        final.say = "YES")
 
 
 #### Clean up before combining all samples ####
