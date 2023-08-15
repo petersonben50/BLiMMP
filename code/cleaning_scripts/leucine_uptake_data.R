@@ -245,3 +245,8 @@ leucine_data_metadata <- leucine_data_metadata %>%
          µgBPP_per_L_hr = round(µgBPP_per_L_hr, 2),
          µgBCP_per_L_hr = round(µgBCP_per_L_hr, 2)) %>%
   filter(treatment != "control")
+
+# Read out final data
+write.csv(leucine_data_metadata,
+          'dataFinal/bacterial_production.csv',
+          row.names = FALSE)
