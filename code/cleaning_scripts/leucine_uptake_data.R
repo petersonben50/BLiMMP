@@ -215,7 +215,7 @@ convert_leuUptake_to_C_2021("dataRaw/leucineUptake/20211018_leucine.xlsx",
 rm(list = ls())
 # Read in metadata
 leu_metadata <- read.csv("metadata/processedMetadata/LEU_metadata.csv")
-
+# Read in data
 list_of_data_files <- list.files("dataEdited/leucineUptake/",
                                  pattern = "_leucine.csv",
                                  full.names = TRUE)
@@ -227,6 +227,7 @@ leucine_uptake_data <- do.call(rbind,
                                )
 rm(list_of_data_files)
 
+# Merge data and clean it up
 leucine_data_metadata <- inner_join(leu_metadata,
                                     leucine_uptake_data)
 
@@ -242,4 +243,5 @@ leucine_data_metadata <- leucine_data_metadata %>%
          Leu_uptake_pM_per_hour, µgBPP_per_L_hr, µgBCP_per_L_hr) %>%
   mutate(Leu_uptake_pM_per_hour = round(Leu_uptake_pM_per_hour, 0),
          µgBPP_per_L_hr = round(µgBPP_per_L_hr, 2),
-         µgBCP_per_L_hr = round(µgBCP_per_L_hr, 2))
+         µgBCP_per_L_hr = round(µgBCP_per_L_hr, 2)) %>%
+  filter(treatment != "control")
