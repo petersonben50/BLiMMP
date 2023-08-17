@@ -1,0 +1,120 @@
+---
+title: "BLiMMP incubations: Bacterial production"
+author: "Benjamin D. Peterson"
+date: "2023-08-16"
+output: html_document
+---
+
+```{r setup, include = FALSE}
+  
+rm(list = ls())
+#setwd("/Users/benjaminpeterson/Documents/research/BLiMMP")
+# new.wd <- "/Users/benjaminpeterson/Documents/research/BLiMMP"
+library(tidyverse)
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(echo = TRUE)
+new.wd <- gsub("\\/[[:alpha:]]+$", "", getwd())
+knitr::opts_knit$set(root.dir = new.wd)
+rm(new.wd)
+```
+
+```{r, load_functions, include = FALSE}
+source("code/BLiMMP_functions.R")
+```
+
+```{r read_in_data, include = FALSE}
+getwd()
+leucine_data_metadata <- read.csv('dataFinal/bacterial_production.csv')
+waterChem_data <- read.csv("dataFinal/water_chem_data.csv")
+exo_data <- read.csv("dataFinal/exo_data.csv")
+
+```
+
+Let's look at the profiles of leucine uptake first.
+
+```{r plot_leucine_by_date_depth, fig.height = 6, fig.width = 8, echo = FALSE, results = FALSE}
+plot_bacterial_production <- function(date_to_use) {
+  data_to_plot <- leucine_data_metadata %>%
+    filter(startDate == date_to_use,
+           treatment == "ambient",
+           (timePoint == "t1" | is.na(timePoint)))
+  points(x = data_to_plot$µgBCP_per_L_hr / 2.5,
+       y = -data_to_plot$depth,
+       pch = 16,
+       col = cb.translator["yellow"],
+       cex = 2)
+  data_to_plot_Mo <- leucine_data_metadata %>%
+    filter(startDate == date_to_use,
+           treatment == "molybdate",
+           (timePoint == "t1" | is.na(timePoint)))
+  points(x = data_to_plot_Mo$µgBCP_per_L_hr / 2.5,
+       y = -data_to_plot_Mo$depth,
+       pch = 4,
+       col = cb.translator["bluishgreen"],
+       cex = 2)
+  legend("bottomright",
+         legend = c("Ambient BCP",
+                    "Molybdate-inhibited BCP"),
+         col = cb.translator[c("yellow",
+                                "bluishgreen")],
+         pch = c(16, 4))
+}
+
+par(mfrow = c(1, 3),
+    mar = c(12, 3, 2.5, 1),
+    mgp = c(1.5, 0.4, 0),
+    tck = -0.008)
+sapply(c("2020-10-10",
+         "2021-09-10", "2021-10-14"),
+       function(date_of_interest){
+         plot.exo.data(exo.data.to.use = exo_data,
+              date.of.sampling = date_of_interest)
+         plot_bacterial_production(date_of_interest)
+         axis(1, at = seq(0, 10, by = 2),
+              labels = seq(0, 10, by = 2)*2.5,
+              line = 9,
+              par(mgp = c(3, 0.5, 0)))
+         title(xlab = "Bacterial carbon production (µgC/L/hr)",
+               line = 10.5)
+       })
+```
+
+The bacterial carbon production is highest near the oxic/anoxic interface as we might expect. Certainly won't be correlating with MeHg production. Additionally, there is no major effect of molybdate on bacterial carbon production, especially at the deeper depths. Let's compare it to sulfide concentrations, plotting the carbon production on a log scale to make sure we can identify any potential effects of molybdate.
+
+```{r BP_vs_sulfide, echo = FALSE, results = FALSE, message = FALSE}
+sulfide_data <- waterChem_data %>%
+  filter(!is.na(sulfate_uM),
+         !corewater) %>%
+  select(date, depth, sulfide_uM) %>%
+  group_by(date, depth) %>%
+  summarise(sulfide_uM = mean(sulfide_uM)) %>%
+  ungroup()
+combined_data <- left_join(leucine_data_metadata %>%
+                             rename(date = startDate),
+                           sulfide_data) %>%
+  mutate(µgBCP_per_L_hr = log(µgBCP_per_L_hr, 10))
+combined_data_ambient <- combined_data %>%
+  filter(treatment == "ambient")
+
+par(mfrow = c(1, 1),
+    mar = c(3, 3, 1, 1),
+    mgp = c(1.5, 0.4, 0),
+    tck = -0.008)
+
+plot(x = combined_data_ambient$sulfide_uM,
+     y = combined_data_ambient$µgBCP_per_L_hr,
+     pch = 16,
+     col = cb.translator["yellow"],
+     xlab = "Sulfide (µM)",
+     ylab = "Bacterial production (µgC/L/hr)")
+combined_data_molybdate <- combined_data %>%
+  filter(treatment == "molybdate")
+points(x = combined_data_molybdate$sulfide_uM,
+     y = combined_data_molybdate$µgBCP_per_L_hr,
+       pch = 4,
+       col = cb.translator["bluishgreen"])
+```
+
+There does not appear to be any noticeable difference in the bacterial carbon production with the amendment of molybdate. I will say that the data is noisier than I would like, though, which may indicate that this isn't the best metric. However, I would argue that this is strong evidence that the molybdate isn't shutting down bacterial carbon production at a large scale.
+
+
