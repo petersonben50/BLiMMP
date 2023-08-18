@@ -1,0 +1,186 @@
+---
+title: "BLiMMP incubations: Me198Hg production"
+author: "Benjamin D. Peterson"
+date: "2023-08-17"
+output: html_document
+---
+
+```{r setup, include = FALSE}
+  
+rm(list = ls())
+#setwd("/Users/benjaminpeterson/Documents/research/BLiMMP")
+# new.wd <- "/Users/benjaminpeterson/Documents/research/BLiMMP"
+library(ggpubr)
+library(scatterplot3d)
+library(tidyverse)
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(echo = TRUE)
+new.wd <- gsub("\\/[[:alpha:]]+$", "", getwd())
+knitr::opts_knit$set(root.dir = new.wd)
+rm(new.wd)
+```
+
+```{r read_in_and_prep_data, include = FALSE}
+incubation_data <- read.csv('dataFinal/incubation_Hg_rate_data.csv') %>%
+  rename(date = startDate,
+         Kmet = Kmet_t1) %>%
+  select(date, depth, treatment, Kmet, Kdem_t1) %>%
+  filter(!(date == "2020-10-10" & depth == 15.7)) %>%
+  group_by(date, depth, treatment) %>%
+  summarise(Kmet = mean(Kmet),
+            Kdem = mean(Kdem_t1)) %>%
+  ungroup()
+
+#
+geochem_data <- read.csv("dataFinal/water_chem_data.csv") %>%
+  filter(!is.na(sulfate_uM),
+         !corewater) %>%
+  group_by(date, depth) %>%
+  summarise(sulfide_uM = mean(sulfide_uM, na.rm = TRUE),
+            FMHG_NG.L = mean(FMHG_NG.L, na.rm = TRUE),
+            perFMHG = mean(perFMHG)) %>%
+  ungroup()
+
+# Omic metadata
+MG_metadata <- read.csv("metadata/metagenome_metadata.csv") %>%
+  rename(omicID = metagenomeID) %>%
+  mutate(seqType = "MG") %>%
+  select(omicID, startDate, depth, seqType)
+MT_metadata <- read.csv("metadata/metatranscriptome_metadata.csv") %>%
+  rename(omicID = metatranscriptomeID) %>%
+  mutate(seqType = "MT") %>%
+  select(omicID, startDate, depth, seqType)
+omic_metadata <- rbind(MG_metadata,
+                       MT_metadata) %>%
+  mutate(date_depth = paste(startDate, ":", depth, "m",
+                            sep = ""))
+
+hgcA_data <- read.csv("dataFinal/hgcA_data.csv") 
+MG_names <- grep("_MG_", names(hgcA_data), value = TRUE)
+MT_names <- grep("_MT_", names(hgcA_data), value = TRUE)
+clean_hgcA_data <- hgcA_data %>%
+  filter(verified_hgcA) %>%
+  select(cluster_ID, all_of(c(MG_names, MT_names))) %>%
+  gather(key = "omicID",
+         value = "abundance",
+         -c(1)) %>%
+  group_by(cluster_ID, omicID) %>%
+  summarise(abundance = mean(abundance)) %>%
+  ungroup() %>%
+  group_by(omicID) %>%
+  summarize(abundance = sum(abundance)) %>%
+  ungroup() %>%
+  left_join(omic_metadata) %>%
+  rename(date = startDate) %>%
+  group_by(date, depth, seqType) %>%
+  summarise(abundance = mean(abundance)) %>%
+  ungroup()
+rm(omic_metadata, MT_metadata, MG_metadata, hgcA_data)
+
+```
+
+```{r assign_position_status, include = FALSE }
+incubation_position_vector <- rep(NA, dim(incubation_data)[1])
+incubation_position_vector[which(incubation_data$depth > 19)] <- "deep_hypo"
+incubation_position_vector[which(incubation_data$depth %in% c(10.8, 14.2))] <- "turb_peak"
+incubation_position_vector[which(incubation_data$depth %in% c(11, 11.9, 15.2))] <- "under_turb"
+incubation_position_vector[which(incubation_data$depth %in% c(15.5))] <- "mid_hypo"
+incubation_data$position <- incubation_position_vector
+
+cb_translator <- readRDS("references/colorblind_friendly_colors.rds")
+color_vector <- cb_translator[c("reddishpurple", "orange", "skyblue", "blue")]
+names(color_vector) <- unique(incubation_position_vector)
+```
+
+```{r ambient_vs_produced, echo = FALSE, message = FALSE, fig.width = 12, fig.height = 6}
+ggarrange(incubation_data %>%
+  filter(treatment == "unfiltered-unamended") %>%
+  left_join(geochem_data) %>%
+  ggplot(aes(x = FMHG_NG.L,
+             y = Kmet)) +
+  geom_point(aes(shape = as.character(year(date)),
+                 color = position),
+             size = 4) +
+  scale_shape_manual(values = c(16, 18), name = "Year") +
+  scale_color_manual(values = color_vector, name = "Position") +
+  theme_classic(),
+incubation_data %>%
+  filter(treatment == "unfiltered-unamended") %>%
+  left_join(geochem_data) %>%
+  ggplot(aes(x = FMHG_NG.L,
+             y = Kdem)) +
+  geom_point(aes(shape = as.character(year(date)),
+                 color = position),
+             size = 4) +
+  scale_shape_manual(values = c(16, 18), name = "Year") +
+  scale_color_manual(values = color_vector, name = "Position") +
+  theme_classic() +
+  theme(legend.position = "none"),
+widths = c(4,3)
+)
+```
+
+
+
+Plot it up in the 3D plot:
+
+```{r 3D_plots, fig.height = 10}
+
+
+top_vertArea <- c(0.50, 1.0)
+bottom_vertArea <- c(0.00, 0.50)
+width <- c(0, 1)
+
+split.screen(rbind(c(width, top_vertArea), c(width, bottom_vertArea)))
+data_to_plot <- incubation_data %>%
+  filter(treatment == "unfiltered-unamended") %>%
+  left_join(geochem_data) %>%
+  left_join(clean_hgcA_data %>%
+              filter(seqType == "MG"))
+screen(1)
+par(mar = c(1, 1, 1, 1))
+plot_3D_MG <- scatterplot3d(data.frame(data_to_plot$sulfide_uM,
+                                       data_to_plot$abundance,
+                                       data_to_plot$Kmet),
+              angle = 40,
+              pch = 16,
+              cex.symbols = 1.5,
+              # color = color.vector[all.data$siteID],
+              type = "h",
+              lab = c(4, 4),
+              lab.z = 4,
+              xlim = c(0, 150),
+              ylim = c(0, 20),
+              zlim = c(0, 0.25),
+              xlab = "Sulfide (µM)",
+              ylab = "hgcA abundance (%)",
+              zlab = "Kmet")
+
+
+
+screen(2)
+
+data_to_plot <- incubation_data %>%
+  filter(treatment == "unfiltered-unamended") %>%
+  left_join(geochem_data) %>%
+  left_join(clean_hgcA_data %>%
+              filter(seqType == "MT")) %>%
+  filter(!is.na(seqType))
+scatterplot3d(data.frame(data_to_plot$sulfide_uM,
+                         data_to_plot$abundance,
+                         data_to_plot$Kmet),
+              angle = 40,
+              pch = 16,
+              cex.symbols = 1.5,
+              # color = color.vector[all.data$siteID],
+              type = "h",
+              lab = c(4, 4),
+              lab.z = 4,
+              xlim = c(0, 150),
+              ylim = c(0, 10),
+              zlim = c(0, 0.25),
+              xlab = "Sulfide (µM)",
+              ylab = "hgcA expression (10^6 transcripts/L)",
+              zlab = "Kmet")
+```
+
