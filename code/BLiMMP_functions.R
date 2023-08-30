@@ -11,6 +11,7 @@ cb.translator <- readRDS("references/colorblind_friendly_colors.rds")
 detection.vector <- c(4, 16)
 
 
+
 #### Plot temperature from buoy over year as heatmap ####
 temp.profile.thermocline <- function(data.of.interest,
                                      year.of.interest,
