@@ -239,6 +239,7 @@ treatment_vector <- leucine_data_metadata$amendmentID
 treatment_vector[which(leucine_data_metadata$treatment == "molybdate")] <- "molybdate"
 treatment_vector[which(leucine_data_metadata$treatment == "control")] <- "ambient"
 treatment_vector[which(leucine_data_metadata$treatment == "filtered")] <- "control"
+treatment_vector[which(leucine_data_metadata$startDate == "2020-10-10")] <- "ambient"
 treatment_vector[which(leucine_data_metadata$amendmentID == "unamended")] <- "ambient"
 treatment_vector[which(leucine_data_metadata$amendmentID == "molybdate")] <- "molybdate"
 treatment_vector[which(leucine_data_metadata$amendmentID == "glucose")] <- "glucose"
