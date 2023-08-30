@@ -49,7 +49,7 @@ leu_metadata <- leucine_incubations %>%
   left_join(sampleID_metadata) %>%
   left_join(tripID_metadata) %>%
   select(uptakeID, sampleID, depth, startDate, protocol, treatment, timePoint) %>%
-  filter(startDate %in% c("2020-09-02", "2020-10-10",
+  filter(startDate %in% c("2020-09-17", "2020-10-10",
                           "2021-09-10", "2021-10-14"))
 
 

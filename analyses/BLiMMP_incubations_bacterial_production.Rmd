@@ -79,7 +79,49 @@ sapply(c("2020-10-10",
        })
 ```
 
-The bacterial carbon production is highest near the oxic/anoxic interface as we might expect. Certainly won't be correlating with MeHg production. Additionally, there is no major effect of molybdate on bacterial carbon production, especially at the deeper depths. Let's compare it to sulfide concentrations, plotting the carbon production on a log scale to make sure we can identify any potential effects of molybdate.
+The bacterial carbon production is highest near the oxic/anoxic interface as we might expect. Certainly won't be correlating with MeHg production. Additionally, there is no major effect of molybdate on bacterial carbon production, especially at the deeper depths. 
+
+Next let's look at the effects of different amounts of molybdate and glucose on carbon metabolism.
+```{r BP_response_amendments, echo = FALSE, results = FALSE, message = FALSE}
+color_vector <- cb.translator[c("yellow", "skyblue", "blue", "bluishgreen")]
+names(color_vector) <- c("ambient", "molybdate-0.017", "molybdate-0.17", "molybdate-1.7")
+name_vector <- c("Ambient", "Molybdate (17 µM)", "Molybdate (170 µM)", "Molybdate (1.7 mM)")
+names(name_vector) <- c("ambient", "molybdate-0.017", "molybdate-0.17", "molybdate-1.7")
+
+
+leucine_data_metadata %>%
+  filter(startDate == "2020-09-17",
+         !grepl("glucose", treatment)) %>%
+  group_by(depth, treatment) %>%
+  summarize(mean_µgBCP_per_L_hr = mean(µgBCP_per_L_hr),
+            n_group = n(),
+            se_µgBCP_per_L_hr = sd(µgBCP_per_L_hr) / sqrt(n_group)) %>%
+  ungroup() %>%
+  ggplot(aes(x = as.character(depth),
+             y = mean_µgBCP_per_L_hr,
+             fill = treatment,
+             group = treatment)) +
+  geom_bar(stat = "identity",
+           position = "dodge") + 
+  scale_fill_manual(values = color_vector,
+                    labels = name_vector,
+                    name = "Treatment") +
+  geom_errorbar(aes(ymin = mean_µgBCP_per_L_hr - se_µgBCP_per_L_hr,
+                    ymax = mean_µgBCP_per_L_hr + se_µgBCP_per_L_hr),
+                width = 0.2,
+                position = position_dodge(0.9)) +
+  theme_classic() +
+  ylim(c(0, 10)) +
+  xlab("Depth (m)") +
+  ylab("Bacterial production (µgC/L/hr)")
+
+```
+
+Honestly this data is super noisy and it is hard to draw any conclusions out of it.
+It does seem that higher concentrations of molybdate result in greater inhibition of bacterial production, but again, it's really hard to say for sure.
+We ended up using 0.17 mM (35 mg/L) of molybdate in the remaining incubations, since injecting molybdate to be equimolar to sulfate is a common strategy for molybdate inhibition studies.
+
+Next, let's look at the effects of molybdate addition in parallel to our experiments. Here, we compare it to sulfide concentrations, plotting the carbon production on a log scale to make sure we can identify any potential effects of molybdate.
 
 ```{r BP_vs_sulfide, echo = FALSE, results = FALSE, message = FALSE}
 sulfide_data <- waterChem_data %>%
@@ -92,7 +134,7 @@ sulfide_data <- waterChem_data %>%
 combined_data <- left_join(leucine_data_metadata %>%
                              rename(date = startDate),
                            sulfide_data) %>%
-  mutate(µgBCP_per_L_hr = log(µgBCP_per_L_hr, 10))
+  mutate(µgBCP_per_L_hr = µgBCP_per_L_hr)
 combined_data_ambient <- combined_data %>%
   filter(treatment == "ambient")
 
@@ -116,5 +158,46 @@ points(x = combined_data_molybdate$sulfide_uM,
 ```
 
 There does not appear to be any noticeable difference in the bacterial carbon production with the amendment of molybdate. I will say that the data is noisier than I would like, though, which may indicate that this isn't the best metric. However, I would argue that this is strong evidence that the molybdate isn't shutting down bacterial carbon production at a large scale.
+
+Let's focus this more on the molybdate vs. non-molybdate samples:
+
+```{r BP_vs_sulfide, echo = FALSE, results = FALSE, message = FALSE}
+color_vector <- cb.translator[c("yellow", "bluishgreen")]
+names(color_vector) <- c("ambient", "molybdate")
+name_vector <- c("Ambient", "Molybdate (170 µM)")
+names(name_vector) <- names(color_vector)
+
+data_to_plot <- leucine_data_metadata %>%
+  mutate(location = paste(startDate, "\n",
+                          depth, "m",
+                          sep = "")) %>%
+  group_by(location, treatment) %>%
+  summarize(mean_µgBCP_per_L_hr = mean(µgBCP_per_L_hr),
+            n_group = n(),
+            se_µgBCP_per_L_hr = sd(µgBCP_per_L_hr) / sqrt(n_group))
+locations_with_molybdate <- data_to_plot %>%
+  filter(treatment == "molybdate") %>%
+  select(location) %>%
+  unlist(use.names = FALSE) %>%
+  unique()
+
+data_to_plot %>%
+  filter(location %in% locations_with_molybdate) %>%
+  ggplot(aes(x = location,
+             y = mean_µgBCP_per_L_hr,
+             fill = treatment)) +
+  geom_bar(stat = "identity",
+           position = "dodge") + 
+  scale_fill_manual(values = color_vector,
+                    labels = name_vector,
+                    name = "Treatment") +
+  geom_errorbar(aes(ymin = mean_µgBCP_per_L_hr - se_µgBCP_per_L_hr,
+                    ymax = mean_µgBCP_per_L_hr + se_µgBCP_per_L_hr),
+                width = 0.2,
+                position = position_dodge(0.9)) +
+  xlab("Sulfide (µM)") +
+  ylab("Bacterial production (µgC/L/hr)") +
+  theme_bw()
+```
 
 

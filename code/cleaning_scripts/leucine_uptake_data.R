@@ -213,6 +213,10 @@ convert_leuUptake_to_C_2021("dataRaw/leucineUptake/20211018_leucine.xlsx",
 
 #### Combine all leucine uptake data ####
 rm(list = ls())
+setwd("/Users/benjaminpeterson/Documents/research/BLiMMP")
+library(readxl)
+library(tidyverse)
+
 # Read in metadata
 leu_metadata <- read.csv("metadata/processedMetadata/LEU_metadata.csv")
 # Read in data
@@ -231,12 +235,15 @@ rm(list_of_data_files)
 leucine_data_metadata <- inner_join(leu_metadata,
                                     leucine_uptake_data)
 
-treatment_vector <- rep(NA, dim(leucine_data_metadata)[1])
+treatment_vector <- leucine_data_metadata$amendmentID
 treatment_vector[which(leucine_data_metadata$treatment == "molybdate")] <- "molybdate"
 treatment_vector[which(leucine_data_metadata$treatment == "control")] <- "ambient"
 treatment_vector[which(leucine_data_metadata$treatment == "filtered")] <- "control"
-treatment_vector[which(leucine_data_metadata$killed == "no")] <- "ambient"
+treatment_vector[which(leucine_data_metadata$amendmentID == "unamended")] <- "ambient"
+treatment_vector[which(leucine_data_metadata$amendmentID == "molybdate")] <- "molybdate"
+treatment_vector[which(leucine_data_metadata$amendmentID == "glucose")] <- "glucose"
 treatment_vector[which(leucine_data_metadata$killed == "yes")] <- "control"
+
 leucine_data_metadata <- leucine_data_metadata %>%
   mutate(treatment = treatment_vector) %>%
   select(uptakeID, sampleID, startDate, depth, treatment, protocol, timePoint,
@@ -244,7 +251,8 @@ leucine_data_metadata <- leucine_data_metadata %>%
   mutate(Leu_uptake_pM_per_hour = round(Leu_uptake_pM_per_hour, 0),
          µgBPP_per_L_hr = round(µgBPP_per_L_hr, 2),
          µgBCP_per_L_hr = round(µgBCP_per_L_hr, 2)) %>%
-  filter(treatment != "control")
+  filter(treatment != "control",
+         treatment != "glucose")
 
 # Read out final data
 write.csv(leucine_data_metadata,
