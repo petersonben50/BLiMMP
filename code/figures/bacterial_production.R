@@ -69,6 +69,7 @@ plot.exo.data <- function(exo.data.to.use,
         lwd = 4,
         lty = 3)
   # Add y-axis with depth measurements
+  par(mgp = c(1.5, 0.4, 0))
   axis(2,
        at = seq(0, -25, by = -5),
        labels = seq(0, 25, by = 5))
@@ -119,19 +120,21 @@ plot_BP_profiles_by_date <- function(date_to_use) {
          pch = 21,
          bg = cb.translator["yellow"],
          cex = 1.2)
-  data_to_plot_Mo <- leucine_data_metadata %>%
-    filter(startDate == date_to_use,
-           treatment == "molybdate",
-           (timePoint == "t1" | is.na(timePoint)))
-  points(x = data_to_plot_Mo$µgBCP_per_L_hr / 2.5,
-         y = -data_to_plot_Mo$depth,
-         pch = 4,
-         col = cb.translator["bluishgreen"],
-         lwd = 1.8,
-         cex = 1.2)
+  # data_to_plot_Mo <- leucine_data_metadata %>%
+  #   filter(startDate == date_to_use,
+  #          treatment == "molybdate",
+  #          (timePoint == "t1" | is.na(timePoint)))
+  # points(x = data_to_plot_Mo$µgBCP_per_L_hr / 2.5,
+  #        y = -data_to_plot_Mo$depth,
+  #        pch = 4,
+  #        col = cb.translator["bluishgreen"],
+  #        lwd = 1.8,
+  #        cex = 1.2)
+  par(mgp = c(1.5, 0.2, 0))
   axis(1, at = seq(0, 10, by = 2),
        labels = seq(0, 10, by = 2)*2.5,
-       par(mgp = c(3, 0.5, 0)))
+       par(mgp = c(3, 0.5, 0)),
+       gap.axis = -1)
   title(xlab = "BP (µgC/L/hr)",
         ylab = "Depth (m)",
         line = 1.5)
@@ -178,7 +181,8 @@ plot_BP_by_molybdate_conc <- function() {
   names(color_vector) <- c("ambient", "molybdate-0.017", "molybdate-0.17", "molybdate-1.7")
   name_vector <- c("Ambient", "Molybdate (17 µM)", "Molybdate (170 µM)", "Molybdate (1.7 mM)")
   names(name_vector) <- c("ambient", "molybdate-0.017", "molybdate-0.17", "molybdate-1.7")
-
+  
+  par(mgp = c(1.5, 0.2, 0))
   barplot(data_matrix,
           xlab = "Depth (m)",
           ylab = "BP (µgC/L/hr)",
@@ -286,7 +290,6 @@ cairo_pdf("results/figures/BP_plots.pdf",
           width = 7,
           height = 9)
 par(mar = c(3, 3, 1, 0.5),
-    mgp = c(1.5, 0.2, 0),
     tck = -0.008)
 split.screen(rbind(c(left_horiArea, top_row_vertArea), c(center_horiArea, top_row_vertArea), c(right_horiArea, top_row_vertArea),
                    c(left_horiArea, middle_row_vertArea), c(right_and_center_horiArea, middle_row_vertArea),
@@ -294,40 +297,43 @@ split.screen(rbind(c(left_horiArea, top_row_vertArea), c(center_horiArea, top_ro
 
 #### Plot data ####
 screen(1)
-par(mar = c(3, 3, 1, 0.5),
-    mgp = c(1.5, 0.2, 0),
-    tck = -0.008)
+# par(mgp = c(1.5, 0.2, 0))
 plot_BP_profiles_by_date("2020-10-10")
 mtext(text = "A. Oct. 10, 2020",
       side = 3,
       adj = 0)
+legend(x = 2.2,
+       y = 2,
+       legend = c("Bacterial Prod.", "Temperature", "Diss. Oxygen", "Turbidity"),
+       pch = c(21, NA, NA, NA),
+       lty = c(NA, 1, 4, 3),
+       col = c("black", trans_colors(cb.translator["blue"], 50),
+               trans_colors(cb.translator["black"], 50),
+               trans_colors(cb.translator["reddishpurple"], 50)),
+       pt.bg = c(cb.translator["yellow"], NA, NA, NA),
+       cex = 0.7,
+       pt.cex = 1.2)
 screen(2)
-par(mar = c(3, 3, 1, 0.5),
-    mgp = c(1.5, 0.2, 0),
-    tck = -0.008)
+# par(mgp = c(1.5, 0.2, 0))
 plot_BP_profiles_by_date("2021-09-10")
 mtext(text = "B. Sept. 10, 2021",
       side = 3,
       adj = 0)
 screen(3)
-par(mar = c(3, 3, 1, 0.5),
-    mgp = c(1.5, 0.2, 0),
-    tck = -0.008)
+# par(mgp = c(1.5, 0.2, 0))
 plot_BP_profiles_by_date("2021-10-14")
 mtext(text = "C. Oct. 14, 2021",
       side = 3,
       adj = 0)
 screen(4)
-par(mar = c(3, 3, 1, 0.5),
-    mgp = c(1.5, 0.2, 0),
-    tck = -0.008)
+# par(mgp = c(1.5, 0.2, 0))
 plot_BP_profiles_by_date("2020-09-17")
 mtext(text = "D. Sept. 17, 2020",
       side = 3,
       adj = 0)
 
 screen(5)
-
+# par(mgp = c(1.5, 0.2, 0))
 plot_BP_by_molybdate_conc()
 mtext(text = "E. Molybdate treatments",
       side = 3,
