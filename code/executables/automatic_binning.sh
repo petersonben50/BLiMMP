@@ -120,7 +120,6 @@ run_MaxBin.pl -contig $scaffoldsLocation/$assembly\_filtered_scaffolds.fna \
               -abund_list abund_list.txt \
               -out $assembly\_maxbin \
               -thread 10
-rm -f metagenomes_for_$assembly\_mapping.txt
 conda deactivate
 
 
