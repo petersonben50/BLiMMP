@@ -47,17 +47,15 @@ done
 # Map reads to filtered scaffolds
 ##########################
 cd /home/GLBRCORG/bpeterson26/BLiMMP/reports/
+rm -rf binning_mapping
 mkdir binning_mapping
 cd binning_mapping
-rm -f outs/*_binningMapping.out \
-      errs/*_binningMapping.err \
-      logs/*_binningMapping.log
 mkdir outs errs logs
 
 cd /home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/binning
 mkdir mapping
 mkdir mapping/indices
-awk -F '\t' '{ print $1 }' ~/BLiMMP/metadata/assembly_list.txt > assembly_list_to_use.txt
+cp ~/BLiMMP/metadata/assembly_list.txt assembly_list_to_use.txt
 
 cd /home/GLBRCORG/bpeterson26/BLiMMP/code/
 chmod +x binning_mapping.sh
@@ -225,8 +223,8 @@ cd ~/BLiMMP/dataEdited/binning/manualBinning/
 # Copy the database folder
 #cp -avr anvioDBs anvioDBs_modified
 #cat /home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/binning/manualBinning/anvioDBs/original_summaries/hgcA_search/original_hgcA_bin_list.txt
-assembly=BLI20_coassembly
-bin=Bin_6
+assembly=BLI21_coassembly
+bin=Bin_66
 anvi-refine -p anvioDBs_modified/$assembly.merged/PROFILE.db \
             -c anvioDBs_modified/$assembly.db \
             -C CONCOCT \
@@ -237,7 +235,7 @@ anvi-refine -p anvioDBs_modified/$assembly.merged/PROFILE.db \
 
 ################################################
 ################################################
-# Summarize/export curated bins
+# Aggregate all bins and identify final bins
 ################################################
 ################################################
 
@@ -272,93 +270,56 @@ conda deactivate
 
 
 ##########################
-# Pull out DNA files from hgcA+ bins
+# Pull out DNA files from all bins
 ##########################
 # First need to set up new directory
-cd ~/BLiMMP/dataEdited/binning/manualBinning/
+cd ~/BLiMMP/dataEdited/binning
 mkdir binsRaw
 mkdir binsRaw/DNA
-binsRaw=~/BLiMMP/dataEdited/binning/manualBinning/binsRaw
+binsRaw=~/BLiMMP/dataEdited/binning/binsRaw
+echo -e "assemblyID\tnewBinName\toldBinName" > $binsRaw/renaming_file.tsv
 
+# Copy over bins from manual binning
 awk -F '\t' '{ print $1 }' $assembly_list | while read assembly
 do
+  i=1
   binSummary=~/BLiMMP/dataEdited/binning/manualBinning/anvioDBs_modified/$assembly.curated.summary
-  if [ -e $binSummary ]; then
-    if [ ! -e $binsRaw/DNA/$assembly* ]; then
+  if [ ! -e $binsRaw/DNA/$assembly* ]; then
+    if [ -e $binSummary/bin_by_bin ]; then
       cd $binSummary/bin_by_bin
       ls | sed 's/\///' | while read bin
       do
-        isThereHgcA=`cat $bin/$bin\-hgcaAnvio-hmm-sequences.txt | wc -l`
-        if [ ! $isThereHgcA -eq 0 ]; then
-          echo "Copying" $bin "to binsRaw folder"
-          cp $bin/$bin-contigs.fa $binsRaw/DNA/$bin.fna
-        else
-          echo "No hgcA in" $bin
+        if [ -e $bin/$bin-contigs.fa ]; then
+          newFile="$(printf "$assembly\_anvio_bin_%04d.fna" "$i" | sed 's/\\//g')"
+          echo "Copying" $bin "to" $newFile "in binsRaw folder"
+          cp $bin/$bin-contigs.fa $binsRaw/DNA/$newFile
+          echo -e $assembly"\t"$newFile"\t"$bin >> $binsRaw/renaming_file.tsv
+          i=$((i+1))
         fi
       done
-    else
-      echo "Hey, there are some bins from" $assembly "already in here"
-      echo "You might wanna check that out before you start overwriting stuff"
     fi
   else
-    echo "Summarize anvioDB for" $assembly", dummy."
+    echo "Hey, there are some bins from" $assembly "already in here"
   fi
 done
 
-# Generate list of hgcA+ bins
-cd $binsRaw/DNA
-ls *.fna | \
-  sed 's/.fna//' \
-  > binsRaw_hgcA_list.txt
-
-
-####################################################
-####################################################
-# Check quality of bins
-####################################################
-####################################################
-
-##########################
-# Completeness/redundancy estimates from anvio
-##########################
-binsRaw=~/BLiMMP/dataEdited/binning/manualBinning/binsRaw
-mkdir $binsRaw/anvio_data
-mkdir $binsRaw/anvio_data/completeness_redundancy
-
-# Copy summary files into a single folder.
+# Copy over bins from auto binning
+dasTool=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/binning/autoBinning/dasTool
 awk -F '\t' '{ print $1 }' $assembly_list | while read assembly
 do
-  binSummary=~/BLiMMP/dataEdited/binning/manualBinning/anvioDBs_modified/$assembly.curated.summary
-  if [ -e $binSummary/bins_summary.txt ]; then
-    cp $binSummary/bins_summary.txt $binsRaw/anvio_data/completeness_redundancy/$assembly\_bins_summary.txt
-  else
-    echo $assembly "has not been summarized."
+  if [ -e $dasTool/$assembly\_output/$assembly\_bins_DASTool_bins ]; then
+    cd $dasTool/$assembly\_output/$assembly\_bins_DASTool_bins
+    i=1
+    ls *.fa | while read file
+    do
+      newFile="$(printf "$assembly\_dasTool_bin_%04d.fna" "$i" | sed 's/\\//g')"
+      echo "Moving" "$file" "to" $newFile
+      echo -e $assembly"\t"$newFile"\t"$file >> $binsRaw/renaming_file.tsv
+      cp $file $binsRaw/DNA/$newFile
+      i=$((i+1))
+    done
   fi
 done
-
-# Concatenate summaries into a single file.
-cd $binsRaw/anvio_data/completeness_redundancy
-head -n 1 fall2017cluster1_bins_summary.txt > bins_summary_all.txt
-ls *_bins_summary.txt | while read file
-do
-  tail -n +2 $file >> bins_summary_all.txt
-done
-
-# Only keep the summaries for the hgcA+ bins.
-rm -f bins_summary_hgcA.txt
-cat $binsRaw/DNA/binsRaw_hgcA_list.txt | while read hgcA_bin
-do
-  grep $hgcA_bin bins_summary_all.txt >> bins_summary_hgcA.txt
-done
-
-# Which bins have greater than 50% C and less than 10% R
-head -n 1 bins_summary_hgcA.txt > bins_summary_hgcA_good.txt
-awk '{ if (($7 > 50) && ($8 < 10)) print $0 }' bins_summary_hgcA.txt >> bins_summary_hgcA_good.txt
-tail -n +2 bins_summary_hgcA_good.txt | \
-  awk '{ print $1 }' \
-  > bins_list_hgcA_good.txt
-
-
 
 
 ##########################
@@ -367,9 +328,9 @@ tail -n +2 bins_summary_hgcA_good.txt | \
 
 screen -S BLI_checkM
 source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
-PYTHONPATH=""
 conda activate bioinformatics
-binsRaw=~/BLiMMP/dataEdited/binning/manualBinning/binsRaw
+PYTHONPATH=""
+binsRaw=~/BLiMMP/dataEdited/binning/binsRaw
 
 cd $binsRaw
 if [ -d checkM ]; then
@@ -379,7 +340,7 @@ fi
 mkdir checkM
 checkm lineage_wf \
       -x .fna \
-      -t 16 \
+      -t 24 \
       DNA \
       checkM
 checkm qa checkM/lineage.ms \
@@ -392,30 +353,18 @@ awk -F '\t' \
   '{ print $1,$6,$7,$8,$9,$11,$13,$15,$17,$19,$23 }' \
   checkM/checkm.out \
   > checkM/checkM_stats.csv
-# Download checkM/checkM_stats.csv to local computer:
-# dataEdited/binning/rawBins/bin_quality
 
-cd ~/BLiMMP/dataEdited/binning/manualBinning
+##########################
+# Keep bins above 50% complete and below 10% redundancy
+##########################
+
+cd ~/BLiMMP/dataEdited/binning
 mkdir binsGood
 mkdir binsGood/DNA
-mkdir binsGood/checkM
 awk -F ',' '{ if (($2 > 50) && ($3 < 10)) print $0 }' \
   binsRaw/checkM/checkM_stats.csv \
-  > binsGood/checkM/good_bins_data.txt
-awk -F ',' '{ print $1 }' binsGood/checkM/good_bins_data.txt \
-  > binsGood/checkM/good_bins_list.txt
-
-
-##########################
-# Final bin list
-##########################
-cd ~/BLiMMP/dataEdited/binning/manualBinning
-cat binsGood/checkM/good_bins_list.txt binsRaw/anvio_data/completeness_redundancy/bins_list_hgcA_good.txt | \
-  sort | uniq \
-  > goodBins_list.txt
-
-# Copy over good bins
-cat goodBins_list.txt | while read binsGood
+  > binsGood/checkM_stats.txt
+awk -F ',' '{ print $1 }' binsGood/checkM_stats.txt | while read binsGood
 do
   echo "Copying" $binsGood
   cp binsRaw/DNA/$binsGood.fna binsGood/DNA
