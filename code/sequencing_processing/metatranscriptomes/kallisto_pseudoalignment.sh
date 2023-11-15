@@ -25,6 +25,6 @@ kallisto quant \
           $readsLocation/$mtID\_mRNA_R2.fastq
 
 # Gather and rename abundance files
-cp $mtID\_to_$assemblyID\_output/abundance.tsv ./$mtID\_to_$assemblyID\_abundance.tsv
+cp $mtID\_to_$assemblyID\_output/abundance.tsv ./$mtID\_to_$assemblyID\_kallisto.tsv
 cp $mtID\_to_$assemblyID\_output/run_info.json reports/$mtID\_to_$assemblyID\_run_info.json
 rm -rf $mtID\_to_$assemblyID\_output
