@@ -1,0 +1,24 @@
+##################
+# kallisto_pseudoalignment.sub
+# Submission script for pseudo-alignment
+# of MT reads to ORFs.
+
+# Benjamin D. Peterson
+##################
+
+request_cpus = 8
+request_memory = 120GB
+
+executable = /home/GLBRCORG/bpeterson26/BLiMMP/code/kallisto_pseudoalignment_bins.sh
+
+environment = "mtID=$(mtID) \
+                assemblyID=$(assemblyID) \
+                outputFolder=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/metatranscriptomes/alignment_bins/output \
+                reportFolder=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/metatranscriptomes/alignment_bins/reports \
+                readsLocation=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/metatranscriptomes/mRNA_reads \
+                indexFolder=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/metatranscriptomes/alignment_bins/index"
+output = /home/GLBRCORG/bpeterson26/BLiMMP/reports/metatranscriptomes_bins/outs/kallisto_$(mtID)_to_$(assemblyID)_bins.out
+error = /home/GLBRCORG/bpeterson26/BLiMMP/reports/metatranscriptomes_bins/errs/kallisto_$(mtID)_to_$(assemblyID)_bins.err
+log = /home/GLBRCORG/bpeterson26/BLiMMP/reports/metatranscriptomes_bins/logs/kallisto_$(mtID)_to_$(assemblyID)_bins.log
+
+queue mtID,assemblyID from /home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/metatranscriptomes/alignment_bins/pseudomapping_key.tsv
