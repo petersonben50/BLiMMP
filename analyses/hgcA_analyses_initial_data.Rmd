@@ -1,0 +1,144 @@
+---
+title: "hgcA_analysis"
+author: "Benjamin D. Peterson"
+date: "2023-04-15"
+output: html_document
+---
+
+```{r setup, include = FALSE}
+rm(list = ls())
+#setwd("/Users/benjaminpeterson/Documents/research/BLiMMP")
+#new.wd <- "/Users/benjaminpeterson/Documents/research/BLiMMP"
+library(tidyverse)
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(echo = TRUE)
+new.wd <- gsub("\\/[[:alpha:]]+$", "", getwd())
+knitr::opts_knit$set(root.dir = new.wd)
+rm(new.wd)
+```
+
+```{r MG_MT_metadata, include = FALSE}
+
+```
+
+
+```{r read_in_data}
+hgcA.data <- read.csv("dataFinal/hgcA_data.csv")
+MG_metadata <- read.csv("metadata/metagenome_metadata.csv") %>%
+  rename(omicID = metagenomeID) %>%
+  mutate(seqType = "MG") %>%
+  select(omicID, startDate, depth, seqType)
+MT_metadata <- read.csv("metadata/metatranscriptome_metadata.csv") %>%
+  rename(omicID = metatranscriptomeID) %>%
+  mutate(seqType = "MT") %>%
+  select(omicID, startDate, depth, seqType)
+omic_metadata <- rbind(MG_metadata,
+                       MT_metadata) %>%
+  mutate(date_depth = paste(startDate, ":", depth, "m",
+                            sep = ""))
+rm(MG_metadata, MT_metadata)
+# NFs.expression <- readRDS("dataEdited/metatranscriptomes/normalization_vector.rds")
+```
+
+```{r overall_abundance_expression_hgcA}
+ggpubr::ggarrange(
+  hgcA.data %>%
+    select(cluster_ID, grep("BLI2[0-1]_MG", names(hgcA.data), value = TRUE)) %>%
+    gather(key = metagenomeID,
+           value = coverage,
+           -1) %>%
+    group_by(cluster_ID, metagenomeID) %>%
+    summarise(coverage = mean(coverage)) %>%
+    group_by(metagenomeID) %>%
+    summarise(total_coverage = sum(coverage)) %>%
+    left_join(metagenome.metadata) %>%
+    ggplot(aes(x = date.depth,
+               y = total_coverage)) +
+    geom_point() +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 45)) +
+    ylim(c(0, 35)),
+  hgcA.data %>%
+    select(cluster_ID, grep("BLI2[0-1]_MT", names(hgcA.data), value = TRUE)) %>%
+    gather(key = mtID,
+           value = Mcount_rna,
+           -1) %>%
+    group_by(cluster_ID, mtID) %>%
+    summarise(Mcount_rna = mean(Mcount_rna)) %>%
+    group_by(mtID) %>%
+    summarise(total_Mcount_rna = sum(Mcount_rna)) %>%
+    left_join(metatranscriptome_metadata) %>%
+    ggplot(aes(x = date.depth,
+               y = total_Mcount_rna)) +
+    geom_jitter() +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 45)) +
+    ylim(c(0, 16)),
+  nrow = 2,
+  ncol =1
+)
+```
+
+
+```{r set_up_colors, include = FALSE}
+cb.translator <- readRDS("references/colorblind_friendly_colors.rds")
+taxa.of.interest <- c("Desulfobacterales", "Geobacterales", "Kiritimatiellaeota", "Lentisphaerae",
+                      "Planctomycetes", "Spirochaetes", "Unknown_PVC", "Actinobacteria", "Bacteroidetes",
+                      "Firmicutes", "Unknown", "Unknown_distant")
+colorVector <- c(cb.translator[c("blue", "orange", "reddishpurple", "vermillion")],
+                 "gray60", "gray20", "gray80", cb.translator[c("bluishgreen", "skyblue", "yellow")],
+                 "gray10", "black")
+names(colorVector) <- taxa.of.interest
+
+```
+
+
+```{r plot_taxa_MGs, fig.height=9}
+hgcA.data %>%
+  filter(verified_hgcA) %>%
+  select(cluster_ID, taxa_by_tree, 
+         grep("BLI2[0:1]_M[G,T]", names(hgcA.data), value = TRUE)) %>%
+  gather(key = omicID, value = abundance, -c(1:2)) %>%
+  group_by(cluster_ID, taxa_by_tree, omicID) %>%
+  summarise(abundance = mean(abundance)) %>%
+  ungroup() %>%
+  mutate(taxa_by_tree = forcats::fct_relevel(taxa_by_tree, taxa.of.interest)) %>%
+  group_by(taxa_by_tree, omicID) %>%
+  summarise(abundance = sum(abundance)) %>%
+  ungroup() %>%
+  left_join(omic_metadata) %>%
+  filter(seqType == "MG") %>%
+  ggplot(aes(x = taxa_by_tree,
+             y = abundance,
+             fill = taxa_by_tree)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = colorVector) +
+  facet_wrap(~date_depth, ncol = 3, nrow = 4) +
+  theme_bw()
+```
+
+
+
+```{r plot_taxa_MTs, fig.height=9}
+hgcA.data %>%
+  filter(verified_hgcA) %>%
+  select(cluster_ID, taxa_by_tree, 
+         grep("BLI2[0:1]_M[G,T]", names(hgcA.data), value = TRUE)) %>%
+  gather(key = omicID, value = abundance, -c(1:2)) %>%
+  group_by(cluster_ID, taxa_by_tree, omicID) %>%
+  summarise(abundance = mean(abundance)) %>%
+  ungroup() %>%
+  mutate(taxa_by_tree = forcats::fct_relevel(taxa_by_tree, taxa.of.interest)) %>%
+  group_by(taxa_by_tree, omicID) %>%
+  summarise(abundance = sum(abundance)) %>%
+  ungroup() %>%
+  left_join(omic_metadata) %>%
+  filter(seqType == "MT") %>%
+  ggplot(aes(x = taxa_by_tree,
+             y = abundance,
+             fill = taxa_by_tree)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = colorVector) +
+  facet_wrap(~date_depth, ncol = 3, nrow = 4) +
+  theme_bw()
+```
