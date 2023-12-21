@@ -437,6 +437,7 @@ PERL5LIB=""
 b2a_file=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/bin_based_analyses/hgcA_bins/final_bin_data/bin_to_assembly.tsv
 KOFAM_output=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/bin_based_analyses/hgcA_bins/metabolism/KOFAM_output
 ORFs=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/bin_based_analyses/hgcA_bins/ORFs/
+final_bin_data=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/bin_based_analyses/hgcA_bins/final_bin_data
 cd /home/GLBRCORG/bpeterson26/BLiMMP/code/kofam_scan-1.3.0
 mkdir $KOFAM_output
 
@@ -462,5 +463,5 @@ ls *qualityHits.tsv | while read file
 do
   binID=`echo $file | sed 's/_qualityHits.tsv//'`
   echo "Working on" $binID
-  awk -F '\t' -v binID="$binID" '{ print binID"\t"$0 }' $file >> kofam_data.tsv
+  awk -F '\t' -v binID="$binID" '{ print binID"\t"$0 }' $file >> $final_bin_data/kofam_data.tsv
 done
