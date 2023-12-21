@@ -350,136 +350,83 @@ source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
 conda activate batch_HMMs
 PYTHONPATH=''
 PERL5LIB=''
-binsFinal=~/BLiMMP/dataEdited/binning/manualBinning/binsFinal
 scripts=~/BLiMMP/code
-metabolic_HMMs=~/BLiMMP/references/metabolic_HMMs
-cd $binsFinal
-mkdir metabolism
-chmod +x $scripts/batch_HMMs.py
+cd /home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/bin_based_analyses/hgcA_bins/
+mkdir -p metabolism
+cd metabolism
 
-python $scripts/batch_HMMs.py --orf_file $binsFinal/ORFs.faa \
-                              --g2b $binsFinal/binsFinal_G2B.tsv \
+# Split up the anvio and DasTool ORFs to analyze separately
+ORFs=~/BLiMMP/dataEdited/bin_based_analyses/hgcA_bins/ORFs
+cd /home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/bin_based_analyses/hgcA_bins/metabolism
+mkdir ORFs_for_metabolism
+mkdir ORFs_for_metabolism/anvio
+mkdir ORFs_for_metabolism/DasTool
+cp $ORFs/*anvio*.faa ORFs_for_metabolism/anvio
+cp $ORFs/*dasTool*.faa ORFs_for_metabolism/DasTool
+# Generate S2B files
+$scripts/Fasta_to_Scaffolds2Bin.sh -e faa \
+                                    -i ORFs_for_metabolism/anvio \
+                                    > ORFs_for_metabolism/anvio_bins_G2B.tsv
+$scripts/Fasta_to_Scaffolds2Bin.sh -e faa \
+                                    -i ORFs_for_metabolism/DasTool \
+                                    > ORFs_for_metabolism/DasTool_bins_G2B.tsv
+# Concatenate the ORFs
+cat ORFs_for_metabolism/anvio/*.faa > ORFs_for_metabolism/anvio.faa
+cat ORFs_for_metabolism/DasTool/*.faa > ORFs_for_metabolism/DasTool.faa
+
+scripts=~/BLiMMP/code
+metabolic_HMMs=/home/GLBRCORG/bpeterson26/BLiMMP/references/metabolic_HMMs
+chmod +x $scripts/batch_HMMs.py
+rm -rf batch_HMMs
+mkdir batch_HMMs_processing
+#bin_g2b=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/bin_based_analyses/hgcA_bins/final_bin_data/hgcA_bins_G2B.tsv
+python $scripts/batch_HMMs.py --orf_file ORFs_for_metabolism/anvio.faa \
+                              --g2b ORFs_for_metabolism/anvio_bins_G2B.tsv \
                               --hmm_folder $metabolic_HMMs \
                               --hmm_csv $metabolic_HMMs\_bins.csv \
-                              --output $binsFinal/metabolism/batch_HMMs
+                              --output batch_HMMs_anvio
+
+python $scripts/batch_HMMs.py --orf_file ORFs_for_metabolism/DasTool.faa \
+                              --g2b ORFs_for_metabolism/DasTool_bins_G2B.tsv \
+                              --hmm_folder $metabolic_HMMs \
+                              --hmm_csv $metabolic_HMMs\_bins.csv \
+                              --output batch_HMMs_DasTool
+
+cat batch_HMMs_anvio/bin_counts/all_bin_hits.tsv > ../final_bin_data/batch_HMMs_bin_hits.tsv
+tail -n +2 batch_HMMs_DasTool/bin_counts/all_bin_hits.tsv >> ../final_bin_data/batch_HMMs_bin_hits.tsv
+
 conda deactivate
 
-
-##########################
-# Search for MHCs
-##########################
-screen -S MHCs
-mkdir $binsFinal/metabolism/MHCs
-cd $binsFinal/metabolism/MHCs
-scripts=~/BLiMMP/code
-binsFinal=~/BLiMMP/dataEdited/binning/manualBinning/binsFinal
-$scripts/Find_multiheme_protein.py $binsFinal/ORFs.faa 3
-mv $binsFinal/ORFs_3_heme* .
-
-echo -e "binID\tgeneID\themeCount" > heme_count_bins.tsv
-tail -n +2 ORFs_3_heme_count.txt | awk -F '\t' '{ print $1 }' | while read geneID
-do
-  binID=`awk -F '\t' -v geneID="$geneID" '{ if ($1 == geneID) print $2 }' $binsFinal/binsFinal_G2B.tsv`
-  hemeCount=`awk -F '\t' -v geneID="$geneID" '{ if ($1 == geneID) print $2 }' ORFs_3_heme_count.txt`
-  echo -e $binID"\t"$geneID"\t"$hemeCount
-  echo -e $binID"\t"$geneID"\t"$hemeCount >> heme_count_bins.tsv
-done
-
-##########################
-# Search for MHCs with 10 heme-binding sites
-##########################
-mkdir $binsFinal/metabolism/MHCs_10
-cd $binsFinal/metabolism/MHCs_10
-$scripts/Find_multiheme_protein.py $binsFinal/ORFs.faa 10
-mv $binsFinal/ORFs_10_heme* .
-
-echo -e "binID\tgeneID\themeCount" > heme_count_bins_10.tsv
-tail -n +2 ORFs_10_heme_count.txt | awk -F '\t' '{ print $1 }' | while read geneID
-do
-  binID=`awk -F '\t' -v geneID="$geneID" '{ if ($1 == geneID) print $2 }' $binsFinal/binsFinal_G2B.tsv`
-  hemeCount=`awk -F '\t' -v geneID="$geneID" '{ if ($1 == geneID) print $2 }' ORFs_10_heme_count.txt`
-  echo -e $binID"\t"$geneID"\t"$hemeCount
-  echo -e $binID"\t"$geneID"\t"$hemeCount >> heme_count_bins.tsv
-done
-
-##########################
-# Search for BBOMPs
-##########################
-# Pull out names of adjacent genes
-binsFinal=~/BLiMMP/dataEdited/binning/manualBinning/binsFinal
-cd $binsFinal/metabolism
-mkdir PCC
-mkdir PCC/list
-rm -f $binsFinal/metabolism/PCC/adjacent_genes_all_list.txt
-
-cat MHCs/ORFs_3_heme_list.txt | while read gene
-do
-  echo "Working on" $gene
-  scaffold=$(echo $gene | rev | cut -d"_" -f2- | rev)
-  assembly=$(echo $gene | rev | cut -d"_" -f3- | rev)
-  ORFnumber=$(echo $gene | rev | cut -d"_" -f1 | rev)
-  preceedingORFnumber=$(expr $ORFnumber - 1)
-  followingORFnumber=$(expr $ORFnumber + 1)
-  echo $scaffold"_"$preceedingORFnumber >> PCC/list/adjacent_genes_all_list.txt
-  echo $scaffold"_"$followingORFnumber >> PCC/list/adjacent_genes_all_list.txt
-done
-
-# Find unique gene names
-cd PCC
-wc -l list/adjacent_genes_all_list.txt
-sort list/adjacent_genes_all_list.txt | \
-  uniq \
-  > list/adjacent_genes_unique_list.txt
-
-# Pull out adjacent genes
-rm -f adjacent_genes.faa
-cat list/adjacent_genes_unique_list.txt | while read geneID
-do
-  assembly=$(echo $geneID | rev | cut -d"_" -f3- | rev)
-  echo "Looking for" $geneID "in" $assembly
-  grep -A 1 -m 1 $geneID$ $binsFinal/ORFs.faa >> adjacent_genes.faa
-done
-
-
-#########################
-# Search adjacent genes for BBOMPs
-#########################
-source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
-conda activate bioinformatics
-PYTHONPATH=""
-PERL5LIB=""
-cd $binsFinal/metabolism/PCC
-
-# Run the PCC HMM
-pcc_omp_HMM=~/BLiMMP/references/metabolicProteins/EET/pcc_omp.HMM
-hmmsearch --tblout pcc_omp_custom.out \
-          -T 40 \
-          $pcc_omp_HMM \
-          adjacent_genes.faa \
-          > pcc_omp_custom_output.txt
-
-
-#########################
-# Run METABOLIC
-#########################
-mkdir ~/BLiMMP/dataEdited/binning/manualBinning/binsFinal/metabolism/forMETABOLIC
-cd ~/BLiMMP/dataEdited/binning/manualBinning/binsFinal
-cat final_bins.txt | while read bin
-do
-  cp DNA/$bin.fna metabolism/forMETABOLIC/$bin.fasta
-done
-cd metabolism/forMETABOLIC
-condor_submit ~/BLiMMP/code/METABOLIC_processing.sub
 
 
 
 #########################
 # Run Kofamscan on ORFs
 #########################
-cp -avr ~/references/kofamscan_DBs/kofam_scan-1.3.0 ~/BLiMMP/code/
-# Update config.yml file
-binsFinal=~/BLiMMP/dataEdited/binning/manualBinning/binsFinal
-mkdir $binsFinal/metabolism/KOFAM_output
+#cp -avr ~/references/kofamscan_DBs/kofam_scan-1.3.0 ~/BLiMMP/code/
+# https://github.com/takaram/kofam_scan
+# Update ~/BLiMMP/code/kofam_scan-1.3.0/config.yml file to the following:
+
+'
+Path to your KO-HMM database
+# A database can be a .hmm file, a .hal file or a directory in which
+# .hmm files are. Omit the extension if it is .hal or .hmm file
+profile: /home/GLBRCORG/bpeterson26/references/kofamscan_DBs/profiles
+
+# Path to the KO list file
+ko_list: /home/GLBRCORG/bpeterson26/references/kofamscan_DBs/ko_list
+
+# Path to an executable file of hmmsearch
+# You do not have to set this if it is in your $PATH
+# hmmsearch: /usr/local/bin/hmmsearch
+
+# Path to an executable file of GNU parallel
+# You do not have to set this if it is in your $PATH
+# parallel: /usr/local/bin/parallel
+
+# Number of hmmsearch processes to be run parallelly
+cpu: 8
+'
 
 # Run kofamscan on each set of bins
 screen -S kofamscan
@@ -487,13 +434,13 @@ source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
 conda activate kofamscan
 PYTHONPATH=""
 PERL5LIB=""
-binsFinal=~/BLiMMP/dataEdited/binning/manualBinning/binsFinal
-KOFAM_output=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/binning/manualBinning/binsFinal/metabolism/KOFAM_output
-ORFs=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/binning/manualBinning/binsFinal/ORFs
+b2a_file=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/bin_based_analyses/hgcA_bins/final_bin_data/bin_to_assembly.tsv
+KOFAM_output=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/bin_based_analyses/hgcA_bins/metabolism/KOFAM_output
+ORFs=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/bin_based_analyses/hgcA_bins/ORFs/
 cd /home/GLBRCORG/bpeterson26/BLiMMP/code/kofam_scan-1.3.0
+mkdir $KOFAM_output
 
-rm -f $KOFAM_output/output_forDecoder.tsv
-cat $binsFinal/final_bins.txt | while read binID
+awk -F '\t' '{ print $1 }' $b2a_file | while read binID
 do
   if [ ! -d $KOFAM_output/$binID ]; then
     echo "Running KOFAMscan on" $binID
@@ -510,79 +457,10 @@ done
 conda deactivate
 
 
-#########################
-# Run KEGG-decoder on output
-#########################
-screen -S kegg_decoder
-source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
-conda activate kegg_decoder
-PYTHONPATH=""
-PERL5LIB=""
-KOFAM_output=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/binning/manualBinning/binsFinal/metabolism/KOFAM_output
-KEGG-decoder --input $KOFAM_output/output_forDecoder.tsv \
-              --output $KOFAM_output/bin_metabolism_decoded_html.txt \
-              --vizoption interactive
-
-
-#########################
-# Identify CAZymes in each bin
-#########################
-#http://bcb.unl.edu/dbCAN2/blastation.php?jobid=20210602130442
-
-
-#########################
-# Characterize MoORs in bins
-#########################
-# Search bins for MoORs
-screen -S BLI_MoORs
-cd ~/BLiMMP/dataEdited/binning/manualBinning/binsFinal
-source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
-conda activate bioinformatics
-PYTHONPATH=''
-PERL5LIB=''
-scripts=~/BLiMMP/code/
-
-mkdir metabolism/MoORs
-hmmsearch --tblout metabolism/MoORs/MoOR.out \
-          -T 50 \
-          ~/BLiMMP/references/custom_hmms/MoOR.HMM \
-          ORFs.faa
-
-# Pull out the gene names, use this to find correct portion of G2B file.
-cd metabolism/MoORs/
-rm -f MoOR_G2B.tsv
-rm -f putative_MoORs.faa
-grep -v '#' MoOR.out | \
-  awk '{ print $1 }' | while read gene
-  do
-    awk -F '\t' -v gene="$gene" '$1 == gene { print $0 }' ../../binsFinal_G2B.tsv >> MoOR_G2B.tsv
-    grep -A 1 $gene\$ ../../ORFs.faa >> putative_MoORs.faa
-    tail -n 1 MoOR_G2B.tsv
-  done
-sed -i 's/*//g' putative_MoORs.faa
-
-# Align the putative MoORs to the references
-hmmalign -o putative_MoORs.sto \
-          ~/BLiMMP/references/custom_hmms/MoOR.HMM \
-          putative_MoORs.faa
-$scripts/convert_stockhold_to_fasta.py putative_MoORs.sto
-# Check this in Geneious
-# Removed sequences with fewer than 400 aligned residues
-muscle -profile \
-        -in1 putative_MoORs_trimmed.afa \
-        -in2 ~/BLiMMP/references/custom_hmms/MoOR_reference.afa \
-        -out putative_MoORs_ref_1.afa
-
-python $scripts/cleanFASTA.py putative_MoORs_ref_1.afa
-mv -f putative_MoORs_ref_1.afa_temp.fasta putative_MoORs_ref_1.afa
-#sed 's/-//g' putative_MoORs_ref_1.afa > putative_MoORs_ref_1.faa
-
-# Mask the alignment at 50% gaps
-trimal -in putative_MoORs_ref_1.afa \
-        -out putative_MoORs_ref_1_masked.afa \
-        -gt 0.5
-FastTree putative_MoORs_ref_1_masked.afa > putative_MoORs_1.tree
-
-
-
-
+cd $KOFAM_output
+ls *qualityHits.tsv | while read file
+do
+  binID=`echo $file | sed 's/_qualityHits.tsv//'`
+  echo "Working on" $binID
+  awk -F '\t' -v binID="$binID" '{ print binID"\t"$0 }' $file >> kofam_data.tsv
+done
