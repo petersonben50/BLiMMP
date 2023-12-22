@@ -465,3 +465,39 @@ do
   echo "Working on" $binID
   awk -F '\t' -v binID="$binID" '{ print binID"\t"$0 }' $file >> $final_bin_data/kofam_data.tsv
 done
+
+
+
+##########################
+# Search for MHCs
+##########################
+screen -S MHCs
+scripts=~/BLiMMP/code
+MHC_output=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/bin_based_analyses/hgcA_bins/metabolism/MHCs
+mkdir $MHC_output
+cd $MHC_output
+ORFs_for_metabolism=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/bin_based_analyses/hgcA_bins/metabolism/ORFs_for_metabolism
+
+# Run the MHC-finding script
+$scripts/Find_multiheme_protein.py $ORFs_for_metabolism/DasTool.faa 3
+$scripts/Find_multiheme_protein.py $ORFs_for_metabolism/anvio.faa 3
+
+# Move the results to the MHCs folder
+mv $ORFs_for_metabolism/*_heme_* .
+
+# Concatenate the data into a single file
+echo -e "binID\tgeneID\themeCount" > heme3_count_bins.tsv
+tail -n +2 DasTool_3_heme_count.txt | awk -F '\t' '{ print $1 }' | while read geneID
+do
+  binID=`awk -F '\t' -v geneID="$geneID" '{ if ($1 == geneID) print $2 }' $ORFs_for_metabolism/DasTool_bins_G2B.tsv`
+  hemeCount=`awk -F '\t' -v geneID="$geneID" '{ if ($1 == geneID) print $2 }' DasTool_3_heme_count.txt`
+  echo -e $binID"\t"$geneID"\t"$hemeCount
+  echo -e $binID"\t"$geneID"\t"$hemeCount >> heme3_count_bins.tsv
+done
+tail -n +2 anvio_3_heme_count.txt | awk -F '\t' '{ print $1 }' | while read geneID
+do
+  binID=`awk -F '\t' -v geneID="$geneID" '{ if ($1 == geneID) print $2 }' $ORFs_for_metabolism/anvio_bins_G2B.tsv`
+  hemeCount=`awk -F '\t' -v geneID="$geneID" '{ if ($1 == geneID) print $2 }' anvio_3_heme_count.txt`
+  echo -e $binID"\t"$geneID"\t"$hemeCount
+  echo -e $binID"\t"$geneID"\t"$hemeCount >> heme3_count_bins.tsv
+done
