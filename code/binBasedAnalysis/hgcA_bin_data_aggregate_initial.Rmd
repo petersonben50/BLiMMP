@@ -15,7 +15,7 @@ library(readxl)
 library(tidyverse)
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_knit$set(echo = TRUE)
-new.wd <- gsub("\\/code/cleaning_scripts$", "", getwd())
+new.wd <- gsub("\\/code/binBasedAnalysis$", "", getwd())
 knitr::opts_knit$set(root.dir = new.wd)
 rm(new.wd)
 ```
@@ -127,8 +127,14 @@ hgcA_bin_data <- hgcA_bin_data %>%
 rm(taxonomy_data)
 ```
 
+This is sufficient for our initial analyses. In other files, we'll add data on the abundance, transcription, gene neighborhoods of *hgcA*, and metabolic potential of the hgcA+ bins.
+
+```{r save_out_data }
+saveRDS(hgcA_bin_data,file = 'dataEdited/bin_based_analyses/bin_data_aggregate_1.rds')
+```
 
 
 ```{r cleanup_round1, include = FALSE}
 rm(adjacency_graph, ANI_values, edgelist, ANI_cutoff, cov_cutoff, lone_bins, HMS_ID, checkm_data, taxonomy_data)
 ```
+
