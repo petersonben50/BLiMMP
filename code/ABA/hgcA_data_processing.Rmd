@@ -72,6 +72,45 @@ hgcA.data <- hgcA.data %>%
 rm(hgcA.clstr.data, hgcA.scaf.assembly)
 ```
 
+----
+
+# Add taxonomy and metabolic assignment data from bins
+
+This is a bit tricky for several reasons:
+- The assembly *hgcA* sequences were clustered and one cluster representative was chosen for phylogenetic analysis. This representative does not necessarily match up with what was binned.
+- The ORF names won't necessarily match up between bins and assemblies, since Prodigal was called separately on both and used different modes.
+- There are multiple bins correspondin to some assembly-derived *hgcA* genes/clusters.
+
+What I'll do is assign each bin an *hgcA* cluster ID, then dereplicate the bins
+
+```{r add_bin_data, echo = -4, message = FALSE}
+bin_data <- readRDS('dataEdited/bin_based_analyses/bin_data_aggregate_2_metabolism.rds') %>%
+  rename(seqID = hgca_id) %>%
+  mutate(seqID = strsplit(seqID, ",")) %>%
+  unnest(seqID) %>%
+  mutate(join_column = paste(seqID %>% strsplit("_") %>% sapply("[", 1),
+                             seqID %>% strsplit("_") %>% sapply("[", 2),
+                             seqID %>% strsplit("_") %>% sapply("[", 3),
+                             sep = "_")) %>%
+  select(join_column, hms_id, gtdb_tax, meta_code) %>%
+  arrange(join_column, hms_id) %>%
+  filter(!duplicated(join_column)) %>%
+  left_join(hgcA.data %>%
+              select(seqID, cluster_ID) %>%
+              mutate(join_column = paste(seqID %>% strsplit("_") %>% sapply("[", 1),
+                             seqID %>% strsplit("_") %>% sapply("[", 2),
+                             seqID %>% strsplit("_") %>% sapply("[", 3),
+                             sep = "_")),
+            by = 'join_column') %>%
+  select(-join_column) %>%
+  group_by(cluster_ID) %>%
+  summarize(hms_id = names(which.max(table(hms_id))),
+            gtdb_tax = names(which.max(table(gtdb_tax))),
+            meta_code = names(which.max(table(meta_code))))
+# hgcA.data <- hgcA.data %>%
+#   left_join(bin_data, by = "seqID")
+
+```
 
 ----
 
@@ -92,7 +131,10 @@ writeXStringSet(hgcA.for.phylogeny.faa,
                 width = 6000)
 ```
 
-For references, I took the Hg-MATE database (version 1) and clustered the sequences at 70% identity. I then aligned the output from this to hgcA_for_phylogeny.faa using Muscle (v5.1). I trimmed that alignment to eliminate residues with gaps in >50% of the sequences using trimal (v1.4.rev15). Finally, I generated a rough phylogenetic tree from this alignment using FastTree (v2.1.11). First I looked at the unrooted tree (not shown in this document) to identify the paralog (paralog_Candidatus_Omnitrophica_bacterium_CG1_02_41_171) for rooting purposes. The branch leading to the paralog in the unrooted tree is #419, so I used that to root the tree. I then saved out a PDF of the rooted tree to the working directory and used that to assign taxonomy to each of the *hgcA* sequences. The code to assign the taxonomy is embedded in this document but not shown.
+Before I get into visualizing the tree, I want to figure out which *hgcA* sequences are going to have bin data associated with them
+
+
+For references, I took the Hg-MATE database (version 1) and clustered the sequences at 70% identity. I then aligned the output from this to hgcA_for_phylogeny.faa using Muscle (v5.1). I trimmed that alignment to eliminate residues with gaps in >50% of the sequences using trimal (v1.4.rev15). Finally, I generated a rough phylogenetic tree from this alignment using FastTree (v2.1.11). First I looked at the unrooted tree (not shown in this document) to identify the paralog (paralog_Candidatus_Omnitrophica_bacterium_CG1_02_41_171) for rooting purposes.
 
 ```{r unrooted_hgcA_phylogeny, include = FALSE}
 library(ggtree)
@@ -108,12 +150,35 @@ ggtree(hgcA.tree.unrooted) +
   geom_treescale(x = 9)
 dev.off()
 ```
+
+The branch leading to the paralog in the unrooted tree is #419, so I used that to root the tree. I then saved out a PDF of the rooted tree to the working directory and used that to assign taxonomy to each of the *hgcA* sequences. The code to assign the taxonomy is embedded in this document but not shown.
+
 ```{r rooted_hgcA_phylogeny, message = FALSE}
 hgcA.tree <- root(hgcA.tree.unrooted,outgroup = "paralog_Candidatus_Omnitrophica_bacterium_CG1_02_41_171",
                   edgelabel = TRUE)
 this.study.indices <- which(hgcA.tree$tip.label %in% names(hgcA.for.phylogeny.faa))
+
+# Set up color vector
 color.vector <- rep("black", length(hgcA.tree$tip.label))
 color.vector[this.study.indices] <- "red"
+
+# Set up vector for names of hgcA seqs that were binned.
+hgcA_tree_bin_data <- hgcA.data %>%
+  filter(seqID %in% names(hgcA.for.phylogeny.faa)) %>%
+  select(seqID, cluster_ID) %>%
+  left_join(bin_data) %>%
+  filter(!is.na(meta_code)) %>%
+  mutate(phyla_fam = paste(gtdb_tax %>% strsplit("p__") %>% sapply("[", 2) %>% strsplit(";c__") %>% sapply("[", 1),
+                           gtdb_tax %>% strsplit("o__") %>% sapply("[", 2) %>% strsplit(";f__") %>% sapply("[", 1),
+                           gtdb_tax %>% strsplit("f__") %>% sapply("[", 2) %>% strsplit(";g__") %>% sapply("[", 1),
+                           sep = ";"))
+hgcA_tree_tip_renaming <- paste(hgcA_tree_bin_data$seqID, "-",
+                                hgcA_tree_bin_data$phyla_fam, "-",
+                                hgcA_tree_bin_data$meta_code)
+names(hgcA_tree_tip_renaming) <- hgcA_tree_bin_data$seqID
+binned_index <- which(hgcA.tree$tip.label %in% names(hgcA_tree_tip_renaming))
+hgcA.tree$tip.label[binned_index] <- hgcA_tree_tip_renaming[hgcA.tree$tip.label[binned_index]]
+
 hgcA.tree.image <- ggtree(hgcA.tree) + 
   geom_tiplab(size = 2.5,
               color = color.vector) +
@@ -128,20 +193,25 @@ hgcA.tree.image +
 dev.off()
 ```
 
-```{r taxonomic_assignment_by_phylogeny, include = FALSE}
-taxonomic.grouping.hgcA <- list()
-taxonomic.grouping.hgcA[["Firmicutes"]] <- c("BLI21_coassembly_000000219078_2", "BLI21_coassembly_000000003920_15", "BLI21_coassembly_000000858312_1")
-taxonomic.grouping.hgcA[["Spirochaetes"]] <- c("BLI21_coassembly_000000277987_1", "BLI20_coassembly_000000214677_1", "BLI21_coassembly_000000397409_2")
-taxonomic.grouping.hgcA[["Actinobacteria"]] <- c("BLI21_assembly104_000000083274_2", "BLI21_coassembly_000000136593_2", "BLI21_coassembly_000000018594_7",
+Next I'll work my way down the tree, assigning metabolic capacity and taxonomic identity to each sequence.
+
+```{r tax_meta_assignment_by_phylogeny, include = FALSE}
+library(tidytree)
+taxonomic_grouping_hgcA <- list()
+metabolic_grouping_hgcA <- list()
+
+taxonomic_grouping_hgcA[["Firmicutes"]] <- c("BLI21_coassembly_000000219078_2", "BLI21_coassembly_000000003920_15", "BLI21_coassembly_000000858312_1")
+taxonomic_grouping_hgcA[["Spirochaetes"]] <- c("BLI21_coassembly_000000277987_1", "BLI20_coassembly_000000214677_1", "BLI21_coassembly_000000397409_2")
+taxonomic_grouping_hgcA[["Actinobacteria"]] <- c("BLI21_assembly104_000000083274_2", "BLI21_coassembly_000000136593_2", "BLI21_coassembly_000000018594_7",
                                                "BLI21_assembly105_000000164796_1")
-taxonomic.grouping.hgcA[["Planctomycetes"]] <- c("BLI21_coassembly_000000724865_2",
+taxonomic_grouping_hgcA[["Planctomycetes"]] <- c("BLI21_coassembly_000000724865_2",
                                                  "BLI21_coassembly_000000466192_1", "BLI21_coassembly_000000059411_4")
 
 Kirit.seqs <- tree_subset(hgcA.tree,
                           hgcA.tree %>% MRCA(c("BLI21_coassembly_000000502164_1",
                                                "BLI21_coassembly_000000017500_11")),
                           levels_back = 0)$tip.label
-taxonomic.grouping.hgcA[["Kiritimatiellaeota"]] <- c("BLI21_coassembly_000000061249_5",
+taxonomic_grouping_hgcA[["Kiritimatiellaeota"]] <- c("BLI21_coassembly_000000061249_5",
                                                      grep("BLI2[0:1]_", Kirit.seqs, value = TRUE))
 rm(Kirit.seqs)
 
@@ -149,7 +219,7 @@ Lenti.seqs <- tree_subset(hgcA.tree,
                           hgcA.tree %>% MRCA(c("BLI21_coassembly_000000000998_49",
                                                "BLI21_coassembly_000000421460_2")),
                           levels_back = 0)$tip.label
-taxonomic.grouping.hgcA[["Lentisphaerae"]] <- c(grep("BLI2[0:1]_", Lenti.seqs, value = TRUE),
+taxonomic_grouping_hgcA[["Lentisphaerae"]] <- c(grep("BLI2[0:1]_", Lenti.seqs, value = TRUE),
                                                 "BLI21_assembly103_000000154963_2", "BLI21_coassembly_000000042083_4")
 rm(Lenti.seqs)
 
@@ -157,30 +227,30 @@ unknown.PVC.seqs <- tree_subset(hgcA.tree,
                           hgcA.tree %>% MRCA(c("BLI20_coassembly_000000131407_3",
                                                "BLI21_coassembly_000000055702_2")),
                           levels_back = 0)$tip.label
-taxonomic.grouping.hgcA[["Unknown_PVC"]] <- c(grep("BLI2[0:1]_", unknown.PVC.seqs, value = TRUE))
+taxonomic_grouping_hgcA[["Unknown_PVC"]] <- c(grep("BLI2[0:1]_", unknown.PVC.seqs, value = TRUE))
 rm(unknown.PVC.seqs)
 
-taxonomic.grouping.hgcA[["Bacteroidetes"]] <- c("BLI21_assembly102_000000112326_2")
-taxonomic.grouping.hgcA[["Geobacterales"]] <- c("BLI21_coassembly_000000229519_3")
-taxonomic.grouping.hgcA[["Unknown"]] <- c("BLI21_coassembly_000001026396_2",
+taxonomic_grouping_hgcA[["Bacteroidetes"]] <- c("BLI21_assembly102_000000112326_2")
+taxonomic_grouping_hgcA[["Geobacterales"]] <- c("BLI21_coassembly_000000229519_3")
+taxonomic_grouping_hgcA[["Unknown"]] <- c("BLI21_coassembly_000001026396_2",
                                           "BLI21_coassembly_000000438757_1")
-taxonomic.grouping.hgcA[["Desulfobacterales"]] <- c("BLI20_assembly002_000000161823_1", "BLI21_assembly106_000000022489_2", "BLI21_coassembly_000000058806_3", "BLI21_coassembly_000000004570_14",
+taxonomic_grouping_hgcA[["Desulfobacterales"]] <- c("BLI20_assembly002_000000161823_1", "BLI21_assembly106_000000022489_2", "BLI21_coassembly_000000058806_3", "BLI21_coassembly_000000004570_14",
                                                     "BLI21_coassembly_000000450023_2", "BLI21_coassembly_000000953198_1", "BLI21_coassembly_000000388521_2")
 
 unknown.distant.seqs <- tree_subset(hgcA.tree,
                           hgcA.tree %>% MRCA(c("BLI20_assembly001_000000004268_4",
                                                "BLI21_coassembly_000000684452_2")),
                           levels_back = 0)$tip.label
-taxonomic.grouping.hgcA[["Unknown_distant"]] <- c(grep("BLI2[0:1]_", unknown.distant.seqs, value = TRUE))
+taxonomic_grouping_hgcA[["Unknown_distant"]] <- c(grep("BLI2[0:1]_", unknown.distant.seqs, value = TRUE))
 rm(unknown.distant.seqs)
 
-grep("BLI2[0:1]_", hgcA.tree$tip.label, value = TRUE)[which(!(grep("BLI2[0:1]_", hgcA.tree$tip.label, value = TRUE) %in% unlist(taxonomic.grouping.hgcA)))]
+grep("BLI2[0:1]_", hgcA.tree$tip.label, value = TRUE)[which(!(grep("BLI2[0:1]_", hgcA.tree$tip.label, value = TRUE) %in% unlist(taxonomic_grouping_hgcA)))]
 
-taxonomic.grouping.hgcA.df <- data.frame()
-for (taxa in names(taxonomic.grouping.hgcA)) {
-  temp.df <- data.frame(seqID = taxonomic.grouping.hgcA[[taxa]],
-                        taxa_by_tree = rep(taxa, length(taxonomic.grouping.hgcA[[taxa]])))
-  taxonomic.grouping.hgcA.df <- rbind(taxonomic.grouping.hgcA.df,
+taxonomic_grouping_hgcA.df <- data.frame()
+for (taxa in names(taxonomic_grouping_hgcA)) {
+  temp.df <- data.frame(seqID = taxonomic_grouping_hgcA[[taxa]],
+                        taxa_by_tree = rep(taxa, length(taxonomic_grouping_hgcA[[taxa]])))
+  taxonomic_grouping_hgcA.df <- rbind(taxonomic_grouping_hgcA.df,
                                       temp.df)
   rm(temp.df)
 }
@@ -190,7 +260,7 @@ Once I determined the taxonomy of each *hgcA* sequence, I added that information
 
 ```{r add_taxonomy_by_phylogeny, message = FALSE}
 hgcA.data <- left_join(hgcA.data,
-                       left_join(taxonomic.grouping.hgcA.df,
+                       left_join(taxonomic_grouping_hgcA.df,
                                  hgcA.data %>%
                                    select(seqID, cluster_ID)) %>%
                          select(cluster_ID, taxa_by_tree)
@@ -233,6 +303,20 @@ hgcA.data <- hgcA.data %>%
 rm(sqlite_file, jplace_file, pplace_object, refpkg_path, taxonomy, taxonomy.table, taxonomy.table.df)
 ```
 
+----
+
+# Assign metabolic potential
+
+```{r assignment_metabolic_potential }
+metabolic_guilds <- c("FERM", "FERM", "SRB", "FERM", "HRRO", "FERM", "FERM", "UNK", "UNK", 'UNK', 'UNK', 'FERM')
+names(metabolic_guilds) <- sort(unique(hgcA.data$taxa_by_tree))
+hgcA.data <- hgcA.data %>%
+  mutate(metabolic_guild = metabolic_guilds[taxa_by_tree])
+```
+
+
+----
+
 
 # Abundance data for *hgcA*
 
@@ -255,6 +339,9 @@ rm(normalized.coverage.vector,
    hgcA.coverage)
 
 ```
+
+
+----
 
 # Expression data for *hgcA*
 
