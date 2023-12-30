@@ -17,128 +17,469 @@ knitr::opts_knit$set(root.dir = new.wd)
 rm(new.wd)
 ```
 
-```{r MG_MT_metadata, include = FALSE}
-
+```{r read_in_color_translator, include = FALSE}
+cb.translator <- readRDS("references/colorblind_friendly_colors.rds")
 ```
 
+# Prepare data
 
-```{r read_in_data}
-hgcA.data <- read.csv("dataFinal/hgcA_data.csv")
+First we'll read in the metadata and generate a useful table to link to the abundance data.
+
+```{r prepare_MG_MT_metadata}
 MG_metadata <- read.csv("metadata/metagenome_metadata.csv") %>%
-  rename(omicID = metagenomeID) %>%
+  dplyr::rename(omicID = metagenomeID) %>%
   mutate(seqType = "MG") %>%
-  select(omicID, startDate, depth, seqType)
+  select(omicID, sampleID, startDate, depth, seqType)
 MT_metadata <- read.csv("metadata/metatranscriptome_metadata.csv") %>%
-  rename(omicID = metatranscriptomeID) %>%
+  dplyr::rename(omicID = metatranscriptomeID) %>%
   mutate(seqType = "MT") %>%
-  select(omicID, startDate, depth, seqType)
+  select(omicID, sampleID, startDate, depth, seqType)
 omic_metadata <- rbind(MG_metadata,
                        MT_metadata) %>%
   mutate(date_depth = paste(startDate, ":", depth, "m",
                             sep = ""))
 rm(MG_metadata, MT_metadata)
-# NFs.expression <- readRDS("dataEdited/metatranscriptomes/normalization_vector.rds")
 ```
 
-```{r overall_abundance_expression_hgcA}
-ggpubr::ggarrange(
-  hgcA.data %>%
-    select(cluster_ID, grep("BLI2[0-1]_MG", names(hgcA.data), value = TRUE)) %>%
-    gather(key = metagenomeID,
-           value = coverage,
-           -1) %>%
-    group_by(cluster_ID, metagenomeID) %>%
-    summarise(coverage = mean(coverage)) %>%
-    group_by(metagenomeID) %>%
-    summarise(total_coverage = sum(coverage)) %>%
-    left_join(metagenome.metadata) %>%
-    ggplot(aes(x = date.depth,
-               y = total_coverage)) +
-    geom_point() +
-    theme_bw() +
-    theme(axis.text.x = element_text(angle = 45)) +
-    ylim(c(0, 35)),
-  hgcA.data %>%
-    select(cluster_ID, grep("BLI2[0-1]_MT", names(hgcA.data), value = TRUE)) %>%
-    gather(key = mtID,
-           value = Mcount_rna,
-           -1) %>%
-    group_by(cluster_ID, mtID) %>%
-    summarise(Mcount_rna = mean(Mcount_rna)) %>%
-    group_by(mtID) %>%
-    summarise(total_Mcount_rna = sum(Mcount_rna)) %>%
-    left_join(metatranscriptome_metadata) %>%
-    ggplot(aes(x = date.depth,
-               y = total_Mcount_rna)) +
-    geom_jitter() +
-    theme_bw() +
-    theme(axis.text.x = element_text(angle = 45)) +
-    ylim(c(0, 16)),
-  nrow = 2,
-  ncol =1
-)
-```
+Then we'll read in and prepare the *hgcA* data.
+Essentially, here we'll be aggregating the MG and MT coverage by metabolic group and overall coverage for each metagenome/metatranscriptome.
 
+```{r prepare_hgcA_data, message = FALSE}
+hgcA_abundance <- read.csv("dataFinal/hgcA_data.csv")
 
-```{r set_up_colors, include = FALSE}
-cb.translator <- readRDS("references/colorblind_friendly_colors.rds")
-taxa.of.interest <- c("Desulfobacterales", "Geobacterales", "Kiritimatiellaeota", "Lentisphaerae",
-                      "Planctomycetes", "Spirochaetes", "Unknown_PVC", "Actinobacteria", "Bacteroidetes",
-                      "Firmicutes", "Unknown", "Unknown_distant")
-colorVector <- c(cb.translator[c("blue", "orange", "reddishpurple", "vermillion")],
-                 "gray60", "gray20", "gray80", cb.translator[c("bluishgreen", "skyblue", "yellow")],
-                 "gray10", "black")
-names(colorVector) <- taxa.of.interest
+# There were no MT hits to hgcA in BLI21_MT_003, which excluded it from the table.
+hgcA_abundance$BLI21_MT_003 <- 0
 
-```
-
-
-```{r plot_taxa_MGs, fig.height=9}
-hgcA.data %>%
-  filter(verified_hgcA) %>%
-  select(cluster_ID, taxa_by_tree, 
-         grep("BLI2[0:1]_M[G,T]", names(hgcA.data), value = TRUE)) %>%
-  gather(key = omicID, value = abundance, -c(1:2)) %>%
-  group_by(cluster_ID, taxa_by_tree, omicID) %>%
-  summarise(abundance = mean(abundance)) %>%
-  ungroup() %>%
-  mutate(taxa_by_tree = forcats::fct_relevel(taxa_by_tree, taxa.of.interest)) %>%
-  group_by(taxa_by_tree, omicID) %>%
-  summarise(abundance = sum(abundance)) %>%
+# Group the coverage by the metabolic code assigned to each sequence.
+hgcA_abundance_grouped <- hgcA_abundance %>%
+  filter(verified_hgcA,
+         clstr_rep == 1) %>%
+  select(metabolic_assignment, all_of(grep("BLI2", names(hgcA_abundance)))) %>%
+  gather(key = omicID, value = omic_coverage, -1) %>%
+  group_by(omicID, metabolic_assignment) %>%
+  summarise(omic_coverage = sum(omic_coverage)) %>%
   ungroup() %>%
   left_join(omic_metadata) %>%
-  filter(seqType == "MG") %>%
-  ggplot(aes(x = taxa_by_tree,
-             y = abundance,
-             fill = taxa_by_tree)) +
-  geom_bar(stat = "identity") +
-  scale_fill_manual(values = colorVector) +
-  facet_wrap(~date_depth, ncol = 3, nrow = 4) +
-  theme_bw()
+  mutate(omic_type = omicID %>% strsplit("_") %>% sapply("[", 2)) %>%
+  group_by(omic_type, date_depth, metabolic_assignment) %>%
+  summarise(omic_coverage = median(omic_coverage)) %>%
+  ungroup()
+
+# Calculate the total hgcA coverage in the MGs and MTs.
+hgcA_abundance_total <- hgcA_abundance_grouped %>%
+  group_by(omic_type, date_depth) %>%
+  summarise(omic_coverage = sum(omic_coverage)) %>%
+  spread(key = omic_type,
+         value = omic_coverage)
+
+# Clean up abundance data for each guild in each omic type
+hgcA_abundance_guild <- hgcA_abundance_grouped %>%
+  mutate(guild_abund = paste(omic_type, "_", metabolic_assignment,
+                             sep = "")) %>%
+  select(date_depth, guild_abund, omic_coverage) %>%
+  spread(key = guild_abund,
+         value = omic_coverage)
+
+# Generate final data frame and clean up
+hgcA_abundance_final <- full_join(hgcA_abundance_total,
+                                  hgcA_abundance_guild)
+rm(hgcA_abundance_grouped, hgcA_abundance_guild,
+   hgcA_abundance_total, hgcA_abundance)
+```
+
+We'll also want to pull in the sulfide data and the K~met~ values from the incubations.
+In particular, we'll want to calculate an "SRB-dependent" Kmet value, which is the Kmet value of the ambient incubations minus the Kmet value of the molybdate-amended incubations.
+
+```{r prepare_kmet_incubation_sulfide_data, message = FALSE}
+# Read in incubation rate data
+Hg_Kmet_data <- read.csv("dataFinal/incubation_Hg_rate_data.csv") %>%
+  dplyr::rename(date = startDate) %>%
+  filter(treatment != "filtered-unamended",
+         year(date) %in% c(2020, 2021)) %>%
+  mutate(treatment = treatment %>%
+           gsub("unfiltered-", "", .) %>%
+           gsub("unamended", "ambient", .)) %>%
+  select(sampleID, date, depth, treatment, Kmet_t1) 
+
+# Read in sulfide data
+sulfide_data <- read.csv("dataFinal/water_chem_data.csv") %>%
+  group_by(date, depth) %>%
+  summarize(sulfide_uM = mean(sulfide_uM, na.rm = TRUE)) %>%
+  ungroup() %>%
+  mutate(date_depth = paste(date, ":", depth, "m",
+                            sep = ""))
+
+# Calculate SRB-dependent Kmet
+Hg_Kmet_modified <- Hg_Kmet_data %>%
+  group_by(sampleID, date, depth, treatment) %>%
+  summarise(Kmet_mean = median(Kmet_t1),
+            Kmet_sd = sd(Kmet_t1),
+            Kmet_count = n(),
+            Kmet_se = Kmet_sd / Kmet_count) %>%
+  ungroup() %>%
+  gather(key = constituent,
+         value = value,
+         -c(1:4)) %>%
+  mutate(constituent = paste(treatment, "_", constituent,
+                             sep = "")) %>%
+  select(sampleID, date, depth, constituent, value) %>%
+  spread(key = constituent,
+         value = value) %>%
+  mutate(SRB_Kmet_mean = ambient_Kmet_mean - molybdate_Kmet_mean,
+         SRB_Kmet_se = ambient_Kmet_se + molybdate_Kmet_se) %>%
+  dplyr::rename("non-SRB_Kmet_mean" = molybdate_Kmet_mean,
+         "non-SRB_Kmet_se" = molybdate_Kmet_se,
+         total_Kmet_mean = ambient_Kmet_mean,
+         total_Kmet_se = ambient_Kmet_se) 
+
+
+# Join sulfide and incubation rate potential data
+Hg_Kmet_modified <- Hg_Kmet_modified %>%
+  left_join(sulfide_data) %>%
+  mutate(date_depth = paste(date, ":", depth, "m",
+                            sep = "")) %>%
+  select(date, depth, date_depth, sulfide_uM, total_Kmet_mean, total_Kmet_se, SRB_Kmet_mean, SRB_Kmet_se, "non-SRB_Kmet_mean", "non-SRB_Kmet_se") %>%
+  gather(key = measurement,
+         value = Kmet_value,
+         -c(1:4)) %>%
+  mutate(guild = measurement %>%
+           strsplit("_") %>% sapply("[", 1),
+         measurement = paste(measurement %>%
+                               strsplit("_") %>% sapply("[", 2),
+                             measurement %>%
+                               strsplit("_") %>% sapply("[", 3),
+                             sep = "_")) %>%
+  spread(key = measurement,
+         value = Kmet_value) %>%
+  filter(!(date == "2020-10-10" & depth == 15.7))
+
+
+```
+
+----
+
+# Total *hgcA* values
+
+
+First, let's just plot the methylation rate constant against the sulfide concentrations, metagenomic abundance of *hgcA*, and expression of *hgcA*.
+
+```{r Kmet_vs_hgcA, echo = FALSE, message = FALSE, fig.width = 9, fig.height = 3 }
+year_vector <- c(21, 24)
+names(year_vector) <- c("2020", "2021")
+
+Kmet_vs_sulfide <- function() {
+  plot_data <- Hg_Kmet_modified %>%
+    filter(guild == "total",
+           !is.na(Kmet_mean))
+  plot(x = plot_data$sulfide_uM,
+       y = plot_data$Kmet_mean,
+       xlim = c(0, 150),
+       ylim = c(0, 0.2),
+       pch = year_vector[as.character(year(plot_data$date))],
+       col = "gray25",
+       bg = "gray85",
+       lwd = 1.5,
+       cex = 2,
+       ylab = expression('K'['met']*' (day'^-1*')'),
+       xlab = "Sulfide (µM)")
+}
+Kmet_vs_hgcA_MG <- function() {
+  plot_data <- left_join(hgcA_abundance_final,
+                         Hg_Kmet_modified %>%
+                           filter(guild == "total")) %>%
+    filter(!is.na(Kmet_mean))
+  plot(x = plot_data$MG,
+       y = plot_data$Kmet_mean,
+       xlim = c(0, 17),
+       ylim = c(0, 0.2),
+       pch = year_vector[as.character(year(plot_data$date))],
+       col = "gray25",
+       bg = "gray85",
+       lwd = 1.5,
+       cex = 2,
+       ylab = expression('K'['met']*' (day'^-1*')'),
+       xlab = "hgcA gene abundance (%)")
+}
+Kmet_vs_hgcA_MT <- function() {
+  plot_data <- left_join(hgcA_abundance_final,
+                         Hg_Kmet_modified %>%
+                           filter(guild == "total")) %>%
+    filter(!is.na(Kmet_mean),
+           !is.na(MT))
+  plot(x = plot_data$MT,
+       y = plot_data$Kmet_mean,
+       xlim = c(0, 12),
+       ylim = c(0, 0.2),
+       pch = year_vector[as.character(year(plot_data$date))],
+       col = "gray25",
+       bg = "gray85",
+       lwd = 1.5,
+       cex = 2,
+       ylab = expression('K'['met']*' (day'^-1*')'),
+       xlab = "hgcA gene transcription (million transcripts per L)")
+  legend(x = 8,
+         y = 0.05,
+         legend = names(year_vector),
+         pch = year_vector,
+         col = "gray25",
+         pt.bg = "gray85",
+         lwd = 1.5,
+         cex = 1)
+}
+
+#### Set up plots ####
+par(mfrow = c(1, 3),
+    mar = c(3, 3, 1, 1),
+    tck = -0.008,
+    mgp = c(1.5, 0.2, 0))
+Kmet_vs_sulfide()
+Kmet_vs_hgcA_MG()
+Kmet_vs_hgcA_MT()
+
+#### Generate table for Kmet and sulfide ####
+knitr::kable(left_join(hgcA_abundance_final,
+                         Hg_Kmet_modified %>%
+                           filter(guild == "total")) %>%
+               select(date_depth, sulfide_uM, Kmet_mean, MG, MT) %>%
+               mutate(Kmet_mean = round(Kmet_mean, 3),
+                      sulfide_uM = round(sulfide_uM, 1),
+                      MG = round(MG, 1),
+                      MT = round(MT, 1)) %>%
+               arrange(desc(Kmet_mean)),
+             col.names = c("Date and depth", "Sulfide (µM)", 'Kmet (day^-1)', "hgcA gene abundance (%)", "hgcA gene transcription (million counts per liter)"))
+```
+
+First, in the Kmet vs. sulfide pot, we see that methylation in this system follows the Goldilocks curve, for the most part.
+The data is a bit noisy to say exactly when that happens, but peak methylation occurs around 70-100 µM sulfide, then starts to tail off.
+Could be some interannual differences at play here too, as we see the peak occur at ~70 µM sulfide in 2020 and 122 µM sulfide in 2021.
+This could be due to factors such as carbon composition influencing the ligand chemistry and therefore bioavailability.
+Temperature could be a factor, although this seems similar between years.
+Alternatively, it could be linked to the changes in *hgcA* abundance between years, since we don't understand what controls abundance.
+
+We see a similar trend with the *hgcA* gene abundance in relation to K~met~.
+I suspect that this is because *hgcA* gene abundance tracks closely with sulfide.
+However, with the metatranscriptomes, we see a more linear relationship between total *hgcA* expression and K~met~.
+This indicates several possibilities, in comparing the MGs to the MTs:
+1. The metatranscriptomes are more effective at predicting K~met~ simply because there is an internal standard and we can calculate an absolute number of transcripts.
+2. The *hgcA* transcription is related to the bioavailability of Hg(II). I find this unlikely but possible.
+
+---
+
+# Functional guilds of *hgcA*
+
+The next objective of this project was to look at the various functional guilds of mercury methylators and the drivers of MeHg production in these incubations.
+To do that, I'm plotting here the influence of molybdate on K~met~ as well as the functional guild composition of *hgcA* genes and gene transcription. 
+All these will be plotted as a function of sulfide for comparison.
+
+```{r functional_guilds_of_hgcA, echo = FALSE, message = FALSE, fig.width = 9, fig.height = 3  }
+color_vector <- c(cb.translator[c("black", "blue", "yellow", "bluishgreen")], "gray")
+names(color_vector) <- c("KIR", "SRB", "RESP", "FERM", "UNK")
+name_vector <- c(expression('K'['met']*' (day'^-1*')'),
+                'SRB-independent',
+                'SRB-dependent')
+# Kmet
+plot_Kmet_vs_sulfide_guilds <- function() {
+  total_Kmet_data <- Hg_Kmet_modified %>%
+    filter(guild == "total")
+  plot(x = total_Kmet_data$sulfide_uM,
+       y = total_Kmet_data$Kmet_mean,
+       xlim = c(0, 150),
+       ylim = c(0, 0.2),
+       pch = 21,
+       col = "gray25",
+       bg = "gray85",
+       lwd = 1.5,
+       cex = 2,
+       xlab = "Sulfide (µM)",
+       ylab = expression('K'['met']*' (day'^-1*')'))
+  nonSRB_Kmet_data <- Hg_Kmet_modified %>%
+    filter(guild == "non-SRB")
+  points(x = nonSRB_Kmet_data$sulfide_uM,
+         y = nonSRB_Kmet_data$Kmet_mean,
+         pch = 16,
+         cex = 1.2,
+         col = "gray",
+         lwd = 2)
+  SRB_Kmet_data <- Hg_Kmet_modified %>%
+    filter(guild == "SRB")
+  points(x = SRB_Kmet_data$sulfide_uM,
+         y = SRB_Kmet_data$Kmet_mean,
+         pch = 16,
+         cex = 1.2,
+         col = color_vector["SRB"],
+         lwd = 2)
+  legend(x = -2,
+         y = 0.18,
+         legend = name_vector,
+         pch = c(21, 16, 16),
+         pt.cex = c(2, 1.2, 1.2),
+         pt.lwd = 2,
+         col = c("gray25", "gray", color_vector["SRB"]),
+         pt.bg = "gray85",
+         bty = "n")
+}
+# Metagenomes
+hgcA_MG_plot <- function() {
+  plot_data <- left_join(hgcA_abundance_final,
+                         sulfide_data)
+  plot(x = plot_data$sulfide_uM,
+       y = plot_data$MG,
+       xlim = c(0, 150),
+       ylim = c(0, 20),
+       pch = 21,
+       col = "gray25",
+       bg = "gray85",
+       lwd = 1.5,
+       cex = 2,
+       xlab = "Sulfide (µM)",
+       ylab = "hgcA gene coverage")
+  # KIR
+  points(x = plot_data$sulfide_uM,
+         y = plot_data$MG_KIR,
+         pch = 16,
+         cex = 1.2,
+         col = color_vector["KIR"],
+         lwd = 2)
+  # FERM
+  points(x = plot_data$sulfide_uM,
+         y = plot_data$MG_FERM,
+         pch = 16,
+         cex = 1.2,
+         col = color_vector["FERM"],
+         lwd = 2)
+  # RESP
+  points(x = plot_data$sulfide_uM,
+         y = plot_data$MG_RESP,
+         pch = 16,
+         cex = 1.2,
+         col = color_vector["RESP"],
+         lwd = 2)
+  # SRB
+  points(x = plot_data$sulfide_uM,
+         y = plot_data$MG_SRB,
+         cex = 1,
+         pch = 16,
+         col = color_vector["SRB"],
+         lwd = 2)
+  # UNK
+  points(x = plot_data$sulfide_uM,
+         y = plot_data$MG_UNK,
+         cex = 1,
+         pch = 16,
+         col = color_vector["UNK"],
+         lwd = 2)
+  legend(x = 5,
+         y = 18,
+         legend = names(color_vector),
+         pch = c(16),
+         col = color_vector,
+         pt.cex = 2,
+         bty = "n")
+  }
+# Metatranscriptomes
+hgcA_MT_plot <- function() {
+  plot_data <- left_join(hgcA_abundance_final,
+                         sulfide_data)
+  plot(x = plot_data$sulfide_uM,
+       y = plot_data$MT,
+       xlim = c(0, 150),
+       ylim = c(0, 12),
+       pch = 21,
+       col = "gray25",
+       bg = "gray85",
+       lwd = 1.5,
+       cex = 2,
+       xlab = "Sulfide (µM)",
+       ylab = "hgcA expression (million copies/L)")
+  # KIR
+  points(x = plot_data$sulfide_uM,
+         y = plot_data$MT_KIR,
+         pch = 16,
+         cex = 1.2,
+         col = color_vector["KIR"],
+         lwd = 2)
+  # FERM
+  points(x = plot_data$sulfide_uM,
+         y = plot_data$MT_FERM,
+         pch = 16,
+         cex = 1.2,
+         col = color_vector["FERM"],
+         lwd = 2)
+  # RESP
+  points(x = plot_data$sulfide_uM,
+         y = plot_data$MT_RESP,
+         pch = 16,
+         cex = 1.2,
+         col = color_vector["RESP"],
+         lwd = 2)
+  # SRB
+  points(x = plot_data$sulfide_uM,
+         y = plot_data$MT_SRB,
+         cex = 1,
+         pch = 16,
+         col = color_vector["SRB"],
+         lwd = 2)
+  # UNK
+  points(x = plot_data$sulfide_uM,
+         y = plot_data$MT_UNK,
+         cex = 1,
+         pch = 16,
+         col = color_vector["UNK"],
+         lwd = 2)
+  legend(x = 5,
+         y = 18,
+         legend = names(color_vector),
+         pch = c(16),
+         col = color_vector,
+         pt.cex = 2,
+         bty = "n")
+}
+
+#### Lay out plots ####
+par(mfrow = c(1, 3),
+    mar = c(3, 3, 1, 1),
+    tck = -0.008,
+    mgp = c(1.5, 0.2, 0))
+plot_Kmet_vs_sulfide_guilds()
+hgcA_MG_plot()
+hgcA_MT_plot()
+
 ```
 
 
-
-```{r plot_taxa_MTs, fig.height=9}
-hgcA.data %>%
-  filter(verified_hgcA) %>%
-  select(cluster_ID, taxa_by_tree, 
-         grep("BLI2[0:1]_M[G,T]", names(hgcA.data), value = TRUE)) %>%
-  gather(key = omicID, value = abundance, -c(1:2)) %>%
-  group_by(cluster_ID, taxa_by_tree, omicID) %>%
-  summarise(abundance = mean(abundance)) %>%
-  ungroup() %>%
-  mutate(taxa_by_tree = forcats::fct_relevel(taxa_by_tree, taxa.of.interest)) %>%
-  group_by(taxa_by_tree, omicID) %>%
-  summarise(abundance = sum(abundance)) %>%
-  ungroup() %>%
-  left_join(omic_metadata) %>%
-  filter(seqType == "MT") %>%
-  ggplot(aes(x = taxa_by_tree,
-             y = abundance,
-             fill = taxa_by_tree)) +
-  geom_bar(stat = "identity") +
-  scale_fill_manual(values = colorVector) +
-  facet_wrap(~date_depth, ncol = 3, nrow = 4) +
-  theme_bw()
+```{r SRB_dependence, message = FALSE, echo = FALSE }
+hgcA_percent_SRB <- left_join(Hg_Kmet_modified %>%
+                                select(date_depth, sulfide_uM, guild, Kmet_mean) %>%
+                                spread(key = guild,
+                                       value = Kmet_mean) %>%
+                                mutate(SRB_per_Kmet = round(SRB / total * 100, 1),
+                                       sulfide_uM = round(sulfide_uM, 1)) %>%
+                                select(date_depth, sulfide_uM, SRB_per_Kmet),
+                              hgcA_abundance_final %>%
+                                mutate(SRB_per_MT = round(MT_SRB / MT * 100, 1),
+                                       SRB_per_MG = round(MG_SRB / MG * 100, 1)) %>%
+                                select(date_depth, SRB_per_MG, SRB_per_MT)) %>%
+  filter(date_depth != "2021-09-10:10.8m") %>%
+  arrange(SRB_per_Kmet) %>%
+  as.data.frame()
+par(mfrow = c(1, 2),
+    mar = c(3, 3, 1, 1),
+    tck = -0.008,
+    mgp = c(1.5, 0.2, 0))
+plot(x = hgcA_percent_SRB$SRB_per_MG,
+     y = hgcA_percent_SRB$SRB_per_Kmet,
+     xlab = "Percent SRB-associated hgcA in MG",
+     ylab = "Percent SRB-associated Kmet",
+     pch = 16,
+     xlim = c(0, 100),
+     ylim = c(0, 100))
+plot(x = hgcA_percent_SRB$SRB_per_MT,
+     y = hgcA_percent_SRB$SRB_per_Kmet,
+     xlab = "Percent SRB-associated hgcA in MT",
+     ylab = "Percent SRB-associated Kmet",
+     pch = 16,
+     xlim = c(0, 100),
+     ylim = c(0, 100))
+hgcA_percent_SRB
 ```
+
