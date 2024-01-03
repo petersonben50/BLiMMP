@@ -210,18 +210,24 @@ scripts=~/BLiMMP/code
 cat ~/BLiMMP/dataEdited/ABA/hgcA/hgcA_genes.txt | while read hgcA_id
 do
   scaffold_id=$(echo $hgcA_id | cut -d '_' -f 1-3)
-  echo "Working on" $hgcA_id", on scaffold" $scaffold_id
-  awk -F '\t' -v scaffold_id="$scaffold_id" '$1 == scaffold_id { print $0 }' working_directory/scaffolds/hgcA_scaffolds.gff > working_directory/scaffolds/temp_scaffolds.gff
   gene_id=$(echo $hgcA_id | \
               cut -d '_' -f 3-4 | \
               sed 's/^0*//g')
-  echo "Searching for" $gene_id
-  python $scripts/gene_neighborhood_extraction.py working_directory/scaffolds/temp_scaffolds.gff \
-                                                  working_directory/scaffolds/hgcA_scaffolds.fna \
-                                                  $gene_id \
-                                                  5000 \
-                                                  working_directory/scaffolds/temp_$gene_id
-
-  rm -f working_directory/scaffolds/temp_scaffolds.gff
+  if [ ! -f working_directory/scaffolds/temp_$gene_id\_neighborhood.gff ]
+  then
+    echo "Working on" $hgcA_id", on scaffold" $scaffold_id
+    awk -F '\t' -v scaffold_id="$scaffold_id" '$1 == scaffold_id { print $0 }' working_directory/scaffolds/hgcA_scaffolds.gff > working_directory/scaffolds/temp_scaffolds.gff
+    echo "Searching for" $gene_id
+    python $scripts/gene_neighborhood_extraction.py working_directory/scaffolds/temp_scaffolds.gff \
+                                                    working_directory/scaffolds/hgcA_scaffolds.fna \
+                                                    $gene_id \
+                                                    5000 \
+                                                    working_directory/scaffolds/temp_$gene_id
+    rm -f working_directory/scaffolds/temp_scaffolds.gff
+  else
+    echo $hgcA_id "already processed"
+  fi
 done
-
+cat working_directory/scaffolds/temp_*.gff > hgcA_geneNeighborhood_raw.gff
+cat working_directory/scaffolds/temp_*.fna > hgcA_geneNeighborhood_raw.fna
+rm -f working_directory/scaffolds/temp_*.gff working_directory/scaffolds/temp_*.fna
