@@ -285,7 +285,7 @@ plot_Kmet_vs_sulfide_guilds <- function() {
        y = total_Kmet_data$Kmet_mean,
        xlim = c(0, 150),
        ylim = c(0, 0.2),
-       pch = 21,
+       pch = year_vector[as.character(year(total_Kmet_data$date))],
        col = "gray25",
        bg = "gray85",
        lwd = 1.5,
@@ -296,17 +296,19 @@ plot_Kmet_vs_sulfide_guilds <- function() {
     filter(guild == "non-SRB")
   points(x = nonSRB_Kmet_data$sulfide_uM,
          y = nonSRB_Kmet_data$Kmet_mean,
-         pch = 16,
+         pch = year_vector[as.character(year(nonSRB_Kmet_data$date))],
          cex = 1.2,
-         col = "gray",
+         col = "gray50",
+         bg = "gray",
          lwd = 2)
   SRB_Kmet_data <- Hg_Kmet_modified %>%
     filter(guild == "SRB")
   points(x = SRB_Kmet_data$sulfide_uM,
          y = SRB_Kmet_data$Kmet_mean,
-         pch = 16,
+         pch = year_vector[as.character(year(SRB_Kmet_data$date))],
          cex = 1.2,
-         col = color_vector["SRB"],
+         col = "gray50",
+         bg = color_vector["SRB"],
          lwd = 2)
   legend(x = -2,
          y = 0.18,
@@ -318,6 +320,19 @@ plot_Kmet_vs_sulfide_guilds <- function() {
          pt.bg = "gray85",
          bty = "n")
 }
+
+omics_points_function <- function(omicType = "MG", guild = "KIR") {
+  plot_data <- left_join(hgcA_abundance_final,
+                         sulfide_data) %>%
+    as.data.frame()
+  column_name <- paste(omicType, guild, sep = "_")
+  points(x = plot_data$sulfide_uM,
+         y = plot_data[, column_name],
+         pch = year_vector[as.character(year(plot_data$date))],
+         col = "gray25",
+         bg = color_vector[guild],
+         lwd = 1.5,
+         cex = 1)}
 # Metagenomes
 hgcA_MG_plot <- function() {
   plot_data <- left_join(hgcA_abundance_final,
@@ -326,56 +341,19 @@ hgcA_MG_plot <- function() {
        y = plot_data$MG,
        xlim = c(0, 150),
        ylim = c(0, 20),
-       pch = 21,
+       pch = year_vector[as.character(year(plot_data$date))],
        col = "gray25",
        bg = "gray85",
-       lwd = 1.5,
+       lwd = 2,
        cex = 2,
        xlab = "Sulfide (µM)",
        ylab = "hgcA gene coverage")
-  # KIR
-  points(x = plot_data$sulfide_uM,
-         y = plot_data$MG_KIR,
-         pch = 16,
-         cex = 1.2,
-         col = color_vector["KIR"],
-         lwd = 2)
-  # FERM
-  points(x = plot_data$sulfide_uM,
-         y = plot_data$MG_FERM,
-         pch = 16,
-         cex = 1.2,
-         col = color_vector["FERM"],
-         lwd = 2)
-  # RESP
-  points(x = plot_data$sulfide_uM,
-         y = plot_data$MG_RESP,
-         pch = 16,
-         cex = 1.2,
-         col = color_vector["RESP"],
-         lwd = 2)
-  # SRB
-  points(x = plot_data$sulfide_uM,
-         y = plot_data$MG_SRB,
-         cex = 1,
-         pch = 16,
-         col = color_vector["SRB"],
-         lwd = 2)
-  # UNK
-  points(x = plot_data$sulfide_uM,
-         y = plot_data$MG_UNK,
-         cex = 1,
-         pch = 16,
-         col = color_vector["UNK"],
-         lwd = 2)
-  legend(x = 5,
-         y = 18,
-         legend = names(color_vector),
-         pch = c(16),
-         col = color_vector,
-         pt.cex = 2,
-         bty = "n")
+  sapply(names(color_vector),
+         function(guild_to_plot) {
+           omics_points_function("MG", guild_to_plot)
+         })
   }
+
 # Metatranscriptomes
 hgcA_MT_plot <- function() {
   plot_data <- left_join(hgcA_abundance_final,
@@ -384,50 +362,19 @@ hgcA_MT_plot <- function() {
        y = plot_data$MT,
        xlim = c(0, 150),
        ylim = c(0, 12),
-       pch = 21,
+       pch = year_vector[as.character(year(plot_data$date))],
        col = "gray25",
        bg = "gray85",
-       lwd = 1.5,
+       lwd = 2,
        cex = 2,
        xlab = "Sulfide (µM)",
        ylab = "hgcA expression (million copies/L)")
-  # KIR
-  points(x = plot_data$sulfide_uM,
-         y = plot_data$MT_KIR,
-         pch = 16,
-         cex = 1.2,
-         col = color_vector["KIR"],
-         lwd = 2)
-  # FERM
-  points(x = plot_data$sulfide_uM,
-         y = plot_data$MT_FERM,
-         pch = 16,
-         cex = 1.2,
-         col = color_vector["FERM"],
-         lwd = 2)
-  # RESP
-  points(x = plot_data$sulfide_uM,
-         y = plot_data$MT_RESP,
-         pch = 16,
-         cex = 1.2,
-         col = color_vector["RESP"],
-         lwd = 2)
-  # SRB
-  points(x = plot_data$sulfide_uM,
-         y = plot_data$MT_SRB,
-         cex = 1,
-         pch = 16,
-         col = color_vector["SRB"],
-         lwd = 2)
-  # UNK
-  points(x = plot_data$sulfide_uM,
-         y = plot_data$MT_UNK,
-         cex = 1,
-         pch = 16,
-         col = color_vector["UNK"],
-         lwd = 2)
-  legend(x = 5,
-         y = 18,
+  sapply(names(color_vector),
+         function(guild_to_plot) {
+           omics_points_function("MT", guild_to_plot)
+         })
+  legend(x = 100,
+         y = 10,
          legend = names(color_vector),
          pch = c(16),
          col = color_vector,
