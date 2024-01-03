@@ -114,7 +114,7 @@ bin_data <- readRDS('dataEdited/bin_based_analyses/bin_data_aggregate_2_metaboli
 
 ----
 
-# Phylogeny of *hgcA*
+# *hgcA* phylogenetic tree to estimate taxonomic identity and metabolic capacity of each organism carrying *hgcA*
 
 Although we'll average across the cluster for depth calculations, we will want to identify one sequences from each cluster that can be used for phylogenetic reconstruction. Thus, we'll save out a list with that dereplicated list to `dataEdited/ABA/hgcA/hgcA_for_phylogeny.faa`.
 
@@ -428,8 +428,42 @@ hgcA.data <- hgcA.data %>%
 rm(sqlite_file, jplace_file, pplace_object, refpkg_path, taxonomy, taxonomy.table, taxonomy.table.df)
 ```
 
+
 ----
 
+# *hgcB* data
+
+```{r hgcB_data }
+library(Biostrings)
+library(DECIPHER)
+library(tidyverse)
+# Investigate alignment for hgcB hits
+readAAStringSet("dataEdited/ABA/hgcA/hgcB_clean.afa",
+                format = "fasta",
+                nrec = -1L,
+                skip = 0L,
+                seek.first.rec = FALSE,
+                use.names = TRUE) %>%
+  BrowseSeqs(htmlFile = "dataEdited/ABA/hgcA/hgcB_raw_hits.html")
+```
+
+Six genes were sufficiently truncated that the conserved domain (CM/IECGA) was not in the gene:
+
+- BLI20_assembly005_000000188864_1
+- BLI21_coassembly_000000421460_3
+- BLI21_coassembly_000000483203_1
+- BLI20_assembly001_000000070404_2
+- BLI21_coassembly_000001026396_1
+- BLI20_coassembly_000000275727_4
+
+For all of these, I checked the GFF file, and it was clear that the gene was at the end of a scaffold.
+Therefore, I'll count all of these as *hgcB* genes.
+We'll look for the possibility of other, non-annotated *hgcB* genes later.
+
+```{r }
+```
+
+----
 
 # Abundance data for *hgcA*
 
