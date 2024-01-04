@@ -152,7 +152,7 @@ Kmet_vs_hgcA <- function(seq_type, xlabel,
 }
 
 
-#### Set up plots ####
+#### Generate plots ####
 cairo_pdf("results/figures/incubations_kmet_maintext.pdf",
     family = "Arial",
     height = 3,
@@ -166,9 +166,11 @@ mtext("A.", at = c(-30))
 Kmet_vs_hgcA(seq_type = "MG",
              xlabel = expression(italic(hgcA)*' abundance (%)'),
              xscale = c(0, 17))
+mtext("B.", at = c(-3.4))
 Kmet_vs_hgcA(seq_type = "MT",
-             xlabel = expression(italic(hgcA)*' transcripts (10'^-1*' per L)'),
+             xlabel = expression(italic(hgcA)*' transcripts (10'^6*' per L)'),
              xscale = c(0, 11))
+mtext("C.", at = c(-2.2))
 legend(x = 6,
        y = 0.05,
        legend = names(year_vector),
@@ -177,3 +179,4 @@ legend(x = 6,
        pt.bg = "gray85",
        cex = 1)
 dev.off()
+embed_fonts("results/figures/incubations_kmet_maintext.pdf")
