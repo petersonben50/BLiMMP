@@ -1,0 +1,224 @@
+---
+title: "hgcA gene neighborhood analyses"
+author: "Benjamin D. Peterson"
+date: "2024-01-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+rm(list = ls())
+#setwd("/Users/benjaminpeterson/Documents/research/BLiMMP")
+#new.wd <- "/Users/benjaminpeterson/Documents/research/BLiMMP"
+library(tidyverse)
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(echo = TRUE)
+new.wd <- gsub("\\/[[:alpha:]]+$", "", getwd())
+knitr::opts_knit$set(root.dir = new.wd)
+rm(new.wd)
+```
+```{r read_in_color_translator, include = FALSE}
+cb.translator <- readRDS("references/colorblind_friendly_colors.rds")
+```
+
+This document contains my analyses pertaining to the neighborhood of *hgcA* genes in the metagenomes from the Mendota incubations project. I will use the gene neighborhood information for three purposes:
+
+1. Confirm taxonomic affiliation of *hgcA*-carrying organisms
+2. Identify possible transcriptional regulators to relate to *hgcA* transcription.
+3. Look for phylogenetically conserved trends in gene neighborhood data.
+
+# Read in data
+
+First we'll read in the data.
+
+```{r read_in_hgcA_GN_backbone }
+hgcA_gff <- read.table("dataEdited/ABA/hgcA/GN/hgcA_geneNeighborhood_raw.gff",
+                       col.names = c("scaffoldID", "delete1", "delete2", "gene_start",
+                                     "gene_end", "delete3", "gene_direction", "delete4",
+                                     "attributes")) %>%
+  mutate(seqID = paste(scaffoldID,
+                       attributes %>% strsplit(";") %>% sapply("[", 1) %>%
+                         strsplit("_") %>% sapply("[", 2),
+                       sep = "_")) %>%
+  select(seqID, scaffoldID, gene_start, gene_end, gene_direction)
+```
+
+This `hgcA_gff` file will serve as the foundation for this analysis, as I'll add gene information to this dataframe.
+
+Then we'll read in the gene information. We'll classify our gene sequencing using four sources of data:
+1. *hgcA* identification methods.
+2. *hgcB* identification methods.
+3. KOFAMscan results.
+4. NCBI BLAST results.
+
+# *hgcA*
+
+Let's start with the *hgcA* data.
+
+```{r read_in_hgcA_data }
+hgcA_data <- read.csv("dataFinal/hgcA_data.csv") %>%
+  filter(verified_hgcA) %>%
+  select(seqID, cluster_ID, clstr_rep, scaffoldID,
+         taxonomic_assignment, metabolic_assignment)
+```
+
+First, some housekeeping: I'm only going to deal with the verified *hgcA* sequences here, so let's filter that out.
+I'll also add some basic information about the HMS cluster, taxonomy, and putative metabolism of each hgcA+ bin and will mark which genes are *hgcA*.
+
+```{r only_keep_GN_of_verified_hgcA, message = FALSE }
+hgcA_gff <- hgcA_gff %>%
+  filter(scaffoldID %in% hgcA_data$scaffoldID) %>%
+  left_join(hgcA_data %>% select(cluster_ID, scaffoldID, taxonomic_assignment, metabolic_assignment))
+# Identify hgcA genes
+hgcA_gff$gene_info <- NA
+hgcA_gff$gene_info[which(hgcA_gff$seqID %in% hgcA_data$seqID)] <- "hgcA"
+```
+
+# *hgcB*
+
+Next add in the *hgcB* data.
+
+```{r read_in_hgcB_data }
+library(Biostrings)
+hgcB_data <- readAAStringSet("dataEdited/ABA/hgcA/GN/hgcB_clean.afa")
+hgcA_gff$gene_info[which(hgcA_gff$seqID %in% names(hgcB_data))] <- "hgcB"
+```
+
+# KOFAMscan and NCBI BLAST results.
+
+Next we'll start assigning annotations to the other genes in the neighborhood.
+I'll add together these results and curate them manually.
+First prep the kofamscan data.
+
+```{r read_in_kofamscan_data, message = FALSE }
+kofamscan_data <- read.table("dataEdited/ABA/hgcA/GN/hgcA_GN_kofamscan_qualityHits_clean.tsv",
+                             sep = '\t',
+                             header = TRUE) %>%
+  dplyr::rename(seqID = gene.name,
+                gene_info = KO.definition) %>%
+  select(seqID, E.value, gene_info)
+kofamscan_data$hgc_genes <- NA
+kofamscan_data$hgc_genes[which(kofamscan_data$seqID %in% names(hgcB_data))] <- "hgcB"
+kofamscan_data$hgc_genes[which(kofamscan_data$seqID %in% hgcA_data$seqID)] <- "hgcA"
+kofamscan_data <- kofamscan_data %>% select(seqID, hgc_genes, E.value, gene_info)
+```
+
+Then the BLAST data.
+I saved the top 5 hits when I performed the blast, we'll just concatenate the unique strings by group to have one entry per hit.
+
+```{r read_in_blast_data, message = FALSE }
+blast_metadata <- read.table("dataEdited/ABA/hgcA/GN/hgcA_GN_blast_refseq_data.tsv",
+                             sep = '\t',
+                             col.names = c("accession_id", "gene_info", "taxid"),
+                             quote = "") %>%
+  mutate(gene_type = gene_info %>% strsplit(" \\[") %>% sapply("[", 1),
+         taxa = gene_info %>% strsplit("\\[") %>% sapply("[", 2) %>% gsub("\\]", "", .)) %>%
+  select(accession_id, gene_type, taxa)
+blast_data <- read.table("dataEdited/ABA/hgcA/GN/hgcA_GN_blast_data.tsv",
+                         col.names = c("seqID", "score", "ID")) %>%
+  mutate(accession_id = ID %>% strsplit("\\|ref\\|") %>% sapply("[", 2) %>% gsub("\\|", "", .)) %>%
+  select(seqID, accession_id, score) %>%
+  left_join(blast_metadata) %>%
+  filter(!is.na(gene_type)) %>%
+  mutate(taxa_score = paste(taxa, score, sep = "-")) %>%
+  group_by(seqID) %>%
+  summarise(BLAST_gene_type = paste0(unique(gene_type), collapse = ";"),
+            BLAST_taxa_score = paste0(unique(taxa_score), collapse = ";"))
+rm(blast_metadata)
+```
+
+Now join these together and add some info about the corresponding *hgcA* sequences.
+We'll only work on the gene neighborhoods of verified *hgcA* sequences.
+
+```{r join_blast_kofamscan_data, message = FALSE}
+annotation_data <- full_join(kofamscan_data,
+                             blast_data) %>%
+  mutate(scaffoldID = seqID %>% strsplit("_[0-9]*$") %>% sapply("[", 1)) %>%
+  left_join(hgcA_data %>% select(cluster_ID, scaffoldID, taxonomic_assignment, metabolic_assignment)) %>%
+  filter(!is.na(cluster_ID))
+rm(kofamscan_data, blast_data)
+```
+
+Okay, now we can start to annotate.
+
+# Transcriptional regulators
+
+Quick way to identify *asrR* genes:
+
+```{r join_blast_kofamscan_data, message = FALSE}
+arsR_check_data <- annotation_data %>%
+  filter(grepl("ArsR", BLAST_gene_type, ignore.case = TRUE))
+hgcA_gff$gene_info[which(hgcA_gff$seqID %in% unique(arsR_check_data$seqID))] <- "arsR-like"
+```
+ 
+
+# Arsenic-processing genes
+
+```{r ACR3_arsenite_efflux, message = FALSE}
+arsenite_efflux <- unique(annotation_data %>%
+                            filter(grepl("ACR3", BLAST_gene_type, ignore.case = TRUE)) %>%
+                            select(seqID) %>% unlist(use.names = FALSE),
+                          annotation_data %>%
+                            filter(grepl("arsenite transporter", gene_info, ignore.case = TRUE)) %>%
+                            select(seqID) %>% unlist(use.names = FALSE))
+hgcA_gff$gene_info[which(hgcA_gff$seqID %in% arsenite_efflux)] <- "ACR3_arsenite_efflux"
+```
+
+
+```{r ACR3_arsenite_efflux, message = FALSE}
+arsenate_reductase <- unique(annotation_data %>%
+                            filter(grepl("arsenate reductase ArsC", BLAST_gene_type, ignore.case = TRUE)) %>%
+                            select(seqID) %>% unlist(use.names = FALSE))
+hgcA_gff$gene_info[which(hgcA_gff$seqID %in% arsenate_reductase)] <- "ArsC_arsenate_reductase"
+```
+
+
+# Visualize gene neighborhood
+
+```{r visualize_GN}
+
+```
+
+
+
+# Check on cluster of Desulfo
+
+These three genes were annotated as Desulfobacterota because one of them was binned (BLI_hgcA_HMS_0012):
+
+BLI21_coassembly_000000025634_9
+BLI21_coassembly_000000086306_5
+BLI21_coassembly_000000502164_1
+
+However, phylogenetically they were closer to PVC, so I wanted to check them here.
+First, I pulled in the bin data to refresh my memory on this organism.
+
+```{r bin_data_for_HMS_0012}
+bin_data <- readRDS(file = 'dataEdited/bin_based_analyses/bin_data_aggregate_2_metabolism.rds') %>%
+  filter(hms_id == "BLI_hgcA_HMS_0012")
+```
+
+Oops, I had originally called this bin Desulfobacterales.
+Not the case.
+It's in the Desulfobacterota phylum, down to the Desulfomonilaceae family.
+I had thought this family was clustered in with Firmicutes/Clostridia, including *Desulfomonile tiedjei* for some reason.
+The two wrongs somewhat cancel out though, as this cluster does seem to be a SRB.
+Provides more confidence that the annotation is correct as well, given that these aren't necessarily closely related to the other SRBs. 
+
+```{r check_SRB_hgcA }
+hgcA_scaffolds_to_check <- c("BLI21_coassembly_000000025634",
+                             "BLI21_coassembly_000000086306",
+                             "BLI21_coassembly_000000502164")
+clusters_to_check <- annotation_data %>%
+  filter(scaffoldID %in% hgcA_scaffolds_to_check) %>%
+  select(cluster_ID) %>% unlist(use.names = FALSE) %>%
+  unique()
+
+check_data <- annotation_data %>%
+  filter(cluster_ID %in% clusters_to_check)
+unique(check_data$scaffoldID)
+```
+
+Many of the genes here are annotated as *Desulfomonile*, *Desulfobacter*, so I think our taxonomic affiliation is correct.
+Interestingly, several of the *hgcA* genes are annotated as *Anaerocolumna jejuensis*, which is a Clostridia.
+Perhaps there was a transfer of the *hgcA* gene.
+Either way, safe to continue with these as SRBs, and I fixed the annotation for these *hgcA* seqs in `hgcA_bin_data_aggregate_initial.Rmd`.
+
