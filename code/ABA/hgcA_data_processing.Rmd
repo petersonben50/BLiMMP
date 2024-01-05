@@ -278,9 +278,9 @@ taxonomic_grouping_hgcA[Firmi_group] <- "Firmicutes"
 metabolic_grouping_hgcA[Firmi_group] <- "FERM"
 rm(Firmi_group)
 
-# Three sequences, very close to Firmicutes group above. However, one was binned as Desulfomonilaceae. I'll put it under Desulfobacterales.
+# Three sequences, very close to Firmicutes group above. However, one was binned as Desulfomonilaceae.
 Desulfo_group <- c("BLI21_coassembly_000000025634_9", "BLI21_coassembly_000000086306_5", "BLI21_coassembly_000000502164_1")
-taxonomic_grouping_hgcA[Desulfo_group] <- "Desulfobacterales"
+taxonomic_grouping_hgcA[Desulfo_group] <- "Desulfomonilaceae"
 metabolic_grouping_hgcA[Desulfo_group] <- "SRB"
 rm(Desulfo_group)
 
@@ -327,14 +327,14 @@ rm(verruco_group)
 taxonomic_grouping_hgcA["BLI21_coassembly_000000438757_1"] <- "UNK"
 metabolic_grouping_hgcA["BLI21_coassembly_000000438757_1"] <- "UNK"
 
-# hgcA sequences within a big cluster of reference sequences that are Desulfobacterales
+# hgcA sequences within a big cluster of reference sequences that are Desulfobacterota
 desulfo_group_2 <- tree_subset(hgcA.tree,
                                hgcA.tree %>% MRCA(c("BLI20_assembly002_000000161823_1",
                                                     "BLI21_coassembly_000000388521_2")),
                                levels_back = 0)$tip.label %>%
   strsplit(":") %>% sapply("[", 1) %>%
   grep("BLI", ., value = TRUE)
-taxonomic_grouping_hgcA[desulfo_group_2] <- "Desulfobacterales"
+taxonomic_grouping_hgcA[desulfo_group_2] <- "Desulfobacterota"
 metabolic_grouping_hgcA[desulfo_group_2] <- "SRB"
 rm(desulfo_group_2)
 
