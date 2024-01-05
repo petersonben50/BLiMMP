@@ -231,3 +231,62 @@ done
 cat working_directory/scaffolds/temp_*.gff > hgcA_geneNeighborhood_raw.gff
 cat working_directory/scaffolds/temp_*.fna > hgcA_geneNeighborhood_raw.fna
 rm -f working_directory/scaffolds/temp_*.gff working_directory/scaffolds/temp_*.fna
+
+# Pull out ORF files
+sed 's/\tProdigal.*ID=[0-9]*_/_/' hgcA_geneNeighborhood_raw.gff | awk -F ';' '{ print $1 }' | while read orf_id
+do
+  assembly_id=$(echo $orf_id | cut -d '_' -f 1-2)
+  echo "Pulling out" $orf_id "from" $assembly_id
+  grep -A 1 -m 1 $orf_id$ ~/BLiMMP/dataEdited/assemblies/ORFs/$assembly_id.faa \
+      >> hgcA_geneNeighborhood_ORFs.faa
+done
+
+# Run KOFAMscan on neighborhood ORFs
+# See instructions for ~/BLiMMP/code/kofam_scan-1.3.0/config.yml file setup in hgcA_bin_analysis.sh
+screen -S kofamscan
+source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
+conda activate kofamscan
+PYTHONPATH=""
+PERL5LIB=""
+
+hgcA_folder=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/ABA/hgcA
+cd /home/GLBRCORG/bpeterson26/BLiMMP/code/kofam_scan-1.3.0
+./exec_annotation -f detail-tsv \
+                  -o $hgcA_folder/working_directory/hgcA_GN_kofamscan.tsv \
+                  $hgcA_folder/hgcA_geneNeighborhood_ORFs.faa
+grep '*' $hgcA_folder/working_directory/hgcA_GN_kofamscan.tsv > $hgcA_folder/hgcA_GN_kofamscan_qualityHits.tsv
+conda deactivate
+
+# Find references from RefSeq
+screen -S blast
+source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
+conda activate bioinformatics
+PYTHONPATH=""
+PERL5LIB=""
+hgcA_folder=/home/GLBRCORG/bpeterson26/BLiMMP/dataEdited/ABA/hgcA
+head -n 2 $hgcA_folder/hgcA_geneNeighborhood_ORFs.faa > $hgcA_folder/hgcA_geneNeighborhood_ORFs_TESTONLY.faa
+/opt/bifxapps/ncbi-blast-2.6.0+/bin/blastp -query $hgcA_folder/hgcA_geneNeighborhood_ORFs.faa \
+                                            -db /opt/bifxapps/ncbi-blastdb/refseq_protein \
+                                            -evalue 0.0001 \
+                                            -outfmt '6 qseqid evalue sseqid sseq staxids' \
+                                            -max_target_seqs 5 \
+                                            -num_threads 50 \
+                                            -out $hgcA_folder/working_directory/hgcA_GN_blast.tsv
+cd $hgcA_folder
+#awk -F '\t' '{ print ">"$1"\n"$2 }' working_directory/hgcA_GN_blast.tsv > hgcA_GN.faa
+awk -F '\t' '{ print $3 }' working_directory/hgcA_GN_blast.tsv | \
+  awk -F '|ref|' '{ print $2 }' | \
+  sed 's/|//g' | \
+  sort | uniq > working_directory/hgcA_GN_refseq_list.txt
+awk -F '\t' '{ print $1"\t"$2"\t"$3 }' working_directory/hgcA_GN_blast.tsv > hgcA_GN_blast_data.tsv
+
+epost -db protein -input working_directory/hgcA_GN_refseq_list.txt | \
+    esummary | \
+    xtract -pattern DocumentSummary -element AccessionVersion,Title,TaxId > hgcA_GN_blast_refseq_data.tsv
+
+# Files to bring to computer:
+#hgcA_GN_kofamscan_qualityHits.tsv
+#hgcA_GN_blast_data.tsv
+#hgcA_GN_blast_refseq_data.tsv
+#hgcB_clean.faa
+# Download to dataEdited/ABA/hgcA/GN
