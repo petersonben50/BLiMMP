@@ -39,7 +39,7 @@ batch_hmm_data <- read.table("dataEdited/bin_based_analyses/final_bin_data/batch
   summarise(geneIDs = paste0(geneID, collapse = ";")) %>%
   spread(key = proteinName,
          value = geneIDs) %>%
-  rename(bin_id = binID)
+  dplyr::rename(bin_id = binID)
 hgcA_bin_metabolism_assignment <- hgcA_bin_data %>%
   left_join(batch_hmm_data)
 
@@ -277,7 +277,7 @@ I looked at two metrics: number of MHCs with 3 heme-binding motifs, and numbers 
 ```{r MHC_data, message=FALSE}
 MHC_raw_data <- read.table("dataEdited/bin_based_analyses/final_bin_data/heme3_count_bins.tsv",
                        header = TRUE) %>%
-  rename(bin_id = binID)
+  dplyr::rename(bin_id = binID)
 MHC_data_3 <- MHC_raw_data %>%
   group_by(bin_id) %>%
   summarize(MHCs_3HBS = n())
