@@ -22,9 +22,9 @@ axis_tick_label_size <- 6/12
 axis_label_size <- 7/12
 
 axis_line_1 <- 0
-axis_line_2 <- 1.5
-axis_label_line_1 <- 0.5
-axis_label_line_2 <- 2.0
+axis_line_2 <- 1.25
+axis_label_line_1 <- 0.25
+axis_label_line_2 <- 1.5
 
 
 #### Define function: Plot exo data from this study ####
@@ -33,85 +33,86 @@ plot.exo.data <- function(exo.data.to.use = exo.data,
                           plot_legend_only = "NO") {
   par(mar = c(0, 0, 0, 0),
       tck = -0.008)
-  #### Exo variables ####
-  DO_fudge_factor <- 15
-  turb_fudge_factor <- 0.5
-  
-  #### Isolate needed exo data ####
-  exo.data.for.profile <- exo.data.to.use %>%
-    filter(date == date.of.sampling)
-
-  
-  #### Plot the temp points and set up graph ####
-  plot(x = NULL,
-       y = NULL,
-       xlim = xlim_setting,
-       xaxs = "i",
-       yaxs = "i",
-       xaxt = "n",
-       yaxt = "n",
-       xlab = "",
-       ylab = "",
-       ylim = depths_to_use)
-  # Plot DO
-  lines(x = exo.data.for.profile$ODO_sat/DO_fudge_factor,
-        y = exo.data.for.profile$depth,
-        col = cb.translator["black"],
-        lwd = 3,
-        lty = 2)
-  # Plot the turbidity values
-  lines(x = exo.data.for.profile$Turbidity_FNU/turb_fudge_factor,
-        y = exo.data.for.profile$depth,
-        col = cb.translator["reddishpurple"],
-        lwd = 4,
-        lty = 3)
-  
-  #### Add scales ####
-  par(mgp = c(1.5, 0.2, 0))
-  axis(2,
-       at = seq(0, 25, by = 5),
-       labels = seq(0, 25, by = 5),
-       cex.axis = axis_tick_label_size,
-       las = 1)
-  par(mgp = c(1.5, -0.1, 0))
-  axis(1,
-       line = axis_line_1,
-       at = seq(0, 10, by = 5),
-       labels = seq(0, 10, by = 5)*DO_fudge_factor,
-       cex.axis = axis_tick_label_size,
-       gap.axis = -1,
-       padj = 0)
-  axis(1,
-       line = axis_line_2,
-       at = seq(0, 12, by = 4),
-       labels = seq(0, 12, by = 4)*turb_fudge_factor,
-       cex.axis = axis_tick_label_size,
-       gap.axis = -1,
-       padj = 0)
-  
-  #### Add axis labels ####
-  mtext("Depth (m)",
-        side = 2,
-        line = 0.75,
-        cex = axis_label_size)
-  mtext(paste("DO (%)",
-              sep = ""),
-        side = 1,
-        line = axis_label_line_1,
-        cex = axis_label_size)
-  mtext(paste("Turbidity (FNU)",
-              sep = ""),
-        side = 1,
-        line = axis_label_line_2,
-        cex = axis_label_size)
-
-  #### Line for SWI ####
-  abline(h = swi_line,
-         lty = 3)
-  
-  #### Legend ####
-  if (!is.null(plot_legend)) {
-    legend("topleft",
+  if (plot_legend_only == "NO") {
+    #### Exo variables ####
+    DO_fudge_factor <- 15
+    turb_fudge_factor <- 0.5
+    
+    #### Isolate needed exo data ####
+    exo.data.for.profile <- exo.data.to.use %>%
+      filter(date == date.of.sampling)
+    
+    
+    #### Plot the temp points and set up graph ####
+    plot(x = NULL,
+         y = NULL,
+         xlim = xlim_setting,
+         xaxs = "i",
+         yaxs = "i",
+         xaxt = "n",
+         yaxt = "n",
+         xlab = "",
+         ylab = "",
+         ylim = depths_to_use)
+    # Plot DO
+    lines(x = exo.data.for.profile$ODO_sat/DO_fudge_factor,
+          y = exo.data.for.profile$depth,
+          col = cb.translator["black"],
+          lwd = 3,
+          lty = 2)
+    # Plot the turbidity values
+    lines(x = exo.data.for.profile$Turbidity_FNU/turb_fudge_factor,
+          y = exo.data.for.profile$depth,
+          col = cb.translator["reddishpurple"],
+          lwd = 4,
+          lty = 3)
+    
+    #### Add scales ####
+    par(mgp = c(1.5, 0.15, 0))
+    axis(2,
+         at = seq(0, 25, by = 5),
+         labels = seq(0, 25, by = 5),
+         cex.axis = axis_tick_label_size,
+         las = 1)
+    par(mgp = c(1.5, -0.3, 0))
+    axis(1,
+         line = axis_line_1,
+         at = seq(0, 10, by = 5),
+         labels = seq(0, 10, by = 5)*DO_fudge_factor,
+         cex.axis = axis_tick_label_size,
+         gap.axis = -1,
+         padj = 0)
+    axis(1,
+         line = axis_line_2,
+         at = seq(0, 12, by = 4),
+         labels = seq(0, 12, by = 4)*turb_fudge_factor,
+         cex.axis = axis_tick_label_size,
+         gap.axis = -1,
+         padj = 0)
+    
+    #### Add axis labels ####
+    mtext("Depth (m)",
+          side = 2,
+          line = 0.75,
+          cex = axis_label_size)
+    mtext(paste("DO (%)",
+                sep = ""),
+          side = 1,
+          line = axis_label_line_1,
+          cex = axis_label_size)
+    mtext(paste("Turbidity (FNU)",
+                sep = ""),
+          side = 1,
+          line = axis_label_line_2,
+          cex = axis_label_size)
+    
+    #### Line for SWI ####
+    abline(h = swi_line,
+           lty = 3)
+  } else if (plot_legend_only == "YES") {
+    #### Legend ####
+    plot.new()
+    legend("bottom",
            legend = c("DO", "Turb."),
            col = c(cb.translator["black"], cb.translator["reddishpurple"]),
            cex = 7/12,
@@ -127,9 +128,11 @@ plot.exo.data <- function(exo.data.to.use = exo.data,
 
 #### Define function: Plot metals data ####
 plot_metal_data <- function(date.of.sampling,
-                            legend_location = NULL) {
+                            legend_location = NULL,
+                            plot_legend_only = "NO") {
   par(mar = c(0, 0, 0, 0),
-      tck = -0.008)
+      tck = -0.010)
+  
   #### Set up vectors for redox data ####
   color.vector <- c(cb.translator["orange"], cb.translator["orange"],
                     cb.translator["yellow"], cb.translator["yellow"])
@@ -146,85 +149,85 @@ plot_metal_data <- function(date.of.sampling,
   fudge_vector <- c(rep(25, 4))
   names(fudge_vector) <- names(color.vector)
   
-  
-  #### Set up data ####
-  waterChem.data.filtered <- waterChem.data %>%
-    filter(date == date.of.sampling)
-  waterChem.data.filtered <- waterChem.data.filtered[, c("depth", names(color.vector))]
-  waterChem.data.filtered <- waterChem.data.filtered %>%
-    gather(key = constituent,
-           value = concentration,
-           -1) %>%
-    filter(!is.na(concentration))
-  
-  
-  #### Generate empty plot ####
-  plot(NULL,
-       ylim = depths_to_use,
-       xlim = xlim_setting,
-       xaxs = "i",
-       yaxs = "i",
-       xaxt = "n",
-       yaxt = "n",
-       xlab = "",
-       ylab = "")
-  
-  #### Add points and lines ####
-  for (species in names(color.vector)) {
-    point.data <- waterChem.data.filtered %>%
-      filter(constituent == species)
-    points(x = point.data$concentration * fudge_vector[species],
-           y = point.data$depth,
-           col = color.vector[species],
-           pch = point.vector[species])
-    line.data <- point.data %>%
-      group_by(depth) %>%
-      summarise(concentration = mean(concentration)) %>%
-      arrange(depth)
-    lines(x = line.data$concentration * fudge_vector[species],
-          y = line.data$depth,
-          col = color.vector[species],
-          lty = line.vector[species])
-  }
+  if (plot_legend_only == "NO") {
+    #### Set up data ####
+    waterChem.data.filtered <- waterChem.data %>%
+      filter(date == date.of.sampling)
+    waterChem.data.filtered <- waterChem.data.filtered[, c("depth", names(color.vector))]
+    waterChem.data.filtered <- waterChem.data.filtered %>%
+      gather(key = constituent,
+             value = concentration,
+             -1) %>%
+      filter(!is.na(concentration))
     
-  #### Add scales ####
-  par(mgp = c(1.5, -0.1, 0))
-  axis(1,
-       at = seq(0, 12, by = 5),
-       labels = seq(0, 12, by = 5)/fudge_vector["Mn_part_ppm"],
-       cex.axis = axis_tick_label_size,
-       gap.axis = -1,
-       padj = 0)
-
-  #### Add axis labels ####
-  mtext(paste("Metals (ppm)",
-              sep = ""),
-        side = 1,
-        line = axis_label_line_1,
-        cex = axis_label_size)
-
-  #### Add SWI line ####
-  abline(h = swi_line,
-         lty = 3)
+    
+    #### Generate empty plot ####
+    plot(NULL,
+         ylim = depths_to_use,
+         xlim = xlim_setting,
+         xaxs = "i",
+         yaxs = "i",
+         xaxt = "n",
+         yaxt = "n",
+         xlab = "",
+         ylab = "")
+    
+    #### Add points and lines ####
+    for (species in names(color.vector)) {
+      point.data <- waterChem.data.filtered %>%
+        filter(constituent == species)
+      points(x = point.data$concentration * fudge_vector[species],
+             y = point.data$depth,
+             col = color.vector[species],
+             pch = point.vector[species])
+      line.data <- point.data %>%
+        group_by(depth) %>%
+        summarise(concentration = mean(concentration)) %>%
+        arrange(depth)
+      lines(x = line.data$concentration * fudge_vector[species],
+            y = line.data$depth,
+            col = color.vector[species],
+            lty = line.vector[species])
+    }
+      
+    #### Add scales ####
+    par(mgp = c(1.5, -0.3, 0))
+    axis(1,
+         at = seq(0, 12, by = 5),
+         labels = seq(0, 12, by = 5)/fudge_vector["Mn_part_ppm"],
+         cex.axis = axis_tick_label_size,
+         gap.axis = -1,
+         padj = 0)
   
-  #### Legend ####
-  if (!is.null(legend_location)) {
-    legend(legend_location,
+    #### Add axis labels ####
+    mtext(paste("Metals (ppm)",
+                sep = ""),
+          side = 1,
+          line = axis_label_line_1,
+          cex = axis_label_size)
+  
+    #### Add SWI line ####
+    abline(h = swi_line,
+           lty = 3)
+  } else if (plot_legend_only == "YES") {
+    #### Legend ####
+    plot.new()
+    legend("bottom",
            legend = naming.vector,
            col = color.vector,
-           cex = 7/12,
+           cex = 6/12,
            lwd = 1.5,
            lty = line.vector,
-           pt.cex = 1,
+           pt.cex = 0.8,
            pch = point.vector,
            bty = "n")
-  }
+    }
   }
 
 
 #### Define function: Plot sulfur data ####
 plot_sulfur_data <- function(date.of.sampling,
-                             legend_location = NULL) {
+                             plot_legend_only = "NO") {
   par(mar = c(0, 0, 0, 0),
       tck = -0.008)
   #### Set up vectors for redox data ####
@@ -240,76 +243,78 @@ plot_sulfur_data <- function(date.of.sampling,
   fudge_vector <- c(rep(0.04, 2))
   names(fudge_vector) <- names(color.vector)
   
-  #### Set up data ####
-  waterChem.data.filtered <- waterChem.data %>%
-    filter(date == date.of.sampling)
-  waterChem.data.filtered <- waterChem.data.filtered[, c("depth", names(color.vector))]
-  waterChem.data.filtered <- waterChem.data.filtered %>%
-    gather(key = constituent,
-           value = concentration,
-           -1) %>%
-    filter(!is.na(concentration))
-  
-  
-  #### Generate empty plot ####
-  plot(NULL,
-       ylim = depths_to_use,
-       xlim = xlim_setting,
-       xaxs = "i",
-       yaxs = "i",
-       xaxt = "n",
-       yaxt = "n",
-       xlab = "",
-       ylab = "")
-  
-  #### Add points and lines ####
-  for (species in names(color.vector)) {
-    point.data <- waterChem.data.filtered %>%
-      filter(constituent == species)
-    points(x = point.data$concentration * fudge_vector[species],
-           y = point.data$depth,
-           col = color.vector[species],
-           pch = point.vector[species])
-    line.data <- point.data %>%
-      group_by(depth) %>%
-      summarise(concentration = mean(concentration)) %>%
-      arrange(depth)
-    lines(x = line.data$concentration * fudge_vector[species],
-          y = line.data$depth,
-          col = color.vector[species],
-          lty = line.vector[species])
-  }
-  
-  #### Add scales ####
-  par(mgp = c(1.5, -0.1, 0))
-  axis(1,
-       line = axis_line_1,
-       at = seq(0, 9, by = 3),
-       labels = seq(0, 9, by = 3)/fudge_vector["sulfate_uM"],
-       cex.axis = axis_tick_label_size,
-       gap.axis = -1,
-       padj = 0)
-  
-  #### Add axis labels ####
-  mtext(paste("S species (µM)",
-              sep = ""),
-        side = 1,
-        line = axis_label_line_1,
-        cex = axis_label_size)
-  
-  #### Add SWI line ####
-  abline(h = swi_line,
-         lty = 3)
-  
-  #### Legend ####
-  if (!is.null(legend_location)) {
-    legend(legend_location,
+  if (plot_legend_only == "NO") {
+      
+    #### Set up data ####
+    waterChem.data.filtered <- waterChem.data %>%
+      filter(date == date.of.sampling)
+    waterChem.data.filtered <- waterChem.data.filtered[, c("depth", names(color.vector))]
+    waterChem.data.filtered <- waterChem.data.filtered %>%
+      gather(key = constituent,
+             value = concentration,
+             -1) %>%
+      filter(!is.na(concentration))
+    
+    
+    #### Generate empty plot ####
+    plot(NULL,
+         ylim = depths_to_use,
+         xlim = xlim_setting,
+         xaxs = "i",
+         yaxs = "i",
+         xaxt = "n",
+         yaxt = "n",
+         xlab = "",
+         ylab = "")
+    
+    #### Add points and lines ####
+    for (species in names(color.vector)) {
+      point.data <- waterChem.data.filtered %>%
+        filter(constituent == species)
+      points(x = point.data$concentration * fudge_vector[species],
+             y = point.data$depth,
+             col = color.vector[species],
+             pch = point.vector[species])
+      line.data <- point.data %>%
+        group_by(depth) %>%
+        summarise(concentration = mean(concentration)) %>%
+        arrange(depth)
+      lines(x = line.data$concentration * fudge_vector[species],
+            y = line.data$depth,
+            col = color.vector[species],
+            lty = line.vector[species])
+    }
+    
+    #### Add scales ####
+    par(mgp = c(1.5, -0.3, 0))
+    axis(1,
+         line = axis_line_1,
+         at = seq(0, 9, by = 3),
+         labels = seq(0, 9, by = 3)/fudge_vector["sulfate_uM"],
+         cex.axis = axis_tick_label_size,
+         gap.axis = -1,
+         padj = 0)
+    
+    #### Add axis labels ####
+    mtext(paste("S species (µM)",
+                sep = ""),
+          side = 1,
+          line = axis_label_line_1,
+          cex = axis_label_size)
+    
+    #### Add SWI line ####
+    abline(h = swi_line,
+           lty = 3)
+  } else if (plot_legend_only == "YES") {
+    plot.new()
+    #### Legend ####
+    legend("bottom",
            legend = naming.vector,
            col = color.vector,
-           cex = 7/12,
+           cex = 6/12,
            lwd = 1.5,
            lty = line.vector,
-           pt.cex = 1,
+           pt.cex = 0.8,
            pch = point.vector,
            bty = "n")
   }
@@ -318,7 +323,7 @@ plot_sulfur_data <- function(date.of.sampling,
 
 #### Function to plot filter-passing Hg data ####
 plot_filt_Hg_profile <- function(date.of.sampling = "2021-09-10",
-                            legend_location = NULL) {
+                                 plot_legend_only = "NO") {
   
   par(mar = c(0, 0, 0, 0),
       tck = -0.008)
@@ -336,100 +341,98 @@ plot_filt_Hg_profile <- function(date.of.sampling = "2021-09-10",
   fudge_vector <- c(rep(5, 2), rep(0.1, 2))
   names(fudge_vector) <- names(color.vector)
   
-  
-  #### Set up data ####
-  waterChem.data.filtered <- waterChem.data %>%
-    filter(date == date.of.sampling)
-  waterChem.data.filtered <- waterChem.data.filtered[, c("depth", names(color.vector))]
-  waterChem.data.filtered <- waterChem.data.filtered %>%
-    gather(key = constituent,
-           value = concentration,
-           -1) %>%
-    filter(!is.na(concentration))
-  
-  
-  #### Generate empty plot ####
-  plot(NULL,
-       ylim = depths_to_use,
-       xlim = xlim_setting,
-       xaxs = "i",
-       yaxs = "i",
-       xaxt = "n",
-       yaxt = "n",
-       xlab = "",
-       ylab = "")
-  
-  #### Add points and lines ####
-  for (species in names(color.vector)) {
-    point.data <- waterChem.data.filtered %>%
-      filter(constituent == species)
-    points(x = point.data$concentration * fudge_vector[species],
-           y = point.data$depth,
-           col = color.vector[species],
-           pch = point.vector[species])
-    line.data <- point.data %>%
-      group_by(depth) %>%
-      summarise(concentration = mean(concentration)) %>%
-      arrange(depth)
-    lines(x = line.data$concentration * fudge_vector[species],
-          y = line.data$depth,
-          col = color.vector[species],
-          lty = line.vector[species])
-  }
-  
-  #### Add scales ####
-  par(mgp = c(1.5, -0.1, 0))
-  axis(1,
-       line = axis_line_1,
-       at = seq(0, 9, by = 3),
-       labels = seq(0, 9, by = 3)/fudge_vector["FTHG_NG.L"],
-       cex.axis = axis_tick_label_size,
-       gap.axis = -1,
-       padj = 0)
-  axis(1,
-       line = axis_line_2,
-       at = seq(0, 10, by = 2.4),
-       labels = seq(0, 10, by = 2.4)/fudge_vector["perFMHG"],
-       cex.axis = axis_tick_label_size,
-       gap.axis = -1,
-       padj = 0)
-  
-  #### Add axis labels ####
-  mtext(paste("FP Hg (ng/L)",
-              sep = ""),
-        side = 1,
-        line = axis_label_line_1,
-        cex = axis_label_size)
-  mtext(paste("FP MeHg (%)",
-              sep = ""),
-        side = 1,
-        line = axis_label_line_2,
-        cex = axis_label_size)
-  
-  #### Add SWI line ####
-  abline(h = swi_line,
-         lty = 3)
-  
-  
-  #### Legend ####
-  if (!is.null(legend_location)) {
-    legend(legend_location,
+  if (plot_legend_only == "NO") {
+    #### Set up data ####
+    waterChem.data.filtered <- waterChem.data %>%
+      filter(date == date.of.sampling)
+    waterChem.data.filtered <- waterChem.data.filtered[, c("depth", names(color.vector))]
+    waterChem.data.filtered <- waterChem.data.filtered %>%
+      gather(key = constituent,
+             value = concentration,
+             -1) %>%
+      filter(!is.na(concentration))
+    
+    
+    #### Generate empty plot ####
+    plot(NULL,
+         ylim = depths_to_use,
+         xlim = xlim_setting,
+         xaxs = "i",
+         yaxs = "i",
+         xaxt = "n",
+         yaxt = "n",
+         xlab = "",
+         ylab = "")
+    
+    #### Add points and lines ####
+    for (species in names(color.vector)) {
+      point.data <- waterChem.data.filtered %>%
+        filter(constituent == species)
+      points(x = point.data$concentration * fudge_vector[species],
+             y = point.data$depth,
+             col = color.vector[species],
+             pch = point.vector[species])
+      line.data <- point.data %>%
+        group_by(depth) %>%
+        summarise(concentration = mean(concentration)) %>%
+        arrange(depth)
+      lines(x = line.data$concentration * fudge_vector[species],
+            y = line.data$depth,
+            col = color.vector[species],
+            lty = line.vector[species])
+    }
+    
+    #### Add scales ####
+    par(mgp = c(1.5, -0.3, 0))
+    axis(1,
+         line = axis_line_1,
+         at = seq(0, 9, by = 3),
+         labels = seq(0, 9, by = 3)/fudge_vector["FTHG_NG.L"],
+         cex.axis = axis_tick_label_size,
+         gap.axis = -1,
+         padj = 0)
+    axis(1,
+         line = axis_line_2,
+         at = seq(0, 10, by = 2.4),
+         labels = seq(0, 10, by = 2.4)/fudge_vector["perFMHG"],
+         cex.axis = axis_tick_label_size,
+         gap.axis = -1,
+         padj = 0)
+    
+    #### Add axis labels ####
+    mtext(paste("FP Hg (ng/L)",
+                sep = ""),
+          side = 1,
+          line = axis_label_line_1,
+          cex = axis_label_size)
+    mtext(paste("FP MeHg (%)",
+                sep = ""),
+          side = 1,
+          line = axis_label_line_2,
+          cex = axis_label_size)
+    
+    #### Add SWI line ####
+    abline(h = swi_line,
+           lty = 3)
+  } else if (plot_legend_only == "YES") {
+    #### Legend ####
+    plot.new()
+    legend("bottom",
            legend = naming.vector,
            col = color.vector,
-           cex = 7/12,
+           cex = 6/12,
            lwd = 1.5,
            lty = line.vector,
-           pt.cex = 1,
+           pt.cex = 0.8,
            pch = point.vector,
            bty = "n")
   }
 }
 
 
-
 #### Function to plot particulate Hg data ####
 plot_part_Hg_profile <- function(date.of.sampling = "2021-09-10",
-                            legend_location = NULL) {
+                                 plot_legend_only = "NO") {
   
   par(mar = c(0, 0, 0, 0),
       tck = -0.008)
@@ -447,7 +450,6 @@ plot_part_Hg_profile <- function(date.of.sampling = "2021-09-10",
   fudge_vector <- c(rep(5, 2), rep(0.1, 2))
   names(fudge_vector) <- names(color.vector)
   
-  
   #### Set up data ####
   waterChem.data.filtered <- waterChem.data %>%
     filter(date == date.of.sampling)
@@ -458,79 +460,79 @@ plot_part_Hg_profile <- function(date.of.sampling = "2021-09-10",
            -1) %>%
     filter(!is.na(concentration))
   
-  
-  #### Generate empty plot ####
-  plot(NULL,
-       ylim = depths_to_use,
-       xlim = xlim_setting,
-       xaxs = "i",
-       yaxs = "i",
-       xaxt = "n",
-       yaxt = "n",
-       xlab = "",
-       ylab = "")
-  
-  #### Add points and lines ####
-  for (species in names(color.vector)) {
-    point.data <- waterChem.data.filtered %>%
-      filter(constituent == species)
-    points(x = point.data$concentration * fudge_vector[species],
-           y = point.data$depth,
-           col = color.vector[species],
-           pch = point.vector[species])
-    line.data <- point.data %>%
-      group_by(depth) %>%
-      summarise(concentration = mean(concentration)) %>%
-      arrange(depth)
-    lines(x = line.data$concentration * fudge_vector[species],
-          y = line.data$depth,
-          col = color.vector[species],
-          lty = line.vector[species])
-  }
-  
-  #### Add scales ####
-  par(mgp = c(1.5, -0.1, 0))
-  axis(1,
-       line = axis_line_1,
-       at = seq(0, 9, by = 3),
-       labels = seq(0, 9, by = 3)/fudge_vector["PTHG_NG.L"],
-       cex.axis = axis_tick_label_size,
-       gap.axis = -1,
-       padj = 0)
-  axis(1,
-       line = axis_line_2,
-       at = seq(0, 10, by = 2.4),
-       labels = seq(0, 10, by = 2.4)/fudge_vector["perPMHG"],
-       cex.axis = axis_tick_label_size,
-       gap.axis = -1,
-       padj = 0)
-  
-  #### Add axis labels ####
-  mtext(paste("Part. Hg (ng/L)",
-              sep = ""),
-        side = 1,
-        line = axis_label_line_1,
-        cex = axis_label_size)
-  mtext(paste("Part. MeHg (%)",
-              sep = ""),
-        side = 1,
-        line = axis_label_line_2,
-        cex = axis_label_size)
-  
-  #### Add SWI line ####
-  abline(h = swi_line,
-         lty = 3)
-  
-  
-  #### Legend ####
-  if (!is.null(legend_location)) {
-    legend(legend_location,
+  if (plot_legend_only == "NO") {
+      
+    #### Generate empty plot ####
+    plot(NULL,
+         ylim = depths_to_use,
+         xlim = xlim_setting,
+         xaxs = "i",
+         yaxs = "i",
+         xaxt = "n",
+         yaxt = "n",
+         xlab = "",
+         ylab = "")
+    
+    #### Add points and lines ####
+    for (species in names(color.vector)) {
+      point.data <- waterChem.data.filtered %>%
+        filter(constituent == species)
+      points(x = point.data$concentration * fudge_vector[species],
+             y = point.data$depth,
+             col = color.vector[species],
+             pch = point.vector[species])
+      line.data <- point.data %>%
+        group_by(depth) %>%
+        summarise(concentration = mean(concentration)) %>%
+        arrange(depth)
+      lines(x = line.data$concentration * fudge_vector[species],
+            y = line.data$depth,
+            col = color.vector[species],
+            lty = line.vector[species])
+    }
+    
+    #### Add scales ####
+    par(mgp = c(1.5, -0.3, 0))
+    axis(1,
+         line = axis_line_1,
+         at = seq(0, 9, by = 3),
+         labels = seq(0, 9, by = 3)/fudge_vector["PTHG_NG.L"],
+         cex.axis = axis_tick_label_size,
+         gap.axis = -1,
+         padj = 0)
+    axis(1,
+         line = axis_line_2,
+         at = seq(0, 10, by = 2.4),
+         labels = seq(0, 10, by = 2.4)/fudge_vector["perPMHG"],
+         cex.axis = axis_tick_label_size,
+         gap.axis = -1,
+         padj = 0)
+    
+    #### Add axis labels ####
+    mtext(paste("Part. Hg (ng/L)",
+                sep = ""),
+          side = 1,
+          line = axis_label_line_1,
+          cex = axis_label_size)
+    mtext(paste("Part. MeHg (%)",
+                sep = ""),
+          side = 1,
+          line = axis_label_line_2,
+          cex = axis_label_size)
+    
+    #### Add SWI line ####
+    abline(h = swi_line,
+           lty = 3)
+  } else if (plot_legend_only == "YES") {
+    plot.new()
+    #### Legend ####
+    legend("bottom",
            legend = naming.vector,
            col = color.vector,
-           cex = 7/12,
+           cex = 6/12,
            lwd = 1.5,
            lty = line.vector,
-           pt.cex = 1,
+           pt.cex = 0.8,
            pch = point.vector,
            bty = "n")
   }
@@ -540,7 +542,7 @@ plot_part_Hg_profile <- function(date.of.sampling = "2021-09-10",
 
 #### Function to plot particulate partitioning Hg data ####
 plot_part_part_Hg_profile <- function(date.of.sampling = "2021-09-10",
-                                      legend_location = NULL) {
+                                      plot_legend_only = "NO") {
   
   par(mar = c(0, 0, 0, 0),
       tck = -0.008)
@@ -565,66 +567,65 @@ plot_part_part_Hg_profile <- function(date.of.sampling = "2021-09-10",
            -1) %>%
     filter(!is.na(concentration))
   
-  
-  #### Generate empty plot ####
-  plot(NULL,
-       ylim = depths_to_use,
-       xlim = xlim_setting,
-       xaxs = "i",
-       yaxs = "i",
-       xaxt = "n",
-       yaxt = "n",
-       xlab = "",
-       ylab = "")
-  
-  #### Add points and lines ####
-  for (species in names(color.vector)) {
-    point.data <- waterChem.data.filtered %>%
-      filter(constituent == species)
-    points(x = point.data$concentration * fudge_vector,
-           y = point.data$depth,
-           col = color.vector[species],
-           pch = point.vector[species])
-    line.data <- point.data %>%
-      group_by(depth) %>%
-      summarise(concentration = mean(concentration)) %>%
-      arrange(depth)
-    lines(x = line.data$concentration * fudge_vector,
-          y = line.data$depth,
-          col = color.vector[species],
-          lty = line.vector[species])
-  }
-  
-  #### Add scales ####
-  par(mgp = c(1.5, -0.1, 0))
-  axis(1,
-       line = axis_line_1,
-       at = seq(0, 9, by = 3),
-       labels = seq(0, 9, by = 3)/fudge_vector,
-       cex.axis = axis_tick_label_size,
-       gap.axis = -1,
-       padj = 0)
-
-  #### Add axis labels ####
-  mtext(paste("Part. Hg (ng/g)",
-              sep = ""),
-        side = 1,
-        line = axis_label_line_1,
-        cex = axis_label_size)
-
-  #### Add SWI line ####
-  abline(h = swi_line,
-         lty = 3)
-  
-  #### Legend ####
-  if (!is.null(legend_location)) {
-    legend(legend_location,
+  if (plot_legend_only == "NO") {
+    #### Generate empty plot ####
+    plot(NULL,
+         ylim = depths_to_use,
+         xlim = xlim_setting,
+         xaxs = "i",
+         yaxs = "i",
+         xaxt = "n",
+         yaxt = "n",
+         xlab = "",
+         ylab = "")
+    
+    #### Add points and lines ####
+    for (species in names(color.vector)) {
+      point.data <- waterChem.data.filtered %>%
+        filter(constituent == species)
+      points(x = point.data$concentration * fudge_vector,
+             y = point.data$depth,
+             col = color.vector[species],
+             pch = point.vector[species])
+      line.data <- point.data %>%
+        group_by(depth) %>%
+        summarise(concentration = mean(concentration)) %>%
+        arrange(depth)
+      lines(x = line.data$concentration * fudge_vector,
+            y = line.data$depth,
+            col = color.vector[species],
+            lty = line.vector[species])
+    }
+    
+    #### Add scales ####
+    par(mgp = c(1.5, -0.3, 0))
+    axis(1,
+         line = axis_line_1,
+         at = seq(0, 9, by = 3),
+         labels = seq(0, 9, by = 3)/fudge_vector,
+         cex.axis = axis_tick_label_size,
+         gap.axis = -1,
+         padj = 0)
+    
+    #### Add axis labels ####
+    mtext(paste("Part. Hg (ng/g)",
+                sep = ""),
+          side = 1,
+          line = axis_label_line_1,
+          cex = axis_label_size)
+    
+    #### Add SWI line ####
+    abline(h = swi_line,
+           lty = 3)
+  } else if (plot_legend_only == "YES") {
+    plot.new()
+    legend("bottom",
            legend = naming.vector,
            col = color.vector,
-           cex = 7/12,
+           cex = 6/12,
            lwd = 1.5,
            lty = line.vector,
-           pt.cex = 1,
+           pt.cex = 0.8,
            pch = point.vector,
            bty = "n")
   }
@@ -634,7 +635,7 @@ plot_part_part_Hg_profile <- function(date.of.sampling = "2021-09-10",
 
 #### Function to plot DOC and SPM data ####
 plot_C_profile <- function(date.of.sampling = "2021-09-10",
-                           legend_location = NULL) {
+                           plot_legend_only = "NO") {
   
   par(mar = c(0, 0, 0, 0),
       tck = -0.008)
@@ -649,76 +650,76 @@ plot_C_profile <- function(date.of.sampling = "2021-09-10",
   names(line.vector) <- names(color.vector)
   fudge_vector <- 2
   
-  #### Set up data ####
-  waterChem.data.filtered <- waterChem.data %>%
-    filter(date == date.of.sampling)
-  waterChem.data.filtered <- waterChem.data.filtered[, c("depth", names(color.vector))]
-  waterChem.data.filtered <- waterChem.data.filtered %>%
-    gather(key = constituent,
-           value = concentration,
-           -1) %>%
-    filter(!is.na(concentration))
-  
-  
-  #### Generate empty plot ####
-  plot(NULL,
-       ylim = depths_to_use,
-       xlim = xlim_setting,
-       xaxs = "i",
-       yaxs = "i",
-       xaxt = "n",
-       yaxt = "n",
-       xlab = "",
-       ylab = "")
-  
-  #### Add points and lines ####
-  for (species in names(color.vector)) {
-    point.data <- waterChem.data.filtered %>%
-      filter(constituent == species)
-    points(x = point.data$concentration * fudge_vector,
-           y = point.data$depth,
-           col = color.vector[species],
-           pch = point.vector[species])
-    line.data <- point.data %>%
-      group_by(depth) %>%
-      summarise(concentration = mean(concentration)) %>%
-      arrange(depth)
-    lines(x = line.data$concentration * fudge_vector,
-          y = line.data$depth,
-          col = color.vector[species],
-          lty = line.vector[species])
-  }
-  
-  #### Add scales ####
-  par(mgp = c(1.5, -0.1, 0))
-  axis(1,
-       line = axis_line_1,
-       at = seq(0, 9, by = 3),
-       labels = seq(0, 9, by = 3)/fudge_vector,
-       cex.axis = axis_tick_label_size,
-       gap.axis = -1,
-       padj = 0)
-  
-  #### Add axis labels ####
-  mtext(paste("DOC/SPM (mg/L)",
-              sep = ""),
-        side = 1,
-        line = axis_label_line_1,
-        cex = axis_label_size)
-  
-  #### Add SWI line ####
-  abline(h = swi_line,
-         lty = 3)
-  
-  #### Legend ####
-  if (!is.null(legend_location)) {
-    legend(legend_location,
+  if (plot_legend_only == "NO") {
+    #### Set up data ####
+    waterChem.data.filtered <- waterChem.data %>%
+      filter(date == date.of.sampling)
+    waterChem.data.filtered <- waterChem.data.filtered[, c("depth", names(color.vector))]
+    waterChem.data.filtered <- waterChem.data.filtered %>%
+      gather(key = constituent,
+             value = concentration,
+             -1) %>%
+      filter(!is.na(concentration))
+    
+    
+    #### Generate empty plot ####
+    plot(NULL,
+         ylim = depths_to_use,
+         xlim = xlim_setting,
+         xaxs = "i",
+         yaxs = "i",
+         xaxt = "n",
+         yaxt = "n",
+         xlab = "",
+         ylab = "")
+    
+    #### Add points and lines ####
+    for (species in names(color.vector)) {
+      point.data <- waterChem.data.filtered %>%
+        filter(constituent == species)
+      points(x = point.data$concentration * fudge_vector,
+             y = point.data$depth,
+             col = color.vector[species],
+             pch = point.vector[species])
+      line.data <- point.data %>%
+        group_by(depth) %>%
+        summarise(concentration = mean(concentration)) %>%
+        arrange(depth)
+      lines(x = line.data$concentration * fudge_vector,
+            y = line.data$depth,
+            col = color.vector[species],
+            lty = line.vector[species])
+    }
+    
+    #### Add scales ####
+    par(mgp = c(1.5, -0.3, 0))
+    axis(1,
+         line = axis_line_1,
+         at = seq(0, 9, by = 3),
+         labels = seq(0, 9, by = 3)/fudge_vector,
+         cex.axis = axis_tick_label_size,
+         gap.axis = -1,
+         padj = 0)
+    
+    #### Add axis labels ####
+    mtext(paste("DOC/SPM (mg/L)",
+                sep = ""),
+          side = 1,
+          line = axis_label_line_1,
+          cex = axis_label_size)
+    
+    #### Add SWI line ####
+    abline(h = swi_line,
+           lty = 3)
+  } else if (plot_legend_only == "YES") {
+    # plot.new()
+    legend("bottom",
            legend = naming.vector,
            col = color.vector,
-           cex = 7/12,
+           cex = 6/12,
            lwd = 1.5,
            lty = line.vector,
-           pt.cex = 1,
+           pt.cex = 0.8,
            pch = point.vector,
            bty = "n")
   }
@@ -727,7 +728,7 @@ plot_C_profile <- function(date.of.sampling = "2021-09-10",
 
 #### Function to plot DGM data ####
 plot_DGM_profile <- function(date.of.sampling = "2021-09-10",
-                           legend_location = NULL) {
+                             plot_legend_only = "NO") {
   
   par(mar = c(0, 0, 0, 0),
       tck = -0.008)
@@ -742,76 +743,76 @@ plot_DGM_profile <- function(date.of.sampling = "2021-09-10",
   names(line.vector) <- names(color.vector)
   fudge_vector <- 300
   
-  #### Set up data ####
-  waterChem.data.filtered <- waterChem.data %>%
-    filter(date == date.of.sampling)
-  waterChem.data.filtered <- waterChem.data.filtered[, c("depth", names(color.vector))]
-  waterChem.data.filtered <- waterChem.data.filtered %>%
-    gather(key = constituent,
-           value = concentration,
-           -1) %>%
-    filter(!is.na(concentration))
-  
-  
-  #### Generate empty plot ####
-  plot(NULL,
-       ylim = depths_to_use,
-       xlim = xlim_setting,
-       xaxs = "i",
-       yaxs = "i",
-       xaxt = "n",
-       yaxt = "n",
-       xlab = "",
-       ylab = "")
-  
-  #### Add points and lines ####
-  for (species in names(color.vector)) {
-    point.data <- waterChem.data.filtered %>%
-      filter(constituent == species)
-    points(x = point.data$concentration * fudge_vector,
-           y = point.data$depth,
-           col = color.vector[species],
-           pch = point.vector[species])
-    line.data <- point.data %>%
-      group_by(depth) %>%
-      summarise(concentration = mean(concentration)) %>%
-      arrange(depth)
-    lines(x = line.data$concentration * fudge_vector,
-          y = line.data$depth,
-          col = color.vector[species],
-          lty = line.vector[species])
-  }
-  
-  #### Add scales ####
-  par(mgp = c(1.5, -0.1, 0))
-  axis(1,
-       line = axis_line_1,
-       at = seq(0, 12, by = 3),
-       labels = seq(0, 12, by = 3)/fudge_vector*1000,
-       cex.axis = axis_tick_label_size,
-       gap.axis = -1,
-       padj = 0)
-  
-  #### Add axis labels ####
-  mtext(paste("DGM (pg/L)",
-              sep = ""),
-        side = 1,
-        line = axis_label_line_1,
-        cex = axis_label_size)
-  
-  #### Add SWI line ####
-  abline(h = swi_line,
-         lty = 3)
-  
-  #### Legend ####
-  if (!is.null(legend_location)) {
-    legend(legend_location,
+  if (plot_legend_only == "NO") {
+    #### Set up data ####
+    waterChem.data.filtered <- waterChem.data %>%
+      filter(date == date.of.sampling)
+    waterChem.data.filtered <- waterChem.data.filtered[, c("depth", names(color.vector))]
+    waterChem.data.filtered <- waterChem.data.filtered %>%
+      gather(key = constituent,
+             value = concentration,
+             -1) %>%
+      filter(!is.na(concentration))
+    
+    
+    #### Generate empty plot ####
+    plot(NULL,
+         ylim = depths_to_use,
+         xlim = xlim_setting,
+         xaxs = "i",
+         yaxs = "i",
+         xaxt = "n",
+         yaxt = "n",
+         xlab = "",
+         ylab = "")
+    
+    #### Add points and lines ####
+    for (species in names(color.vector)) {
+      point.data <- waterChem.data.filtered %>%
+        filter(constituent == species)
+      points(x = point.data$concentration * fudge_vector,
+             y = point.data$depth,
+             col = color.vector[species],
+             pch = point.vector[species])
+      line.data <- point.data %>%
+        group_by(depth) %>%
+        summarise(concentration = mean(concentration)) %>%
+        arrange(depth)
+      lines(x = line.data$concentration * fudge_vector,
+            y = line.data$depth,
+            col = color.vector[species],
+            lty = line.vector[species])
+    }
+    
+    #### Add scales ####
+    par(mgp = c(1.5, -0.3, 0))
+    axis(1,
+         line = axis_line_1,
+         at = seq(0, 12, by = 3),
+         labels = seq(0, 12, by = 3)/fudge_vector*1000,
+         cex.axis = axis_tick_label_size,
+         gap.axis = -1,
+         padj = 0)
+    
+    #### Add axis labels ####
+    mtext(paste("DGM (pg/L)",
+                sep = ""),
+          side = 1,
+          line = axis_label_line_1,
+          cex = axis_label_size)
+    
+    #### Add SWI line ####
+    abline(h = swi_line,
+           lty = 3)
+  } else if (plot_legend_only == "YES") {
+    plot.new()
+    legend("bottom",
            legend = naming.vector,
            col = color.vector,
-           cex = 7/12,
+           cex = 6/12,
            lwd = 1.5,
            lty = line.vector,
-           pt.cex = 1,
+           pt.cex = 0.8,
            pch = point.vector,
            bty = "n")
   }

@@ -4,14 +4,10 @@
 #### Start with a clean slate ####
 rm(list = ls())
 setwd("/Users/benjaminpeterson/Documents/research/BLiMMP")
-# 
 source("code/figures/BGC_profiles_SI_plotting_functions.R")
 
 
 #### Read in data ####
-# incubation.depths <- read.csv("metadata/processedMetadata/incubation_metadata.csv") %>%
-#   select(startDate, depth) %>%
-#   unique()
 exo.data <- read.csv("dataFinal/exo_data.csv")
 waterChem.data <- read.csv("dataFinal/water_chem_data.csv")
 
@@ -82,99 +78,116 @@ for (date_to_use in dates_of_sampling) {
   i <<- i + 1
 }
 
+# Physical parameters
 for (date_to_use in dates_of_sampling) {
-  screen(i)
-  if (i == 5) {
-    plot.exo.data(date.of.sampling = date_to_use,
-                  plot_legend = "yes")
-  } else {
+  if (date_to_use == dates_of_sampling[1]) {
+    screen(i)
+    plot.exo.data(date.of.sampling = date_to_use,plot_legend_only = "YES")
+    i <- i + 1
+    screen(i)
     plot.exo.data(date.of.sampling = date_to_use)
+    i <- i + 1
+  } else {
+    screen(i)
+    plot.exo.data(date.of.sampling = date_to_use)
+    i <- i + 1
   }
-  i <- i + 1
 }
 
 # Metal species
 for (date_to_use in dates_of_sampling) {
-  screen(i)
-  if (i == 9) {
+  if (date_to_use == dates_of_sampling[1]) {
+    screen(i)
     plot_metal_data(date.of.sampling = date_to_use,
-                    legend_location = "top")
-  } else {
+                    plot_legend_only = "YES")
+    i <- i + 1
+    screen(i)
     plot_metal_data(date.of.sampling = date_to_use)
-    }
-  i <- i + 1
+    i <- i + 1
+  } else {
+    screen(i)
+    plot_metal_data(date.of.sampling = date_to_use)
+    i <- i + 1
+  }
 }
 
 # Sulfur species
 for (date_to_use in dates_of_sampling) {
+  if (date_to_use == dates_of_sampling[1]) {
+    screen(i)
+    plot_sulfur_data(plot_legend_only = "YES")
+    i <- i + 1
+    }
   screen(i)
-  if (i == 13) {
-    plot_sulfur_data(date.of.sampling = date_to_use,
-                     legend_location = "top")
-  } else {
-    plot_sulfur_data(date.of.sampling = date_to_use)
-  }
+  plot_sulfur_data(date.of.sampling = date_to_use)
   i <- i + 1
 }
 
 # Carbon/particulates profiles
 for (date_to_use in dates_of_sampling) {
+  if (date_to_use == dates_of_sampling[1]) {
+    screen(i)
+    plot_C_profile(plot_legend_only = "YES")
+    i <- i + 1
+    }
   screen(i)
-  if (i == 17) {
-    plot_C_profile(date.of.sampling = date_to_use,
-                   legend_location = "top")
-  } else {
-    plot_C_profile(date.of.sampling = date_to_use)
-  }
+  plot_C_profile(date.of.sampling = date_to_use)
   i <- i + 1
-}
+  }
 
 # Filtered mercury
 for (date_to_use in dates_of_sampling) {
+  if (date_to_use == dates_of_sampling[1]) {
+    screen(i)
+    plot_filt_Hg_profile(plot_legend_only = "YES")
+    i <- i + 1
+  }
   screen(i)
-  if (i == 21) {
-    plot_filt_Hg_profile(date.of.sampling = date_to_use,
-                         legend_location = "top")
-  } else {
-    plot_filt_Hg_profile(date.of.sampling = date_to_use)
-    }
+  plot_filt_Hg_profile(date.of.sampling = date_to_use)
   i <- i + 1
 }
 
 # Particulate mercury
 for (date_to_use in dates_of_sampling) {
-  screen(i)
-  if (i == 25) {
-    plot_part_Hg_profile(date.of.sampling = date_to_use,
-                         legend_location = "top")
-  } else {
-    plot_part_Hg_profile(date.of.sampling = date_to_use)
+  if (date_to_use == dates_of_sampling[1]) {
+    screen(i)
+    plot_part_Hg_profile(plot_legend_only = "YES")
+    i <- i + 1
   }
+  screen(i)
+  plot_part_Hg_profile(date.of.sampling = date_to_use)
   i <- i + 1
 }
 
 # Particulate partitioning mercury
 for (date_to_use in dates_of_sampling) {
+  if (date_to_use == dates_of_sampling[1]) {
+    screen(i)
+    plot_part_part_Hg_profile(plot_legend_only = "YES")
+    i <- i + 1
+    }
   screen(i)
-  if (i == 29) {
-    plot_part_part_Hg_profile(date.of.sampling = date_to_use,
-                              legend_location = "top")
-  } else {
-    plot_part_part_Hg_profile(date.of.sampling = date_to_use)
-  }
+  plot_part_part_Hg_profile(date.of.sampling = date_to_use)
   i <- i + 1
-}
+  }
 
 
 # DGM profiles
 for (date_to_use in dates_of_sampling) {
-  screen(i)
-  if (date_to_use == "2021-09-10") {
-    plot_DGM_profile(date.of.sampling = date_to_use,
-                              legend_location = "top")
-  } else if (date_to_use == "2021-10-14") {
+  if (date_to_use %in% dates_of_sampling[1]) {
+    screen(i)
+    plot_DGM_profile(plot_legend_only = "YES")
+    i <- i + 1
+  }
+  if (date_to_use %in% dates_of_sampling[3:4]) {
+    screen(i)
     plot_DGM_profile(date.of.sampling = date_to_use)
+  } else {
+    screen(i)
+    par(mar = c(0, 0, 0, 0))
+    box(which = "plot")
   }
   i <- i + 1
 }
+
 dev.off()
