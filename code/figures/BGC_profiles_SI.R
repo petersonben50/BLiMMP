@@ -13,13 +13,10 @@ waterChem.data <- read.csv("dataFinal/water_chem_data.csv")
 
 
 #### Plotting functions tailored to manuscript figure ####
-# testing
-exo.data.to.use = exo.data
 dates_of_sampling = c("2020-09-02",
                       "2020-10-10",
                       "2021-09-10",
                       "2021-10-14")
-legend.location = "topright"
 
 
 #### Set up layout for figure ####
