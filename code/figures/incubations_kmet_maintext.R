@@ -14,6 +14,14 @@ library(ggpubr)
 library(tidyverse)
 cb.translator <- readRDS("references/colorblind_friendly_colors.rds")
 
+
+#### Set constants ####
+label_size <- 1.25
+
+year_vector <- c(21, 24)
+names(year_vector) <- c("2020", "2021")
+
+
 #### Prepare omic data ####
 MG_metadata <- read.csv("metadata/metagenome_metadata.csv") %>%
   dplyr::rename(omicID = metagenomeID) %>%
@@ -76,6 +84,7 @@ Hg_Kmet_data <- read.csv("dataFinal/incubation_Hg_rate_data.csv") %>%
          value = value) %>%
   filter(!is.na(Kmet_mean))
 
+
 #### Read in sulfide data ####
 sulfide_data <- read.csv("dataFinal/water_chem_data.csv") %>%
   group_by(date, depth) %>%
@@ -85,11 +94,7 @@ sulfide_data <- read.csv("dataFinal/water_chem_data.csv") %>%
                             sep = ""))
 
 
-
 #### Function to plot Kmet vs. sulfide ####
-year_vector <- c(21, 24)
-names(year_vector) <- c("2020", "2021")
-
 Kmet_vs_sulfide <- function() {
   plot_data <- Hg_Kmet_data %>%
     left_join(sulfide_data)
@@ -100,11 +105,11 @@ Kmet_vs_sulfide <- function() {
        xlab = "",
        ylab = "")
   title(xlab = expression("Sulfide (µM)"),
-        cex.lab = 1.2,
+        cex.lab = label_size,
         line = 2)
   title(ylab = expression('K'['met']*' (day'^-1*')'),
-        cex.lab = 1.2,
-        line = 1.3)
+        cex.lab = label_size,
+        line = 1.5)
   arrows(plot_data$sulfide_uM, plot_data$Kmet_mean - plot_data$Kmet_se,
          plot_data$sulfide_uM, plot_data$Kmet_mean + plot_data$Kmet_se,
          length = 0.05, angle = 90, code = 3)
@@ -143,26 +148,34 @@ Kmet_vs_hgcA <- function(seq_type, xlabel,
          cex = 2)
   
   title(xlab = xlabel,
-        cex.lab = 1.2,
+        cex.lab = label_size,
         line = 2)
   title(ylab = expression('K'['met']*' (day'^-1*')'),
-        cex.lab = 1.2,
-        line = 1.3)
+        cex.lab = label_size,
+        line = 1.5)
   
 }
 
 
-#### Generate plots ####
+#### Generate plots for manuscript main text figure ####
 cairo_pdf("results/figures/incubations_kmet_maintext.pdf",
     family = "Arial",
     height = 3,
     width = 7.2)
 par(mfrow = c(1, 3),
-    mar = c(3, 3, 1.5, 1),
+    mar = c(3, 3.5, 1.5, 1),
     tck = -0.008,
-    mgp = c(1.5, 0.2, 0))
+    mgp = c(1.5, 0.2, 0),
+    cex.axis = 1.1)
 Kmet_vs_sulfide()
 mtext("A.", at = c(-30))
+legend(x = 3,
+       y = 0.20,
+       legend = names(year_vector),
+       pch = year_vector,
+       col = "gray25",
+       pt.bg = "gray85",
+       cex = 1)
 Kmet_vs_hgcA(seq_type = "MG",
              xlabel = expression(italic(hgcA)*' abundance (%)'),
              xscale = c(0, 17))
@@ -171,12 +184,25 @@ Kmet_vs_hgcA(seq_type = "MT",
              xlabel = expression(italic(hgcA)*' transcripts (10'^6*' per L)'),
              xscale = c(0, 11))
 mtext("C.", at = c(-2.2))
-legend(x = 6,
-       y = 0.05,
-       legend = names(year_vector),
-       pch = year_vector,
-       col = "gray25",
-       pt.bg = "gray85",
-       cex = 1)
 dev.off()
-embed_fonts("results/figures/incubations_kmet_maintext.pdf")
+# embed_fonts("results/figures/incubations_kmet_maintext.pdf")
+
+
+#### Generate plots for manuscript supplemental methods figure ####
+cairo_pdf("results/figures/methods_figure_hgcA_MG_MT.pdf",
+          family = "Arial",
+          height = 2.5,
+          width = 7.5)
+par(mfrow = c(1, 2),
+    mar = c(1, 3.5, 1.5, 1),
+    tck = -0.008,
+    mgp = c(1.5, 0.2, 0),
+    cex.axis = 1.1)
+Kmet_vs_hgcA(seq_type = "MG",
+             xlabel = "",
+             xscale = c(0, 17))
+Kmet_vs_hgcA(seq_type = "MT",
+             xlabel = "",
+             xscale = c(0, 11))
+dev.off()
+
