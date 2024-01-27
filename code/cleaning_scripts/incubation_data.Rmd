@@ -388,7 +388,7 @@ Kdem_data <- Kdem_data %>%
 
 ### Plot comparison of K~dem~ calculations
 
-```{r plot_Kmet_calcs, echo = FALSE}
+```{r plot_Kdem_calcs, echo = FALSE}
 condition_naming <- c("Integrated: t1",
                       "Integrated: t2",
                       "Linear model slope")
