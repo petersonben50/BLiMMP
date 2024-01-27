@@ -188,8 +188,8 @@ dev.off()
 # embed_fonts("results/figures/incubations_kmet_maintext.pdf")
 
 
-#### Generate plots for manuscript supplemental methods figure ####
-cairo_pdf("results/figures/methods_figure_hgcA_MG_MT.pdf",
+#### Generate plots for manuscript supplemental methods figure, part 1 ####
+cairo_pdf("results/figures/methods_figure_hgcA_MG_MT_1.pdf",
           family = "Arial",
           height = 2.5,
           width = 7.5)
@@ -206,3 +206,16 @@ Kmet_vs_hgcA(seq_type = "MT",
              xscale = c(0, 11))
 dev.off()
 
+
+#### Generate plots for manuscript supplemental methods figure, part 2 ####
+cairo_pdf("results/figures/methods_figure_hgcA_MG_MT_2.pdf",
+          family = "Arial",
+          height = 2.5,
+          width = 4)
+par(mfrow = c(1, 1),
+    mar = c(1, 3.5, 1.5, 1),
+    tck = -0.008,
+    mgp = c(1.5, 0.2, 0),
+    cex.axis = 1.1)
+Kmet_vs_sulfide()
+dev.off()
