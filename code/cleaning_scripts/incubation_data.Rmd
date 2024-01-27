@@ -1,19 +1,36 @@
-#### code/cleaning_scripts/incubation_data.R ####
-# Written for BLiMMP project
-# Benjamin D. Peterson
+---
+title: "Incubation cleaning script"
+author: "Benjamin D. Peterson"
+date: "2023-09-01"
+output: html_document
+---
 
+File path: `code/cleaning_scripts/incubation_data.R`
+Written for BLiMMP project to clean the Hg tracer data from the incubations and calculate K~met~ and K~dem~ for both ^198^Hg(II) and Me^204^Hg tracers.
 
-
-#### Prep workspace ####
+```{r setup, include = FALSE}
+  
 rm(list = ls())
-setwd("/Users/benjaminpeterson/Documents/research/BLiMMP")
+#setwd("/Users/benjaminpeterson/Documents/research/BLiMMP")
+# new.wd <- "/Users/benjaminpeterson/Documents/research/BLiMMP"
+library(ggpubr)
 library(lubridate)
 library(readxl)
 library(tidyverse)
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(echo = TRUE)
+new.wd <- gsub("\\/code/cleaning_scripts$", "", getwd())
+knitr::opts_knit$set(root.dir = new.wd)
+rm(new.wd)
+```
 
+```{r check_wd, eval = FALSE}
+getwd()
+```
 
+First we'll read in and prepare the data. The raw data files that we're reading in and processing are not the run files from the analytical runs, but rather the outputs of queries we ran to pull the data out of MERLINS. Thus, the QA/QC on the data has been done already, before loading into MERLINS.
 
-#### Read in data ####
+```{r read_in_data}
 incubation_metadata <- read.csv("metadata/processedMetadata/incubation_metadata.csv")
 MeHg_data_2020 <- read_xlsx("dataRaw/incubations/MeHg/2020_incubations/2020_BENDOTA_aggregated_data.xlsx",
                             sheet = "keeper-data",
@@ -33,10 +50,12 @@ rm(MeHg_data_2020, MeHg_data_2021)
 HgT_data <- read_xlsx("dataRaw/incubations/HgT/HgT_BENDOTA_SUMMARY.xlsx",
                       col_names = c("bottleID", "HgT_ambient_ppt", "HgT_198_ppt", "HgT_204_ppt", "HgT_excess_DDL", "HgT_DOA"),
                       skip = 1)
+```
 
+Next I prepared the MeHg data for both tracers, and added a column that indicates whether or not the Me^198^Hg was above detection.
+The Me^204^Hg measurements were never below detection, so I didn't add that column here.
 
-
-#### Prepare MeHg data ####
+```{r prepare_MeHg_data}
 MeHg_data_clean <- right_join(incubation_metadata %>%
                                 filter(constituent == "MeHg"),
                               MeHg_data) %>%
@@ -49,10 +68,12 @@ MeHg_data_clean <- right_join(incubation_metadata %>%
   mutate(bottleID_MeHg = bottleID) %>%
   select(-c(bottleID, constituent))
 rm(MeHg_data)
+```
 
+Next I prepared the total Hg data for both tracers, mostly by adding the metadata and filtering out some data.
+Neither ^198^HgT nor the ^204^HgT were ever below detection, so I did not add those columns here either.
 
-
-#### Prepare HgT data ####
+```{r prepare_HgT_data}
 HgT_data_clean <- right_join(incubation_metadata %>%
                                filter(constituent == "HgT"),
                              HgT_data) %>%
@@ -60,34 +81,35 @@ HgT_data_clean <- right_join(incubation_metadata %>%
   select(-c(bottleID, constituent)) %>%
   filter(year(startDate) %in% c(2020, 2021))
 rm(HgT_data, incubation_metadata)
+```
 
+Then I combined the tracer MeHg and HgT data.
 
-
-#### Combine data ####
+```{r combine_tracer_data}
 Hg_incubation_data <- full_join(MeHg_data_clean,
                                 HgT_data_clean)
 rm(MeHg_data_clean,
    HgT_data_clean)
+```
 
+Finally, I calculated the percent MeHg data for both tracers and the ambient pool, then saved out that dataframe to `dataFinal/incubation_Hg_conc_data.csv`.
 
-
-#### Calculate percent MeHg for ambient, 198, and 204
+```{r combine_and_save_concentration_data}
 Hg_incubation_data <- Hg_incubation_data %>%
   mutate(percent_amb_MeHg = MeHg_ambient_ppt / HgT_ambient_ppt * 100,
          percent_198_MeHg = MeHg_198_ppt / HgT_198_ppt * 100,
          percent_204_MeHg = MeHg_204_ppt / HgT_204_ppt * 100)
-
-
-
-#### Read out all data ####
 write.csv(Hg_incubation_data,
           file = "dataFinal/incubation_Hg_conc_data.csv",
           row.names = FALSE)
+```
 
+Next, I wanted to see how much of the total spike we were losing, for both ^198^HgT and ^204^HgT.
+For that and the K~met~/K~dem~, I needed the data in a different format:
 
-
-#### Calculate Kmet and 198HgT loss ####
-kmet_data <- Hg_incubation_data %>%
+```{r set_up_calculations}
+# Set up calcs for 198 tracer
+calculation_data_198 <- Hg_incubation_data %>%
   select(sampleID, incubationID,
          startDate, depth,
          t, treatment, durationInDays,
@@ -101,23 +123,9 @@ kmet_data <- Hg_incubation_data %>%
   select(sampleID, incubationID, startDate, depth,
          treatment,const_time, concentration) %>%
   spread(key = const_time,
-         value = concentration) %>%
-  mutate(Kmet_t1 = (MeHg_198_ppt_t1 - MeHg_198_ppt_t0) / HgT_198_ppt_t1 / durationInDays_t1,
-         Kmet_t2 = (MeHg_198_ppt_t2 - MeHg_198_ppt_t1) / HgT_198_ppt_t2 / (durationInDays_t2 - durationInDays_t1),
-         Kmet_total = (MeHg_198_ppt_t2 - MeHg_198_ppt_t0) / ((HgT_198_ppt_t2 + HgT_198_ppt_t1) / 2) / (durationInDays_t2 - durationInDays_t0),
-         HgT_198_daily_percent_loss_t1 = (HgT_198_ppt_t0 - HgT_198_ppt_t1) / HgT_198_ppt_t0 / durationInDays_t1 * 100,
-         HgT_198_daily_percent_loss_t2 = (HgT_198_ppt_t1 - HgT_198_ppt_t2) / HgT_198_ppt_t1 / (durationInDays_t2 - durationInDays_t1) * 100,
-         HgT_198_percent_loss_total = (HgT_198_ppt_t0 - HgT_198_ppt_t2) / HgT_198_ppt_t0 * 100) %>%
-  select(sampleID, incubationID, startDate, depth, treatment,
-         Kmet_t1, Kmet_t2, Kmet_total,
-         HgT_198_daily_percent_loss_t1,
-         HgT_198_daily_percent_loss_t2,
-         HgT_198_percent_loss_total)
-
-
-
-#### Calculate Kdem and 204HgT loss ####
-kdem_data <- Hg_incubation_data %>%
+         value = concentration)
+# Set up calcs for 204 tracer
+calculation_data_204 <- Hg_incubation_data %>%
   select(sampleID, incubationID,
          startDate, depth,
          t, treatment, durationInDays,
@@ -131,29 +139,318 @@ kdem_data <- Hg_incubation_data %>%
   select(sampleID, incubationID, startDate, depth,
          treatment,const_time, concentration) %>%
   spread(key = const_time,
-         value = concentration) %>%
-  mutate(Kdem_t1 = -((MeHg_204_ppt_t1 / HgT_204_ppt_t1) - (MeHg_204_ppt_t0 / HgT_204_ppt_t0)) / durationInDays_t1,
-         Kdem_t2 = -((MeHg_204_ppt_t2 / HgT_204_ppt_t2) - (MeHg_204_ppt_t1 / HgT_204_ppt_t1)) / (durationInDays_t2 - durationInDays_t1),
-         Kdem_total = -((MeHg_204_ppt_t2 / HgT_204_ppt_t2) - (MeHg_204_ppt_t0 / HgT_204_ppt_t0)) / (durationInDays_t2 - durationInDays_t0),
-         HgT_204_daily_percent_loss_t1 = (HgT_204_ppt_t0 - HgT_204_ppt_t1) / HgT_204_ppt_t0 / durationInDays_t1 * 100,
+         value = concentration) 
+```
+
+
+### Tracer loss
+
+Then I calculated how much of each tracer we lost over the course of the experiment:
+
+```{r loss_of_tracer_calcs}
+# Calculate 198HgT loss
+loss_of_198 <- calculation_data_198 %>%
+  mutate(HgT_198_daily_percent_loss_t1 = (HgT_198_ppt_t0 - HgT_198_ppt_t1) / HgT_198_ppt_t0 / durationInDays_t1 * 100,
+         HgT_198_daily_percent_loss_t2 = (HgT_198_ppt_t1 - HgT_198_ppt_t2) / HgT_198_ppt_t1 / (durationInDays_t2 - durationInDays_t1) * 100,
+         HgT_198_percent_loss_total = (HgT_198_ppt_t0 - HgT_198_ppt_t2) / HgT_198_ppt_t0 * 100) %>%
+  select(sampleID, incubationID, startDate, depth, treatment,
+         HgT_198_daily_percent_loss_t1,
+         HgT_198_daily_percent_loss_t2,
+         HgT_198_percent_loss_total)
+# Calculate 204HgT loss
+loss_of_204 <- calculation_data_204 %>%
+  mutate(HgT_204_daily_percent_loss_t1 = (HgT_204_ppt_t0 - HgT_204_ppt_t1) / HgT_204_ppt_t0 / durationInDays_t1 * 100,
          HgT_204_daily_percent_loss_t2 = (HgT_204_ppt_t1 - HgT_204_ppt_t2) / HgT_204_ppt_t1 / (durationInDays_t2 - durationInDays_t1) * 100,
          HgT_204_percent_loss_total = (HgT_204_ppt_t0 - HgT_204_ppt_t2) / HgT_204_ppt_t0 * 100) %>%
   select(sampleID, incubationID, startDate, depth, treatment,
-         Kdem_t1, Kdem_t2, Kdem_total,
          HgT_204_daily_percent_loss_t1,
          HgT_204_daily_percent_loss_t2,
          HgT_204_percent_loss_total)
+```
 
 
+Next I investigated several methods of calculating K~met~ and K~dem~, which I will walk through here.
+These methods are nicely reviewed in Helmrich et al, 2022.
+I started with K~met~
 
+### K~met~ calculations
+
+First, I calculated the rate constant using an assumption of first-order kinetics and constant reactant concentration.
+To minimize the actual changes in reactant concentration, I used only the first time point since by t2 over 50% of the tracer can be methylated.
+Since I did have Me^198^Hg measurements at t0, I subtracted that from Me^198^Hg at t1, but since it was rarely over detection at t0 this is unlikely to influence the results.
+Additionally, I used the ^198^HgT concentration at t1 rather than at t0 to account for a possible sampling artifact.
+The ^198^HgT concentrations were either comparable between t0 and t1, or were lower at t1.
+The ^198^HgT concentration between t1 and t2 were very comparable.
+This suggests that the initial drop off in ^198^HgT was due to rapid adsorption to the sides of the bags, or due to incomplete mixing of the ^198^Hg tracer into the bag at t0.
+This second option is possible, since the tracer was injected into the bags through the same port that the t0 sample was collected out, so incomplete mixing could easily result in an artifically elevated ^198^HgT value.
+Through either mechanism, it's likely that the t1 ^198^HgT value is more comparable to the concentration the microbes were experiencing within the bag throughout the experiment.
+
+Just out of curiousity, I did this calculation using both the t1 and t2 time point, will be interesting to see how the values compare, and might give us some insight into how the rate of the reaction is independent on the changes in Hg(II) concentration.
+
+```{r calc_Kmet_first_order}
+# Calculate Kmet by first-order rate assumption
+Kmet_data <- calculation_data_198 %>%
+  mutate(Kmet_first_order_t1 = (MeHg_198_ppt_t1 - MeHg_198_ppt_t0) / HgT_198_ppt_t1 / durationInDays_t1,
+         Kmet_first_order_t2 = (MeHg_198_ppt_t2 - MeHg_198_ppt_t0) / HgT_198_ppt_t1 / (durationInDays_t2))
+```
+
+I also made this calculation by estimating `dMeHg/dt` as the slope of the linear regression line for all three time points.
+
+```{r calc_Kmet_first_order_slope}
+duration_headers <- grep(pattern = "duration", x = names(Kmet_data), value = TRUE)
+MeHg_headers <- grep(pattern = "MeHg_198", x = names(Kmet_data), value = TRUE)
+slopes_of_data <- Kmet_data %>%
+  select(incubationID, all_of(duration_headers), all_of(MeHg_headers)) %>%
+  gather(key = variable, value = value, -incubationID) %>%
+  mutate(time = gsub("durationInDays_", "", variable),
+         time = gsub("MeHg_198_ppt_", "", time),
+         variable = variable %>% strsplit("_t") %>% sapply("[", 1)) %>%
+  spread(key = variable, value = value) %>%
+  nest(new_col = c(time, durationInDays, MeHg_198_ppt),
+       .by = incubationID) %>%
+  mutate(slope = map(new_col, ~lm(MeHg_198_ppt ~ durationInDays, data = .)$coefficients[[2]])) %>%
+  select(incubationID, slope) %>%
+  mutate(slope = unlist(slope))
+
+Kmet_data <- Kmet_data %>%
+  left_join(slopes_of_data) %>%
+  mutate(Kmet_first_order_slope = slope / HgT_198_ppt_t1) %>%
+  select(-slope)
+```
+
+Next I used the exact solution of the rate law, as derived by Marvin-DiPasquale and Agee 2003: 
+
+K~met~ = -[ln(1-$\frac{[CH_{3}^{199}]_{t_{1}}}{[^{199}H^{2+}]_{t_{0}}}$)]*t^-1^
+
+I tested this using the values from t1 and t2, again just out of curiosity.
+
+```{r calc_Kmet_derived}
+
+Kmet_data <- Kmet_data %>%
+  mutate(Kmet_int_t1 = -log(1-(MeHg_198_ppt_t1 / HgT_198_ppt_t1)) / durationInDays_t1,
+         Kmet_int_t2 = -log(1-(MeHg_198_ppt_t2 / HgT_198_ppt_t1)) / durationInDays_t2) 
+```
+
+### Plot comparison of Kmet values
+
+```{r plot_Kmet_calcs, echo = FALSE}
+cb_translator <- readRDS("references/colorblind_friendly_colors.rds")
+condition_naming <- c("First order assumption: t1",
+                      "First order assumption: t2",
+                      "First order assumption: slope",
+                      "Integrated: t1",
+                      "Integrated: t2")
+names(condition_naming) <- c("Kmet_first_order_t1", "Kmet_first_order_t2", "Kmet_first_order_slope", "Kmet_int_t1", "Kmet_int_t2")
+color_vector <- cb_translator[c('blue', 'bluishgreen', 'skyblue', 'vermillion', 'reddishpurple')]
+names(color_vector) <- names(condition_naming)
+
+Kmet_data %>%
+  filter(treatment == "unfiltered-unamended") %>%
+  mutate(sampleInfo = paste(startDate, ":",
+                            depth, "m",
+                            sep = "")) %>%
+  select(sampleInfo, all_of(names(condition_naming))) %>%
+  gather(key = calculation,
+         value = Kmet,
+         names(condition_naming)) %>%
+  ggplot(aes(x = sampleInfo,
+             y = Kmet,
+             color = calculation,
+             shape = sampleInfo,
+             group = calculation)) +
+  geom_point(position = position_dodge(width = 0.7),
+             na.rm = TRUE) +
+  scale_color_manual(values = color_vector,
+                     labels = condition_naming,
+                     name = expression('K'['met']*' calculation method')) +
+  scale_shape_manual(values = c(15, 1, 16, 2, 17, 3, 18, 4, 19, 5, 20)) +
+  guides(shape = 'none') +
+  ylim(c(-0.03, 0.30)) +
+  ylab(expression('K'['met']*' '('day'^-1))) +
+  labs(title = expression('K'['met']*' of ambient samples')) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_rect(colour = "black",
+                                    linewidth = 1),
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(colour = "black"),
+        axis.text.x =  element_text(colour = "black",
+                                    angle = 45,
+                                    hjust = 1),
+        axis.text.y = element_text(colour = "black"),
+        axis.ticks.x = element_line(colour = "black"),
+        axis.ticks.y = element_line(colour = "black"),
+        axis.line = element_blank())
+
+
+```
+
+It appears from this graph that the method of calculation does not have a major effect on the final results. In general, using the integrated method or the assumption of first order reaction kinetics, both with one time point, has less of an effect than which of the time points you choose. The incubations with more rapid methylation showed a greater difference between calculations using the derived method or the first order assumption method, with the integrated method yielding higher values, especially with t2 calculations. The method of calculating the overall slope of the reaction (linear model with all three time points) and dividing that by ^198^HgT to get K~met~ resulted in similar values to the calculations using t2.
+
+For remaining analyses, I'll use the "Integrated: t2" calculation. The t2 data shows a smaller spread in the data, suggesting that there was some noise in the 24 hour incubations. Since there is a likelihood that diminishing reactant was starting to have an effect in the high-producing incubations at t2, it's important that we use the integrated method.
+
+
+### K~dem~ calculations
+
+Then I calculated demethylation rate potentials.
+These tend to be more difficult and less precise than the K~met~ values.
+First I looked at how the raw Me^204^Hg compares to the percent Me^204^Hg data.
+
+```{r plots_Me204, echo = FALSE}
+plot_204_function <- function(data_type = "MeHg_204_ppt",
+                              ylim_to_use) {
+  plot_data_204 <- calculation_data_204 %>%
+    gather(key = variable,
+           value = value,
+           -c(1:5)) %>%
+    mutate(time = gsub("durationInDays_", "", variable),
+           time = gsub("MeHg_204_ppt_", "", time),
+           time = gsub("HgT_204_ppt_", "", time),
+           variable = variable %>% strsplit("_t") %>% sapply("[", 1),
+           location = paste(startDate, ":",
+                             depth, "m",
+                             sep = "")) %>%
+    spread(key = variable,
+           value = value) %>%
+    mutate(percent_MeHg_204 = MeHg_204_ppt / HgT_204_ppt * 100)
+  
+  plot_data_204[, "data_to_plot"] <- plot_data_204[, data_type]
+  
+  plot_data_204 %>%
+    ggplot(aes(x = durationInDays,
+               y = data_to_plot)) +
+    geom_point() +
+    geom_line(aes(group = incubationID)) +
+    facet_wrap(~location) +
+    theme_classic() +
+    ylim(ylim_to_use)
+  
+}
+
+ggarrange(plot_204_function("MeHg_204_ppt",
+                            ylim_to_use = c(0, 1.5)),
+          plot_204_function("percent_MeHg_204",
+                            ylim_to_use = c(0, 150)))
+
+```
+
+These are generally comparable, but there are some incubations where there is a notable difference in the trends over time in the Me^204^Hg concentrations vs. percentages.
+This is likely due to changes in the ^204^HgT.
+
+```{r plot_change_204HgT, echo = FALSE, warning = FALSE}
+plot_204_function("HgT_204_ppt",
+                  ylim_to_use = c(0, 1.5))
+```
+
+This loss is not very pronounced, but it is there. Therefore, I used Me^204^Hg values that were relativized to ^204^HgT to calculate K~dem~.
+
+First I used the same integration model I used above for K~met~, and I tried this with both time points, also as above.
+
+```{r Kdem_int_calcs, echo = FALSE, warning = FALSE}
+Kdem_data <- calculation_data_204 %>%
+  mutate(MeHg_204_per_t0 = MeHg_204_ppt_t0 / HgT_204_ppt_t0,
+         MeHg_204_per_t1 = MeHg_204_ppt_t1 / HgT_204_ppt_t1,
+         MeHg_204_per_t2 = MeHg_204_ppt_t2 / HgT_204_ppt_t2) %>%
+  mutate(Kdem_t1 = -log(MeHg_204_per_t1 / MeHg_204_per_t0) / durationInDays_t1,
+         Kdem_t2 = -log(MeHg_204_ppt_t2 / MeHg_204_per_t0) / durationInDays_t2)
+```
+
+The demethylation rate equation can also be rearranged to the following:
+
+ln($[CH_{3}^{201}Hg^{+}]_{t}$) = -K~dem~*dt* + ln($[CH_{3}^{201}Hg^{+}]_{t=0}$)
+
+This represents a linear model of $CH_{3}^{201}Hg^{+}$ concentrations over time.
+Thus, I also calculated K~dem~ as the slope of this plot
+
+```{r Kdem_lm_calcs, echo = FALSE, warning = FALSE}
+
+duration_headers <- grep(pattern = "duration", x = names(Kdem_data), value = TRUE)
+MeHg_headers <- grep(pattern = "MeHg_204_per", x = names(Kdem_data), value = TRUE)
+
+slope_data <- Kdem_data %>%
+  select(incubationID, all_of(duration_headers), all_of(MeHg_headers)) %>%
+  gather(key = variable, value = value, -incubationID) %>%
+  mutate(time = gsub("durationInDays_", "", variable),
+         time = gsub("MeHg_204_per_", "", time),
+         variable = variable %>% strsplit("_t") %>% sapply("[", 1)) %>%
+  spread(key = variable, value = value) %>%
+  nest(new_col = c(time, durationInDays, MeHg_204_per),
+       .by = incubationID) %>%
+  mutate(slope = map(new_col, ~lm(log(MeHg_204_per) ~ durationInDays, data = .)$coefficients[[2]])) %>%
+  mutate(slope = unlist(slope),
+         Kdem_slope = -slope) %>%
+  select(incubationID, Kdem_slope) 
+Kdem_data <- Kdem_data %>%
+  right_join(slope_data)
+```
+
+
+### Plot comparison of K~dem~ calculations
+
+```{r plot_Kmet_calcs, echo = FALSE}
+condition_naming <- c("Integrated: t1",
+                      "Integrated: t2",
+                      "Linear model slope")
+names(condition_naming) <- c("Kdem_t1", "Kdem_t2", "Kdem_slope")
+color_vector <- cb_translator[c('vermillion', 'reddishpurple', 'skyblue')]
+names(color_vector) <- names(condition_naming)
+
+Kdem_data %>%
+  filter(treatment == "unfiltered-unamended") %>%
+  mutate(sampleInfo = paste(startDate, ":",
+                            depth, "m",
+                            sep = "")) %>%
+  select(sampleInfo, all_of(names(condition_naming))) %>%
+  gather(key = calculation,
+         value = Kdem,
+         names(condition_naming)) %>%
+  ggplot(aes(x = sampleInfo,
+             y = Kdem,
+             color = calculation,
+             shape = sampleInfo,
+             group = calculation)) +
+  geom_point(position = position_dodge(width = 0.7),
+             na.rm = TRUE) +
+  scale_color_manual(values = color_vector,
+                     labels = condition_naming,
+                     name = expression('K'['dem']*' calculation method')) +
+  scale_shape_manual(values = c(15, 1, 16, 2, 17, 3, 18, 4, 19, 5, 20)) +
+  guides(shape = 'none') +
+  # ylim(c(-0.03, 0.30)) +
+  ylab(expression('K'['dem']*' '('day'^-1))) +
+  labs(title = expression('K'['dem']*' of ambient samples')) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_rect(colour = "black",
+                                    linewidth = 1),
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(colour = "black"),
+        axis.text.x =  element_text(colour = "black",
+                                    angle = 45,
+                                    hjust = 1),
+        axis.text.y = element_text(colour = "black"),
+        axis.ticks.x = element_line(colour = "black"),
+        axis.ticks.y = element_line(colour = "black"),
+        axis.line = element_blank())
+
+
+```
+
+High variability in the K~dem~ calculations using t1. 
+
+
+```{r combine_and_save_data}
 #### Combine all rate data ####
-Hg_rate_data <- full_join(kmet_data,
-                          kdem_data)
-
-
-
+Hg_rate_data <- full_join(Kmet_data,
+                          Kdem_data)
 #### Read out Kmet data ####
 write.csv(Hg_rate_data,
           file = "dataFinal/incubation_Hg_rate_data.csv",
           row.names = FALSE)
+```
 
+# References
+
+Helmrich, Stefanie, Dimitri Vlassopoulos, Charles N. Alpers, and Peggy A. O’Day. “Critical Review of Mercury Methylation and Methylmercury Demethylation Rate Constants in Aquatic Sediments for Biogeochemical Modeling.” Critical Reviews in Environmental Science and Technology 52, no. 24 (December 17, 2022): 4353–78. https://doi.org/10.1080/10643389.2021.2013073.
