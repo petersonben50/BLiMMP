@@ -219,3 +219,22 @@ par(mfrow = c(1, 1),
     cex.axis = 1.1)
 Kmet_vs_sulfide()
 dev.off()
+
+
+#### Values for hgcA gene abundance and transcription ####
+hgcA_abundance_total %>%
+  group_by(seqType) %>%
+  summarise(min_mg_hgcA = min(coverage_mean),
+            max_mg_hgcA = max(coverage_mean),
+            mean_mg_hgcA = mean(coverage_mean),
+            sd_mg_hgcA = sd(coverage_mean),
+            count_mg_hgcA = n(),
+            sem_mg_hgcA = sd_mg_hgcA / sqrt(count_mg_hgcA))
+
+
+#### Linear regression for Kmet and hgcA transcripts ####
+regression_data <- left_join(hgcA_abundance_total %>%
+                               filter(seqType == "MT"),
+                             Hg_Kmet_data)
+regression_data_lm <- lm(Kmet_mean ~ coverage_mean, data = regression_data)
+summary(regression_data_lm)

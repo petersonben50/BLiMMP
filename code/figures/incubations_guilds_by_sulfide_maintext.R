@@ -101,11 +101,14 @@ sulfide_data <- read.csv("dataFinal/water_chem_data.csv") %>%
 #### Set up vectors for aesthetics ####
 color_vector <- c(cb.translator[c("black", "blue", "yellow", "bluishgreen")], "gray")
 names(color_vector) <- c("KIR", "SRB", "RESP", "FERM", "UNK")
-name_vector <- c(expression('K'['met']*' (day'^-1*')'),
-                 'SRB-independent',
-                 'SRB-dependent')
-year_vector <- c(21, 24)
-names(year_vector) <- c("2020", "2021")
+name_vector <- c('SRB-dependent',
+                 'SRB-independent')
+year_vector_hgcA <- c(16, 17)
+names(year_vector_hgcA) <- c("2020", "2021")
+
+# Sizes
+point_size <- 1.2
+
 
 #### Function to plot Kmet against sulfide ####
 plot_Kmet_vs_sulfide_guilds <- function() {
@@ -134,27 +137,23 @@ plot_Kmet_vs_sulfide_guilds <- function() {
   
   points(x = plot_data$sulfide_uM,
          y = plot_data$nonSRB_Kmet_mean,
-         pch = year_vector[as.character(year(plot_data$date))],
-         cex = 1.2,
-         col = "gray50",
-         bg = "gray",
-         lwd = 2)
+         pch = year_vector_hgcA[as.character(year(plot_data$date))],
+         cex = point_size,
+         col = "gray",
+         lwd = 1)
   points(x = plot_data$sulfide_uM,
          y = plot_data$SRB_Kmet_mean,
-         pch = year_vector[as.character(year(plot_data$date))],
-         cex = 1.2,
-         col = "gray50",
-         bg = color_vector["SRB"],
-         lwd = 2)
+         pch = year_vector_hgcA[as.character(year(plot_data$date))],
+         cex = point_size,
+         col = color_vector["SRB"],
+         lwd = 1)
   
-  legend(x = -2,
-         y = 0.1,
+  legend(x = -3,
+         y = 0.165,
          legend = name_vector,
-         pch = c(21, 16, 16),
-         pt.cex = c(2, 1.2, 1.2),
-         pt.lwd = 2,
-         col = c("gray25", "gray", color_vector["SRB"]),
-         pt.bg = "gray85",
+         pch = 16,
+         pt.cex = c(1.2, 1.2),
+         col = c(color_vector["SRB"], "gray"),
          bty = "n")
 }
 
@@ -166,11 +165,9 @@ omics_points_function <- function(plot_data, omicType = "MT", guild = "KIR") {
     as.data.frame()
   points(x = plot_data_temp[, "sulfide_uM"],
          y = plot_data_temp[, column_name],
-         pch = year_vector[as.character(year(plot_data_temp$date))],
-         col = "gray25",
-         bg = color_vector[guild],
-         lwd = 1.5,
-         cex = 1)
+         pch = year_vector_hgcA[as.character(year(plot_data_temp$date))],
+         col = color_vector[guild],
+         cex = point_size)
 }
 
 omics_points_se_function <- function(plot_data, omicType = "MT", guild = "KIR") {
@@ -246,10 +243,40 @@ mtext("A.", at = c(-30))
 hgcA_vs_sulfide_plot(ylabel = expression(italic(hgcA)*' abundance (%)'),
                      yscale = c(0, 15),
                      omicType = "MG")
-mtext("B.", at = c(-3))
+mtext("B.", at = c(-30))
+legend(x = 5,
+       y = 15,
+       legend = names(color_vector),
+       pch = 16,
+       pt.cex = 1.2,
+       col = color_vector,
+       bty = "n")
+
 hgcA_vs_sulfide_plot(ylabel = expression(italic(hgcA)*' transcripts (10'^6*' per L)'),
                      yscale = c(0, 6),
                      omicType = "MT")
-mtext("C.", at = c(-1.2))
+
+
+mtext("C.", at = c(-30))
 dev.off()
-embed_fonts("results/figures/incubations_guilds_by_sulfide_maintext.pdf")
+
+
+#### Values for hgcA gene abundance and transcription ####
+left_join(Hg_Kmet_data,
+          sulfide_data) %>%
+  mutate(percent_inhibition = nonSRB_Kmet_mean / total_Kmet_mean * 100) %>%
+  summarise(min_kmet_nonSRB = min(nonSRB_Kmet_mean),
+            max_kmet_nonSRB = max(nonSRB_Kmet_mean),
+            mean_kmet_nonSRB = mean(nonSRB_Kmet_mean),
+            sd_kmet_nonSRB = sd(nonSRB_Kmet_mean),
+            count_kmet_nonSRB = n(),
+            sem_kmet_nonSRB = sd_kmet_nonSRB / sqrt(count_kmet_nonSRB),
+            min_percent_nonSRB = min(percent_inhibition),
+            max_percent_nonSRB = max(percent_inhibition),
+            mean_percent_nonSRB = mean(percent_inhibition),
+            sd_percent_nonSRB = sd(percent_inhibition),
+            count_percent_nonSRB = n(),
+            sem_percent_nonSRB = sd_percent_nonSRB / sqrt(count_percent_nonSRB)) %>%
+  select(min_kmet_nonSRB, max_kmet_nonSRB, mean_kmet_nonSRB, sem_kmet_nonSRB,
+         min_percent_nonSRB, max_percent_nonSRB, mean_percent_nonSRB, sem_percent_nonSRB) %>%
+  unlist()
