@@ -101,13 +101,21 @@ sulfide_data <- read.csv("dataFinal/water_chem_data.csv") %>%
 #### Set up vectors for aesthetics ####
 color_vector <- c(cb.translator[c("black", "blue", "yellow", "bluishgreen")], "gray")
 names(color_vector) <- c("KIR", "SRB", "RESP", "FERM", "UNK")
+color_vector <- color_vector[length(color_vector):1]
 name_vector <- c('SRB-dependent',
                  'SRB-independent')
 year_vector_hgcA <- c(16, 17)
 names(year_vector_hgcA) <- c("2020", "2021")
-
+error_bar_width <- 0.025
 # Sizes
-point_size <- 1.2
+point_size <- 1.3
+legend_point_size <- 1.5
+
+
+#### Refactor guild order ####
+hgcA_abundance_guilds <- hgcA_abundance_guilds %>%
+  mutate(metabolic_assignment = fct_relevel(metabolic_assignment,
+                                            names(color_vector)))
 
 
 #### Function to plot Kmet against sulfide ####
@@ -130,10 +138,12 @@ plot_Kmet_vs_sulfide_guilds <- function() {
   
   arrows(plot_data$sulfide_uM, plot_data$nonSRB_Kmet_mean - plot_data$nonSRB_Kmet_se,
          plot_data$sulfide_uM, plot_data$nonSRB_Kmet_mean + plot_data$nonSRB_Kmet_se,
-         length = 0.05, angle = 90, code = 3)
+         col = "gray",
+         length = error_bar_width, angle = 90, code = 3)
   arrows(plot_data$sulfide_uM, plot_data$SRB_Kmet_mean - plot_data$SRB_Kmet_se,
          plot_data$sulfide_uM, plot_data$SRB_Kmet_mean + plot_data$SRB_Kmet_se,
-         length = 0.05, angle = 90, code = 3)
+         col = color_vector["SRB"],
+         length = error_bar_width, angle = 90, code = 3)
   
   points(x = plot_data$sulfide_uM,
          y = plot_data$nonSRB_Kmet_mean,
@@ -152,7 +162,7 @@ plot_Kmet_vs_sulfide_guilds <- function() {
          y = 0.165,
          legend = name_vector,
          pch = 16,
-         pt.cex = c(1.2, 1.2),
+         pt.cex = legend_point_size,
          col = c(color_vector["SRB"], "gray"),
          bty = "n")
 }
@@ -180,12 +190,12 @@ omics_points_se_function <- function(plot_data, omicType = "MT", guild = "KIR") 
   
   arrows(plot_data_temp[, "sulfide_uM"], plot_data_temp[, mean_column_name] - plot_data_temp[, se_column_name],
          plot_data_temp[, "sulfide_uM"], plot_data_temp[, mean_column_name] + plot_data_temp[, se_column_name],
-         length = 0.05, angle = 90, code = 3,
+         length = error_bar_width, angle = 90, code = 3,
          col = color_vector[guild])
 }
 
 
-#### Metagenomes vs. sulfide ####
+#### hgcA vs. sulfide ####
 hgcA_vs_sulfide_plot <- function(ylabel, yscale, omicType) {
   
   plot_data <- left_join(hgcA_abundance_guilds,
@@ -246,37 +256,94 @@ hgcA_vs_sulfide_plot(ylabel = expression(italic(hgcA)*' abundance (%)'),
 mtext("B.", at = c(-30))
 legend(x = 5,
        y = 15,
-       legend = names(color_vector),
+       legend = names(color_vector)[length(color_vector):1],
        pch = 16,
-       pt.cex = 1.2,
-       col = color_vector,
+       pt.cex = legend_point_size,
+       col = color_vector[length(color_vector):1],
        bty = "n")
 
 hgcA_vs_sulfide_plot(ylabel = expression(italic(hgcA)*' transcripts (10'^6*' per L)'),
                      yscale = c(0, 6),
                      omicType = "MT")
-
-
 mtext("C.", at = c(-30))
+legend(x = 5,
+       y = 6,
+       legend = names(color_vector)[length(color_vector):1],
+       pch = 16,
+       pt.cex = legend_point_size,
+       col = color_vector[length(color_vector):1],
+       bty = "n")
 dev.off()
 
 
-#### Values for hgcA gene abundance and transcription ####
+#### Values for Kmet from different guilds ####
 left_join(Hg_Kmet_data,
           sulfide_data) %>%
-  mutate(percent_inhibition = nonSRB_Kmet_mean / total_Kmet_mean * 100) %>%
+  mutate(percent_inhibition_nonSRB = nonSRB_Kmet_mean / total_Kmet_mean * 100,
+         percent_inhibition_SRB = SRB_Kmet_mean / total_Kmet_mean * 100) %>%
   summarise(min_kmet_nonSRB = min(nonSRB_Kmet_mean),
             max_kmet_nonSRB = max(nonSRB_Kmet_mean),
             mean_kmet_nonSRB = mean(nonSRB_Kmet_mean),
             sd_kmet_nonSRB = sd(nonSRB_Kmet_mean),
             count_kmet_nonSRB = n(),
             sem_kmet_nonSRB = sd_kmet_nonSRB / sqrt(count_kmet_nonSRB),
-            min_percent_nonSRB = min(percent_inhibition),
-            max_percent_nonSRB = max(percent_inhibition),
-            mean_percent_nonSRB = mean(percent_inhibition),
-            sd_percent_nonSRB = sd(percent_inhibition),
+            min_percent_nonSRB = min(percent_inhibition_nonSRB),
+            max_percent_nonSRB = max(percent_inhibition_nonSRB),
+            mean_percent_nonSRB = mean(percent_inhibition_nonSRB),
+            sd_percent_nonSRB = sd(percent_inhibition_nonSRB),
             count_percent_nonSRB = n(),
-            sem_percent_nonSRB = sd_percent_nonSRB / sqrt(count_percent_nonSRB)) %>%
+            sem_percent_nonSRB = sd_percent_nonSRB / sqrt(count_percent_nonSRB),
+            min_kmet_SRB = min(SRB_Kmet_mean),
+            max_kmet_SRB = max(SRB_Kmet_mean),
+            mean_kmet_SRB = mean(SRB_Kmet_mean),
+            sd_kmet_SRB = sd(SRB_Kmet_mean),
+            count_kmet_SRB = n(),
+            sem_kmet_SRB = sd_kmet_SRB / sqrt(count_kmet_SRB),
+            min_percent_SRB = min(percent_inhibition_SRB),
+            max_percent_SRB = max(percent_inhibition_SRB),
+            mean_percent_SRB = mean(percent_inhibition_SRB),
+            sd_percent_SRB = sd(percent_inhibition_SRB),
+            count_percent_SRB = n(),
+            sem_percent_SRB = sd_percent_SRB / sqrt(count_percent_SRB)) %>%
   select(min_kmet_nonSRB, max_kmet_nonSRB, mean_kmet_nonSRB, sem_kmet_nonSRB,
-         min_percent_nonSRB, max_percent_nonSRB, mean_percent_nonSRB, sem_percent_nonSRB) %>%
+         min_percent_nonSRB, max_percent_nonSRB, mean_percent_nonSRB, sem_percent_nonSRB,
+         min_kmet_SRB, max_kmet_SRB, mean_kmet_SRB, sem_kmet_SRB,
+         min_percent_SRB, max_percent_SRB, mean_percent_SRB, sem_percent_SRB) %>%
+  unlist()
+
+
+#### Values for Kmet from different guilds when total Kmet is above 0.002 ####
+left_join(Hg_Kmet_data,
+          sulfide_data) %>%
+  filter(total_Kmet_mean > 0.002) %>%
+  mutate(percent_inhibition_nonSRB = nonSRB_Kmet_mean / total_Kmet_mean * 100,
+         percent_inhibition_SRB = SRB_Kmet_mean / total_Kmet_mean * 100) %>%
+  summarise(min_kmet_nonSRB = min(nonSRB_Kmet_mean),
+            max_kmet_nonSRB = max(nonSRB_Kmet_mean),
+            mean_kmet_nonSRB = mean(nonSRB_Kmet_mean),
+            sd_kmet_nonSRB = sd(nonSRB_Kmet_mean),
+            count_kmet_nonSRB = n(),
+            sem_kmet_nonSRB = sd_kmet_nonSRB / sqrt(count_kmet_nonSRB),
+            min_percent_nonSRB = min(percent_inhibition_nonSRB),
+            max_percent_nonSRB = max(percent_inhibition_nonSRB),
+            mean_percent_nonSRB = mean(percent_inhibition_nonSRB),
+            sd_percent_nonSRB = sd(percent_inhibition_nonSRB),
+            count_percent_nonSRB = n(),
+            sem_percent_nonSRB = sd_percent_nonSRB / sqrt(count_percent_nonSRB),
+            min_kmet_SRB = min(SRB_Kmet_mean),
+            max_kmet_SRB = max(SRB_Kmet_mean),
+            mean_kmet_SRB = mean(SRB_Kmet_mean),
+            sd_kmet_SRB = sd(SRB_Kmet_mean),
+            count_kmet_SRB = n(),
+            sem_kmet_SRB = sd_kmet_SRB / sqrt(count_kmet_SRB),
+            min_percent_SRB = min(percent_inhibition_SRB),
+            max_percent_SRB = max(percent_inhibition_SRB),
+            mean_percent_SRB = mean(percent_inhibition_SRB),
+            sd_percent_SRB = sd(percent_inhibition_SRB),
+            count_percent_SRB = n(),
+            sem_percent_SRB = sd_percent_SRB / sqrt(count_percent_SRB)) %>%
+  select(min_kmet_nonSRB, max_kmet_nonSRB, mean_kmet_nonSRB, sem_kmet_nonSRB,
+         min_percent_nonSRB, max_percent_nonSRB, mean_percent_nonSRB, sem_percent_nonSRB,
+         min_kmet_SRB, max_kmet_SRB, mean_kmet_SRB, sem_kmet_SRB,
+         min_percent_SRB, max_percent_SRB, mean_percent_SRB, sem_percent_SRB) %>%
   unlist()
