@@ -347,3 +347,43 @@ left_join(Hg_Kmet_data,
          min_kmet_SRB, max_kmet_SRB, mean_kmet_SRB, sem_kmet_SRB,
          min_percent_SRB, max_percent_SRB, mean_percent_SRB, sem_percent_SRB) %>%
   unlist()
+
+
+#### hgcA gene statistics ####
+hgcA_abundance_stats_data <- hgcA_abundance %>%
+  filter(verified_hgcA,
+         clstr_rep == 1)
+# Counts
+hgcA_abundance_stats_data %>%
+  group_by(taxonomic_assignment) %>%
+  summarise(count = n())
+
+# Relative abundance metabolic groups
+hgcA_abundance_stats_data_total <- hgcA_abundance_stats_data %>%
+  select(all_of(grep("_M[G:T]_", colnames(hgcA_abundance_stats_data), value = TRUE))) %>%
+  gather(key = omic_ID,
+         value = coverage_total) %>%
+  group_by(omic_ID) %>%
+  summarise(coverage_total = sum(coverage_total))
+
+hgcA_abundance_stats_data_RA <- hgcA_abundance_stats_data %>%
+  select(metabolic_assignment,
+         all_of(grep("_M[G:T]_", colnames(hgcA_abundance_stats_data), value = TRUE))) %>%
+  gather(key = omic_ID,
+         value = coverage,
+         all_of(grep("_M[G:T]_", colnames(hgcA_abundance_stats_data), value = TRUE))) %>% 
+  group_by(metabolic_assignment, omic_ID) %>%
+  summarise(coverage = sum(coverage)) %>%
+  left_join(hgcA_abundance_stats_data_total) %>%
+  mutate(rel_cov = coverage / coverage_total * 100,
+         omic_type = omic_ID %>%
+           strsplit("_") %>% sapply("[", 2)) %>%
+  filter(!is.na(rel_cov)) %>%
+  group_by(metabolic_assignment, omic_type) %>%
+  summarise(min_rel_cov = min(rel_cov),
+            max_rel_cov = max(rel_cov),
+            mean_rel_cov = mean(rel_cov),
+            sd_rel_cov = sd(rel_cov),
+            count_rel_cov = n(),
+            sem_rel_cov = sd_rel_cov / sqrt(count_rel_cov)) %>%
+  arrange(omic_type)
