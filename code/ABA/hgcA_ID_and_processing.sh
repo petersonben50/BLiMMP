@@ -254,7 +254,11 @@ cd /home/GLBRCORG/bpeterson26/BLiMMP/code/kofam_scan-1.3.0
 ./exec_annotation -f detail-tsv \
                   -o $hgcA_folder/working_directory/hgcA_GN_kofamscan.tsv \
                   $hgcA_folder/hgcA_geneNeighborhood_ORFs.faa
-grep '*' $hgcA_folder/working_directory/hgcA_GN_kofamscan.tsv > $hgcA_folder/hgcA_GN_kofamscan_qualityHits.tsv
+head -n 1 $hgcA_folder/working_directory/hgcA_GN_kofamscan.tsv > $hgcA_folder/working_directory/hgcA_GN_kofamscan_qualityHits.tsv
+grep '*' $hgcA_folder/working_directory/hgcA_GN_kofamscan.tsv >> $hgcA_folder/working_directory/hgcA_GN_kofamscan_qualityHits.tsv
+# Remove the first column of the file using awk, keeping the columns separated by tabs
+awk -F '\t' '{ print $2"\t"$3"\t"$4"\t"$5"\t"$6"\t"$7 }' $hgcA_folder/working_directory/hgcA_GN_kofamscan_qualityHits.tsv > $hgcA_folder/hgcA_GN_kofamscan_qualityHits_clean.tsv
+
 conda deactivate
 
 # Find references from RefSeq
@@ -285,8 +289,84 @@ epost -db protein -input working_directory/hgcA_GN_refseq_list.txt | \
     xtract -pattern DocumentSummary -element AccessionVersion,Title,TaxId > hgcA_GN_blast_refseq_data.tsv
 
 # Files to bring to computer:
-#hgcA_GN_kofamscan_qualityHits.tsv
+#hgcA_geneNeighborhood_raw.gff
+#hgcA_GN_kofamscan_qualityHits_clean.tsv
 #hgcA_GN_blast_data.tsv
 #hgcA_GN_blast_refseq_data.tsv
 #hgcB_clean.faa
 # Download to dataEdited/ABA/hgcA/GN
+
+
+
+############################################
+############################################
+# Phylogenetic analysis of hgcA
+############################################
+############################################
+
+#########################
+# Generate good tree with Hg-MATE seqs using RAxML
+#########################
+
+# Done locally
+BLiMMP
+cp /Users/benjaminpeterson/Documents/research/Hg_MATE/versions/v1.01142021/Hg-MATE-Db.v1.01142021_ISOCELMAG_Hgc.fas \
+    references
+rm -f dataEdited/hgcA_analysis/phylogeny/raxml/HgMate_reference_seqs_to_use.faa
+cut -d"_" -f1-3 dataEdited/hgcA_analysis/phylogeny/raxml/reference_names_to_use.txt | while read reference_name
+do
+  grep -A 1 \
+    $reference_name \
+    references/Hg-MATE-Db.v1.01142021_ISOCELMAG_Hgc.fas \
+    >> dataEdited/hgcA_analysis/phylogeny/raxml/HgMate_reference_seqs_to_use.faa
+done
+
+
+# Done on GLBRC
+screen -S BLI_hgcA_tree
+source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
+conda activate bioinformatics
+PYTHONPATH=""
+PERL5LIB=''
+cd ~/BLiMMP/dataEdited/hgcA_analysis/phylogeny/raxml
+# Upload needed references
+cat 5M_bin_seqs.faa \
+    HgMate_reference_seqs_to_use.faa \
+    jones_hgcA_seqs.faa \
+    ../hgcA_for_phylogeny.faa \
+    hgcA_paralogs_for_rooting.faa \
+    > hgcA_for_tree.faa
+
+# Generate alignment
+muscle -in hgcA_for_tree.faa \
+        -out hgcA_for_tree.afa
+
+# Upload masked alignment
+# Then run RAxML to generate tree
+raxml=/opt/bifxapps/raxml-8.2.11/raxmlHPC-PTHREADS
+$raxml -f a \
+        -p 283976 \
+        -m PROTGAMMAAUTO \
+        -N autoMRE \
+        -x 2381 \
+        -T 20 \
+        -s hgcA_for_tree_masked.afa \
+        -n hgcA
+
+
+# Check out sequence similarity of study seqs to references
+cd ~/BLiMMP/dataEdited/hgcA_analysis
+mkdir derep_references
+cdhit=~/programs/cdhit-master
+$cdhit/cd-hit -g 1 \
+              -i phylogeny/raxml/hgcA_for_tree.faa \
+              -o derep_references/hgcA_ref.faa \
+              -c 0.97 \
+              -n 5 \
+              -d 0
+$cdhit/cd-hit -g 1 \
+              -i phylogeny/raxml/hgcA_for_tree.faa \
+              -o derep_references/hgcA_ref_80.faa \
+              -c 0.80 \
+              -n 5 \
+              -d 0
