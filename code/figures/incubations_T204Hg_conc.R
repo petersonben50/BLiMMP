@@ -89,7 +89,7 @@ plot.Hg.species.over.incubation <- function(date_to_use,
 
 
 #### Generate plots for each date/depth ####
-concentration.to.use <- c(-0.01, 1.4)
+concentration.to.use <- c(-0.01, 1.5)
 constituent.ylab <- "THg (ng/L)"
 day.range.to.use <- c(0, 4)
 
