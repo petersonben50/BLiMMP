@@ -1,4 +1,4 @@
-#### code/figures/incubations_Me198Hg_conc.R ####
+#### code/figures/incubations_T198Hg_conc.R ####
 # Written for BLiMMP project
 # Benjamin D. Peterson
 
@@ -30,10 +30,10 @@ Hg_inc_data <- read.csv("dataFinal/incubation_Hg_conc_data.csv") %>%
   filter(treatment %in% names(color.vector))
 
 
-#### Function: Plot of Me198Hg given date and depth ####
+#### Function: Plot of mercury species at given date and depth ####
 plot.Hg.species.over.incubation <- function(date_to_use,
                                             depth_to_use,
-                                            constituent = "percent_204_MeHg",
+                                            constituent = "HgT_204_ppt",
                                             conc_range,
                                             day.range,
                                             xlab.to.use = NULL,
@@ -89,8 +89,8 @@ plot.Hg.species.over.incubation <- function(date_to_use,
 
 
 #### Generate plots for each date/depth ####
-concentration.to.use <- c(-0.01, 150)
-constituent.ylab <- "Percent MeHg"
+concentration.to.use <- c(-0.01, 1.4)
+constituent.ylab <- "THg (ng/L)"
 day.range.to.use <- c(0, 4)
 
 sept.2020.11m <- plot.Hg.species.over.incubation("2020-09-02", 11, conc_range = concentration.to.use, ylab.to.use = constituent.ylab, day.range = day.range.to.use)
@@ -111,7 +111,7 @@ oct.2021.19m <- plot.Hg.species.over.incubation("2021-10-14", 19.9, conc_range =
 
 
 #### Write out plots to PDF ####
-pdf("results/figures/incubations_Me204Hg_conc.pdf",
+pdf("results/figures/incubations_T204Hg_conc.pdf",
     width = 7,
     heigh = 7)
 ggarrange(sept.2020.11m, sept.2020.15m, sept.2020.20m,
