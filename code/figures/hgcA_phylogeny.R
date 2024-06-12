@@ -76,17 +76,20 @@ rownames(hgcA_data_plotting) <- hgcA_data$seqID
 #### Generate figure ####
 # Initial tree plot
 hgcA_tree <- ggtree(hgcA_tree_unrooted,
-                    layout = "fan") %<+% hgcA_data + 
-  geom_tippoint(aes(color = transc_reg)) +
+                    layout = "fan") %<+% (hgcA_data %>%
+                                            mutate(cluster_ID = gsub("BLI_hgcA_", "", cluster_ID))) + 
+  geom_tippoint(aes(color = transc_reg),
+                size = 4) +
   scale_color_manual(values = color_vector_reg,
                      labels = naming_vector_reg[names(color_vector_reg)],
-                     name = "Regulators present\n(tip labels)") +
-  theme(legend.position = "top")
+                     name = "Regulators present\n(tip labels)") + 
+  geom_tiplab2(aes(label = cluster_ID), align=T, linetype=NA, 
+               size = 3.5, offset = 0.05, hjust = 0)
 
 # Add the metabolic assignments
 hgcA_tree_plus <- gheatmap(hgcA_tree,
                            hgcA_data_plotting %>% select(metabolic_assignment),
-                           offset = 0, width = 0.1,
+                           offset = 0.6, width = 0.1,
                            font.size = 3, hjust = 0.65,
                            custom_column_labels = "Met.") +
   scale_fill_manual(values = c(color_vector_metab),
@@ -97,7 +100,7 @@ hgcA_tree_plus <- gheatmap(hgcA_tree,
 hgcA_tree_plus2 <- hgcA_tree_plus + new_scale_fill()
 final_figure <- gheatmap(hgcA_tree_plus2,
                          hgcA_data_plotting %>% select(taxonomic_assignment),
-                         offset = 0.3, width = 0.1,
+                         offset = 0.9, width = 0.1,
                          font.size = 3, hjust = 0.35,
                          custom_column_labels = "Tax.") +
   scale_fill_manual(values = color_vector_tax,
@@ -107,8 +110,8 @@ final_figure <- gheatmap(hgcA_tree_plus2,
 #### Save out figure ####
 cairo_pdf("results/figures/hgcA_phylogeny.pdf",
           family = "Ariel",
-          height = 6,
-          width = 7.2)
+          height = 10,
+          width = 20)
 final_figure
 dev.off()
 
