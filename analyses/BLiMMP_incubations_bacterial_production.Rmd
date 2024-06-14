@@ -40,24 +40,26 @@ plot_bacterial_production <- function(date_to_use) {
            (timePoint == "t1" | is.na(timePoint)))
   points(x = data_to_plot$µgBCP_per_L_hr / 2.5,
        y = -data_to_plot$depth,
-       pch = 16,
-       col = cb.translator["yellow"],
+       pch = 21,
+       col = cb.translator["blue"],
+       bg = cb.translator["yellow"],
        cex = 2)
   data_to_plot_Mo <- leucine_data_metadata %>%
     filter(startDate == date_to_use,
            treatment == "molybdate",
            (timePoint == "t1" | is.na(timePoint)))
-  points(x = data_to_plot_Mo$µgBCP_per_L_hr / 2.5,
-       y = -data_to_plot_Mo$depth,
-       pch = 4,
-       col = cb.translator["bluishgreen"],
-       cex = 2)
+  # points(x = data_to_plot_Mo$µgBCP_per_L_hr / 2.5,
+  #      y = -data_to_plot_Mo$depth,
+  #      pch = 4,
+  #      col = cb.translator["bluishgreen"],
+  #      cex = 2)
   legend("bottomright",
-         legend = c("Ambient BCP",
-                    "Molybdate-inhibited BCP"),
-         col = cb.translator[c("yellow",
-                                "bluishgreen")],
-         pch = c(16, 4))
+         legend = c("Ambient BCP"),
+                    #"Molybdate-inhibited BCP"),
+         col = cb.translator[c("blue")],
+                                #"bluishgreen")],
+         pt.bg = cb.translator[c("yellow")],
+         pch = c(21, 4))
 }
 
 par(mfrow = c(1, 3),
@@ -161,7 +163,7 @@ There does not appear to be any noticeable difference in the bacterial carbon pr
 
 Let's focus this more on the molybdate vs. non-molybdate samples:
 
-```{r BP_vs_sulfide, echo = FALSE, results = FALSE, message = FALSE}
+```{r BP_by_sample, echo = FALSE, results = FALSE, message = FALSE}
 color_vector <- cb.translator[c("yellow", "bluishgreen")]
 names(color_vector) <- c("ambient", "molybdate")
 name_vector <- c("Ambient", "Molybdate (170 µM)")
@@ -200,4 +202,49 @@ data_to_plot %>%
   theme_bw()
 ```
 
+This suggests that there isn't much of a difference in bacterial production between ambient and molybdate-treated samples.
+Let's check this statistically.
+We'll run a two-way ANOVA, with the following command:
 
+twoWayAnova_interaction <- aov(µgBCP_per_L_hr ~ treatment * sulfide_uM, data = data_for_testing)
+
+Check the residuals:
+
+```{r statistical_test_molybdate_effects, echo = FALSE }
+# Set up data
+data_for_testing <- leucine_data_metadata %>%
+  mutate(location = paste(startDate, "\n",
+                          depth, "m",
+                          sep = "")) %>%
+  filter(location %in% locations_with_molybdate,
+         timePoint == "t1") %>%
+  left_join(sulfide_data %>%
+              mutate(location = paste(date, "\n",
+                                      depth, "m",
+                                      sep = "")) %>%
+              select(location, sulfide_uM))
+
+twoWayAnova_interaction <- aov(µgBCP_per_L_hr ~ treatment * sulfide_uM,
+                               data = data_for_testing)
+hist(twoWayAnova_interaction$residuals,
+     breaks = 20)
+par(mfrow = c(1,2))
+plot(density(twoWayAnova_interaction$residuals),
+     main="Density plot of residuals",
+     ylab="Density",
+     xlab="Residuals")
+# QQ-normal plot, test for normality of residuals
+qqnorm(twoWayAnova_interaction$residuals)
+qqline(twoWayAnova_interaction$residuals)
+```
+
+These look relatively good. We'll progress with the two-way ANOVA test.
+
+```{r summary_two_way_ANOVA}
+# This is the call to run the ANOVA test, hidden in a code chunk above.
+# twoWayAnova_interaction <- aov(µgBCP_per_L_hr ~ treatment * sulfide_uM,
+#                                data = data_for_testing)
+summary(twoWayAnova_interaction)
+```
+
+The sulfide level has a significant effect on bacterial carbon production, but the addition of molybdate does not. There is no interaction between the two factors either.
