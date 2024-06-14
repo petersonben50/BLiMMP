@@ -91,16 +91,17 @@ plot_teap_genes_by_sulfide <- function(genes_to_plot = "red_dsrA",
   for (gene_to_plot in genes_to_plot) {
     points(plotting_data$sulfide_uM,
            plotting_data[, gene_to_plot],
-           pch = 1,
-           fill = color_vector_to_use[gene_to_plot],
+           pch = 21,
+           bg = color_vector_to_use[gene_to_plot],
+           col = "black",
            cex = 1.5)
   }
   if (!is.null(legend_position)) {
     legend(legend_position,
            legend = naming_vector_TEAPs,
-           
-           col = color_vector_to_use,
-           pch = 16,
+           pt.bg = color_vector_to_use,
+           col = "black",
+           pch = 21,
            pt.cex = 1.75)
   }
 
@@ -116,9 +117,10 @@ naming_vector_TEAPs <- c(expression("Reductive "*italic(dsrA)),
 names(naming_vector_TEAPs) <- names(color_vector_TEAPs)
 
 #### Generate plots ####
-pdf("results/figures/TEAP_genes.pdf",
-    width = 7.2,
-    height = 4)
+cairo_pdf("results/figures/TEAP_genes.pdf",
+          family = "Arial",
+          width = 7.2,
+          height = 4)
 par(mfrow = c(1, 2),
     mar = c(3, 3, 1, 1),
     tck = -0.008,
