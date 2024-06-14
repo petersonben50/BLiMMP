@@ -118,7 +118,7 @@ plot_BP_profiles_by_date <- function(date_to_use) {
   points(x = data_to_plot$µgBCP_per_L_hr / 2.5,
          y = -data_to_plot$depth,
          pch = 21,
-         bg = cb.translator["yellow"],
+         bg = cb.translator["bluishgreen"],
          cex = 1.2)
   # data_to_plot_Mo <- leucine_data_metadata %>%
   #   filter(startDate == date_to_use,
@@ -177,7 +177,7 @@ plot_BP_by_molybdate_conc <- function() {
   data_matrix_se <- as.matrix(data_table_se[, c("14.1", "20.1")])
   
 
-  color_vector <- cb.translator[c("yellow", "skyblue", "bluishgreen", "blue")]
+  color_vector <- cb.translator[c("bluishgreen", "yellow", "black", "blue")]
   names(color_vector) <- c("ambient", "molybdate-0.017", "molybdate-0.17", "molybdate-1.7")
   name_vector <- c("Ambient", "Molybdate (17 µM)", "Molybdate (170 µM)", "Molybdate (1.7 mM)")
   names(name_vector) <- c("ambient", "molybdate-0.017", "molybdate-0.17", "molybdate-1.7")
@@ -241,7 +241,7 @@ plot_BP_molybdate_comparison <- function() {
   rownames(data_table_se) <- data_table_se$treatment
   data_matrix_se <- as.matrix(data_table_se[, -1])
   
-  color_vector <- cb.translator[c("yellow", "bluishgreen")]
+  color_vector <- cb.translator[c("bluishgreen", "black")]
   names(color_vector) <- c("ambient", "molybdate")
   name_vector <- c("Ambient", "Molybdate (170 µM)")
   names(name_vector) <- names(color_vector)
@@ -273,9 +273,8 @@ plot_BP_molybdate_comparison <- function() {
 
 
 #### Set up plot areas ####
-top_row_vertArea <- c(0.67, 1.00)
-middle_row_vertArea <- c(0.33, 0.67)
-bottom_row_vertArea <- c(0.00, 0.33)
+top_row_vertArea <- c(0.50, 1.00)
+bottom_row_vertArea <- c(0.00, 0.50)
 
 left_horiArea <- c(0.00, 0.33)
 center_horiArea <- c(0.33, 0.67)
@@ -288,11 +287,10 @@ all_horiArea <- c(0.00, 1.00)
 #### Generate PDF ####
 cairo_pdf("results/figures/BP_plots.pdf",
           width = 7,
-          height = 9)
+          height = 6)
 par(mar = c(3, 3, 1, 0.5),
     tck = -0.008)
 split.screen(rbind(c(left_horiArea, top_row_vertArea), c(center_horiArea, top_row_vertArea), c(right_horiArea, top_row_vertArea),
-                   c(left_horiArea, middle_row_vertArea), c(right_and_center_horiArea, middle_row_vertArea),
                    c(all_horiArea, bottom_row_vertArea)))
 
 #### Plot data ####
@@ -310,7 +308,7 @@ legend(x = 2.2,
        col = c("black", trans_colors(cb.translator["blue"], 50),
                trans_colors(cb.translator["black"], 50),
                trans_colors(cb.translator["reddishpurple"], 50)),
-       pt.bg = c(cb.translator["yellow"], NA, NA, NA),
+       pt.bg = c(cb.translator["bluishgreen"], NA, NA, NA),
        cex = 0.7,
        pt.cex = 1.2)
 screen(2)
@@ -326,22 +324,8 @@ mtext(text = "C. Oct. 14, 2021",
       side = 3,
       adj = 0)
 screen(4)
-# par(mgp = c(1.5, 0.2, 0))
-plot_BP_profiles_by_date("2020-09-17")
-mtext(text = "D. Sept. 17, 2020",
-      side = 3,
-      adj = 0)
-
-screen(5)
-# par(mgp = c(1.5, 0.2, 0))
-plot_BP_by_molybdate_conc()
-mtext(text = "E. Molybdate treatments",
-      side = 3,
-      adj = 0)
-
-screen(6)
 plot_BP_molybdate_comparison()
-mtext(text = "F. Molybdate effects on BP",
+mtext(text = "D. Molybdate effects on BP",
       side = 3,
       adj = 0)
 
