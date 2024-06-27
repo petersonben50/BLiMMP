@@ -10,8 +10,7 @@ library(ggpubr)
 library(lubridate)
 library(readxl)
 library(tidyverse)
-cb.translator <- readRDS("references/colorblind_friendly_colors.rds")
-
+cb_translator <- readRDS("references/colorblind_friendly_colors.rds")
 
 
 #### Read in data ####
@@ -29,21 +28,24 @@ Hg.Kmet.data <- read.csv("dataFinal/incubation_Hg_rate_data.csv") %>%
                                                 "Oct '21\n14.2m", "Oct '21\n15.2m", "Oct '21\n19.9m")))
 
 #### Condition vector ####
-condition_naming <- c("t0 to t1",
-                      "t1 to t2",
-                      "Slope with all\ntime points")
-names(condition_naming) <- c("Kmet_t1", "Kmet_t2", "Kmet_total")
-color_vector <- cb.translator[c('bluishgreen', 'skyblue', 'vermillion')]
+condition_naming <- c("First order assumption: t1",
+                      "First order assumption: t2",
+                      "First order assumption: slope",
+                      "Integrated: t1",
+                      "Integrated: t2")
+names(condition_naming) <- c("Kmet_assumption_t1", "Kmet_assumption_t2", "Kmet_assumption_slope", "Kmet_int_t1", "Kmet_int_t2")
+color_vector <- cb_translator[c('blue', 'bluishgreen', 'skyblue', 'vermillion', 'reddishpurple')]
 names(color_vector) <- names(condition_naming)
+
 
 
 #### Look for differences between Kmet calculations for ambient samples ####
 ambient.conditions <- Hg.Kmet.data %>%
   filter(treatment == "unfiltered-unamended") %>%
-  select(startDate, depth, sampleInfo, Kmet_t1, Kmet_t2, Kmet_total) %>%
+  select(startDate, depth, sampleInfo, names(condition_naming)) %>%
   gather(key = calculation,
          value = Kmet,
-         4:6) %>%
+         names(condition_naming)) %>%
   ggplot(aes(x = sampleInfo,
              y = Kmet,
              color = calculation,
@@ -80,10 +82,10 @@ ambient.conditions <- Hg.Kmet.data %>%
 #### Look for differences between Kmet calculations for molybdate-amended samples ####
 molybdate.amended <- Hg.Kmet.data %>%
   filter(treatment == "unfiltered-molybdate") %>%
-  select(startDate, depth, sampleInfo, Kmet_t1, Kmet_t2, Kmet_total) %>%
+  select(startDate, depth, sampleInfo, names(condition_naming)) %>%
   gather(key = calculation,
          value = Kmet,
-         4:6) %>%
+         names(condition_naming)) %>%
   ggplot(aes(x = sampleInfo,
              y = Kmet,
              color = calculation,
@@ -133,7 +135,7 @@ dev.off()
 #### Look for differences between Kmet calculations for filtered samples ####
 filtered.control <- Hg.Kmet.data %>%
   filter(treatment == "filtered-unamended") %>%
-  select(startDate, depth, sampleInfo, Kmet_t1, Kmet_t2, Kmet_total) %>%
+  select(startDate, depth, sampleInfo, names(condition_naming)) %>%
   gather(key = calculation,
          value = Kmet,
          4:6) %>%

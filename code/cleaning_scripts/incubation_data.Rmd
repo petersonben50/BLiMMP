@@ -185,13 +185,13 @@ This suggests that the initial drop off in ^198^HgT was due to rapid adsorption 
 This second option is possible, since the tracer was injected into the bags through the same port that the t0 sample was collected out, so incomplete mixing could easily result in an artifically elevated ^198^HgT value.
 Through either mechanism, it's likely that the t1 ^198^HgT value is more comparable to the concentration the microbes were experiencing within the bag throughout the experiment.
 
-Just out of curiousity, I did this calculation using both the t1 and t2 time point, will be interesting to see how the values compare, and might give us some insight into how the rate of the reaction is independent on the changes in Hg(II) concentration.
+Just out of curiosity, I did this calculation using both the t1 and t2 time point, will be interesting to see how the values compare, and might give us some insight into how the rate of the reaction is independent on the changes in Hg(II) concentration.
 
 ```{r calc_Kmet_first_order}
-# Calculate Kmet by first-order rate assumption
+# Calculate Kmet by first-order rate and assuming no change in Hg(II).
 Kmet_data <- calculation_data_198 %>%
-  mutate(Kmet_first_order_t1 = (MeHg_198_ppt_t1 - MeHg_198_ppt_t0) / HgT_198_ppt_t1 / durationInDays_t1,
-         Kmet_first_order_t2 = (MeHg_198_ppt_t2 - MeHg_198_ppt_t0) / HgT_198_ppt_t1 / (durationInDays_t2))
+  mutate(Kmet_assumption_t1 = (MeHg_198_ppt_t1 - MeHg_198_ppt_t0) / HgT_198_ppt_t0 / durationInDays_t1,
+         Kmet_assumption_t2 = (MeHg_198_ppt_t2 - MeHg_198_ppt_t0) / HgT_198_ppt_t0 / (durationInDays_t2))
 ```
 
 I also made this calculation by estimating `dMeHg/dt` as the slope of the linear regression line for all three time points.
@@ -214,22 +214,22 @@ slopes_of_data <- Kmet_data %>%
 
 Kmet_data <- Kmet_data %>%
   left_join(slopes_of_data) %>%
-  mutate(Kmet_first_order_slope = slope / HgT_198_ppt_t1) %>%
+  mutate(Kmet_assumption_slope = slope / HgT_198_ppt_t0) %>%
   select(-slope)
 ```
 
-Next I used the exact solution of the rate law, as derived by Marvin-DiPasquale and Agee 2003: 
+Next I used the exact solution of the pseudo first-order rate law, as derived by Marvin-DiPasquale and Agee 2003: 
 
-K~met~ = -[ln(1-$\frac{[CH_{3}^{199}]_{t_{1}}}{[^{199}H^{2+}]_{t_{0}}}$)]*t^-1^
+K~met~ = -[ln(1-$\frac{[CH_{3}^{199}]_{t_{1}}}{[^{199}Hg^{2+}]_{t_{0}}}$)]*t^-1^
 
-I tested this using the values from t1 and t2, again just out of curiosity.
+I tested this using the values from t1 and t2.
 
 ```{r calc_Kmet_derived}
-
 Kmet_data <- Kmet_data %>%
-  mutate(Kmet_int_t1 = -log(1-(MeHg_198_ppt_t1 / HgT_198_ppt_t1)) / durationInDays_t1,
-         Kmet_int_t2 = -log(1-(MeHg_198_ppt_t2 / HgT_198_ppt_t1)) / durationInDays_t2) 
+  mutate(Kmet_int_t1 = -log(1 - (MeHg_198_ppt_t1 / HgT_198_ppt_t0)) / durationInDays_t1,
+         Kmet_int_t2 = -log(1 - (MeHg_198_ppt_t2 / HgT_198_ppt_t0)) / durationInDays_t2)
 ```
+
 
 ### Plot comparison of Kmet values
 
@@ -240,7 +240,7 @@ condition_naming <- c("First order assumption: t1",
                       "First order assumption: slope",
                       "Integrated: t1",
                       "Integrated: t2")
-names(condition_naming) <- c("Kmet_first_order_t1", "Kmet_first_order_t2", "Kmet_first_order_slope", "Kmet_int_t1", "Kmet_int_t2")
+names(condition_naming) <- c("Kmet_assumption_t1", "Kmet_assumption_t2", "Kmet_assumption_slope", "Kmet_int_t1", "Kmet_int_t2")
 color_vector <- cb_translator[c('blue', 'bluishgreen', 'skyblue', 'vermillion', 'reddishpurple')]
 names(color_vector) <- names(condition_naming)
 
@@ -289,6 +289,24 @@ Kmet_data %>%
 It appears from this graph that the method of calculation does not have a major effect on the final results. In general, using the integrated method or the assumption of first order reaction kinetics, both with one time point, has less of an effect than which of the time points you choose. The incubations with more rapid methylation showed a greater difference between calculations using the derived method or the first order assumption method, with the integrated method yielding higher values, especially with t2 calculations. The method of calculating the overall slope of the reaction (linear model with all three time points) and dividing that by ^198^HgT to get K~met~ resulted in similar values to the calculations using t2.
 
 For remaining analyses, I'll use the "Integrated: t2" calculation. The t2 data shows a smaller spread in the data, suggesting that there was some noise in the 24 hour incubations. Since there is a likelihood that diminishing reactant was starting to have an effect in the high-producing incubations at t2, it's important that we use the integrated method.
+
+Next we'll look at some basic stats for the K~met~ values.
+
+```{r kmet_stats, include = FALSE}
+Kmet_data %>%
+  filter(depth != 15.7) %>%
+  group_by(treatment, startDate, depth) %>%
+  summarise(Kmet_int_t2 = mean(Kmet_int_t2)) %>%
+  ungroup() %>% arrange(desc(Kmet_int_t2)) %>%
+  group_by(treatment) %>%
+  summarise(min_kmet = min(Kmet_int_t2),
+            max_kmet = max(Kmet_int_t2),
+            mean_kmet = mean(Kmet_int_t2),
+            sd_kmet = sd(Kmet_int_t2),
+            count_kmet = n(),
+            sem_kmet = sd_kmet / sqrt(count_kmet))
+```
+
 
 
 ### K~dem~ calculations
@@ -361,7 +379,7 @@ The demethylation rate equation can also be rearranged to the following:
 ln($[CH_{3}^{201}Hg^{+}]_{t}$) = -K~dem~*dt* + ln($[CH_{3}^{201}Hg^{+}]_{t=0}$)
 
 This represents a linear model of $CH_{3}^{201}Hg^{+}$ concentrations over time.
-Thus, I also calculated K~dem~ as the slope of this plot
+Thus, I also calculated K~dem~ as the slope of this linear model.
 
 ```{r Kdem_lm_calcs, echo = FALSE, warning = FALSE}
 
@@ -438,7 +456,7 @@ Kdem_data %>%
 
 ```
 
-High variability in the K~dem~ calculations using t1. 
+High variability in the K~dem~ calculations using t1.
 
 
 ```{r combine_and_save_data}
