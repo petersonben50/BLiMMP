@@ -1,0 +1,282 @@
+---
+title: "Demethylation analyses"
+author: "Benjamin D. Peterson"
+date: "2024-06-17"
+output: html_document
+---
+
+```{r setup, include = FALSE}
+rm(list = ls())
+library(tidyverse)
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(echo = TRUE)
+new.wd <- gsub("\\/[[:alpha:]]+$", "", getwd())
+knitr::opts_knit$set(root.dir = new.wd)
+rm(new.wd)
+```
+
+```{r read_in_color_translator, include = FALSE}
+cb.translator <- readRDS("references/colorblind_friendly_colors.rds")
+```
+
+# Prepare data
+
+First we'll read in the merB data:
+
+```{r read_in_merB_data}
+merB_data <- read.csv("dataFinal/merB_data.csv")
+```
+
+Then we'll read in the metadata and generate a useful table to link to the abundance data.
+
+```{r prepare_MG_MT_metadata}
+MG_metadata <- read.csv("metadata/metagenome_metadata.csv") %>%
+  dplyr::rename(omicID = metagenomeID) %>%
+  mutate(seqType = "MG") %>%
+  select(omicID, sampleID, startDate, depth, seqType)
+MT_metadata <- read.csv("metadata/metatranscriptome_metadata.csv") %>%
+  dplyr::rename(omicID = metatranscriptomeID) %>%
+  mutate(seqType = "MT") %>%
+  select(omicID, sampleID, startDate, depth, seqType)
+omic_metadata <- rbind(MG_metadata,
+                       MT_metadata) %>%
+  mutate(date_depth = paste(startDate, ":", depth, "m",
+                            sep = "")) %>%
+  select(omicID, date_depth)
+rm(MG_metadata, MT_metadata)
+```
+
+We'll also want to pull in the sulfide data.
+
+```{r prepare_sulfide_data, message = FALSE}
+# Read in sulfide data
+sulfide_data <- read.csv("dataFinal/water_chem_data.csv") %>%
+  group_by(date, depth) %>%
+  summarize(sulfide_uM = mean(sulfide_uM, na.rm = TRUE)) %>%
+  ungroup() %>%
+  mutate(date_depth = paste(date, ":", depth, "m",
+                            sep = "")) %>%
+  select(date_depth, sulfide_uM)
+```
+
+Finally, we'll read in the K~dem~ data.
+
+```{r prepare_kmet_incubation_data, message = FALSE}
+# Read in Kmet data
+Kdem_data <- read.csv("dataFinal/incubation_Hg_rate_data.csv") %>%
+  mutate(date_depth = paste(startDate, ":", depth, "m",
+                            sep = "")) %>%
+  filter(date_depth != "2020-10-10:15.7m") %>%
+  select(date_depth, treatment, Kdem_slope)
+
+Kdem_data_summarized <- Kdem_data %>%
+  group_by(date_depth, treatment) %>%
+  summarize(Kdem_slope_mean = mean(Kdem_slope, na.rm = TRUE),
+            Kdem_slope_sd = sd(Kdem_slope, na.rm = TRUE),
+            Kdem_count = n(),
+            Kdem_slope_sem = Kdem_slope_sd / sqrt(Kdem_count))
+```
+
+
+# Check demethylation rates
+
+Before looking at the *merB* genes, we'll want to check out the demethylation rates. 
+
+```{r check_kmet_incubation_rates, message = FALSE}
+naming_vector_kdem <- c("Ambient", "Molybdate-treated", "Filtered control")
+names(naming_vector_kdem) <- c("unfiltered-unamended", "unfiltered-molybdate", "filtered-unamended")
+color_vector_kdem <- cb.translator[c("bluishgreen", "black", "orange")]
+names(color_vector_kdem) <- names(naming_vector_kdem)
+
+date_depth_order_by_sulfide <- sulfide_data %>%
+  filter(date_depth %in% Kdem_data_summarized$date_depth) %>%
+  arrange(sulfide_uM) %>%
+  select(date_depth) %>%
+  unlist()
+names(date_depth_order_by_sulfide) <- NULL
+
+Kdem_data_summarized %>%
+  mutate(treatment = fct_relevel(treatment, names(naming_vector_kdem)),
+         date_depth = as.factor(date_depth),
+         date_depth = fct_relevel(date_depth, date_depth_order_by_sulfide)) %>%
+  ggplot(aes(x = date_depth,
+             y = Kdem_slope_mean,
+             fill = treatment)) + 
+  geom_bar(stat = "identity",
+           color = "black", 
+           position = position_dodge()) +
+  scale_fill_manual(values = color_vector_kdem,
+                    labels = naming_vector_kdem) +
+  geom_errorbar(aes(ymin = Kdem_slope_mean - Kdem_slope_sem,
+                    ymax = Kdem_slope_mean + Kdem_slope_sem),
+                width = 0.2,
+                position = position_dodge(0.9)) +
+  labs(x = element_blank(),
+       y = expression(Kdem)) +
+  theme_bw() +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+This is extremely confusing data.
+First of all, the filtered controls showed high Kdem, especially at higher sulfide concentrations.
+In 2021, the Kdem values under ambient conditions were comparable to the filtered control conditions.
+However, in 2020, there was nearly no demethylation occurring under ambient conditions regardless of sulfide.
+To throw the cherry on top, the addition of molybdate stopped MeHg degradation regardless of the year or sulfide concentration.
+This indicates multiple competing processes.
+Photodemethylation can be ruled out, and the *merB* gene is unlikely to be very active.
+Hg(0) concentrations are low in the anoxic hypolimnion, suggesting that reductive demethylation is unlikely to occur.
+This leaves oxidative demethylation.
+Some abiotic or 
+
+# Plot *merB* data against environmental variables
+
+Set up the merB data generally:
+
+```{r prepare_merB_data, message = FALSE }
+merB_plotting_data <- merB_data %>%
+  filter(clstr_rep == 1) %>%
+  select(clstr_rep, divergent_seq,
+         all_of(grep("_MG_", names(merB_data), value = TRUE)),
+         all_of(grep("_MT_", names(merB_data), value = TRUE))) %>%
+  gather(key = omicID,
+         value = coverage,
+         c(all_of(grep("_MG_", names(merB_data), value = TRUE)),
+         all_of(grep("_MT_", names(merB_data), value = TRUE)))) %>%
+  group_by(divergent_seq, omicID) %>%
+  summarise(coverage = sum(coverage)) %>%
+  ungroup()
+```
+
+
+### *merB* vs. sulfide
+
+First check the *merB* abundance and transcription against sulfide concentrations.
+Plot both the overall *merB* coverages (in gray) and the divergent sequences (red) and non-divergent sequences (blue) separately (still on the same plot though).
+
+```{r plot_merB_vs_sulfide, echo = FALSE, message = FALSE, fig.width = 7.5, fig.height = 5 }
+year_vector <- c(21, 24)
+names(year_vector) <- c("2020", "2021")
+
+color_vector <- c("red", "blue")
+names(color_vector) <- c("TRUE", "FALSE")
+
+sulfide_vs_merB <- function(omic_type,
+                               ylab_to_use) {
+  plot_data <- merB_plotting_data %>%
+    filter(grepl(omic_type, omicID)) %>%
+    group_by(omicID) %>%
+    summarise(coverage = sum(coverage)) %>%
+    left_join(omic_metadata) %>%
+    left_join(sulfide_data) %>%
+    filter(date_depth != "2020-10-10:15.7m")
+  plot(x = plot_data$sulfide_uM,
+       y = plot_data$coverage,
+       pch = year_vector[as.character(year(strsplit(plot_data$date_depth, ":") %>%
+                                             sapply("[", 1)))],
+       col = "gray25",
+       bg = "gray85",
+       lwd = 1.5,
+       cex = 2,
+       xlab = "Sulfide (µM)",
+       ylab = ylab_to_use)
+  
+  plot_data <- merB_plotting_data %>%
+    filter(grepl(omic_type, omicID)) %>%
+    left_join(omic_metadata) %>%
+    left_join(sulfide_data)
+  points(x = plot_data$sulfide_uM,
+         y = plot_data$coverage,
+         pch = 16,
+         col = color_vector[as.character(plot_data$divergent_seq)])
+}
+
+#### Set up plots ####
+par(mfrow = c(1, 2),
+    mar = c(3, 3, 1, 1),
+    tck = -0.008,
+    mgp = c(1.5, 0.2, 0))
+sulfide_vs_merB(omic_type = "MG",
+                ylab_to_use = "merB abundance (%)")
+sulfide_vs_merB(omic_type = "MT",
+                ylab_to_use = "merB transcription (10^6 copies/L)")
+legend("topleft",
+       legend = names(year_vector),
+       pch = year_vector)
+
+```
+
+We do observe a general increase in both *merB* abundance and transcription with sulfide concentration, which is interesting. This is nearly entirely driven by these divergent sequences, however, especially the gene abundance.
+The non-divergent sequences do show a bump in transcription near the middle of the sulfide gradient.
+
+### *merB* vs. Kdem
+
+```{r plot_merB_vs_Kdem, echo = FALSE, message = FALSE, fig.width = 7.5, fig.height = 4 }
+year_vector <- c(21, 24)
+names(year_vector) <- c("2020", "2021")
+
+color_vector <- c("red", "blue")
+names(color_vector) <- c("TRUE", "FALSE")
+
+merB_vs_Kdem <- function(omic_type,
+                         ylab_to_use,
+                         ylim_to_use = NULL) {
+  plot_data <- merB_plotting_data %>%
+    filter(grepl(omic_type, omicID)) %>%
+    group_by(omicID) %>%
+    summarise(coverage = sum(coverage, na.rm = TRUE)) %>%
+    left_join(omic_metadata) %>%
+    group_by(date_depth) %>%
+    summarise(coverage_mean = sum(coverage, na.rm = TRUE),
+              coverage_sd = sd(coverage, na.rm = TRUE)) %>%
+    left_join(Kdem_data) %>%
+    filter(date_depth != "2020-10-10:15.7m")
+  plot(x = plot_data$Kdem_slope_mean,
+       y = plot_data$coverage_mean,
+       cex = 0,
+       xlim = c(-0.1, 0.3),
+       ylim = ylim_to_use,
+       xlab = "Kdem (day^-1)",
+       ylab = ylab_to_use)
+  arrows(x0 = plot_data$Kdem_slope_mean - plot_data$Kdem_slope_sd,
+         x1 = plot_data$Kdem_slope_mean + plot_data$Kdem_slope_sd,
+         y0 = plot_data$coverage_mean, y1 = plot_data$coverage_mean,
+         code = 3, lwd = 1, col = "black", angle = 90,
+         length = 0.05)
+  arrows(x0 = plot_data$Kdem_slope_mean, x1 = plot_data$Kdem_slope_mean,
+         y0 = plot_data$coverage_mean - plot_data$coverage_sd,
+         y1 = plot_data$coverage_mean + plot_data$coverage_sd,
+         code = 3, lwd = 1, col = "black", angle = 90,
+         length = 0.05)
+  points(x = plot_data$Kdem_slope_mean,
+         y = plot_data$coverage_mean,
+         pch = year_vector[as.character(year(strsplit(plot_data$date_depth, ":") %>%
+                                               sapply("[", 1)))],
+         col = "gray25",
+         bg = "gray85",
+         ylim = ylim_to_use,
+         lwd = 1.5,
+         cex = 2,
+         )
+  }
+
+#### Set up plots ####
+par(mfrow = c(1, 2),
+    mar = c(3, 3, 1, 1),
+    tck = -0.008,
+    mgp = c(1.5, 0.2, 0))
+merB_vs_Kdem(omic_type = "MG",
+             ylab_to_use = "merB abundance (%)",
+             ylim_to_use = c(0, 7.5))
+merB_vs_Kdem(omic_type = "MT",
+                ylab_to_use = "merB transcription (10^6 copies/L)",
+             ylim_to_use = c(0, 8))
+legend(x = -0.3, y = 7,
+       legend = names(year_vector),
+       pch = year_vector,
+       col = "gray25",
+       pt.bg = "gray85")
+```
+
+Well, there is clearly more *merB* in the regions with more demethylation occurring.
+Interesting, there's only demethylation really occurring in 2021.
