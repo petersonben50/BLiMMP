@@ -22,7 +22,9 @@ sulfide.data <- read.csv("dataEdited/waterChemistry/sulfide/WC_data.csv") %>%
   select(date, depth, corewater, replicate, constituent, concentration) %>%
   # Detection limit ~1 µM
   mutate(detection_flag = unname(dl.vector[as.character(concentration < 1.0)])) %>%
-  filter(year(date) != 2019)
+  filter(year(date) != 2019) %>%
+  mutate(concentration = concentration * 32.06 / 1000,
+         constituent = "sulfide_ppm")
 
 
 #### Read in sulfate data ####
@@ -33,7 +35,9 @@ sulfate.data <- read.csv("dataEdited/waterChemistry/sulfate/WC_data.csv") %>%
   mutate(constituent = "sulfate_uM") %>%
   select(date, depth, corewater, replicate, constituent, concentration) %>%
   # Detection limit ~1 µM
-  mutate(detection_flag = unname(dl.vector[as.character(concentration < 1.0)]))
+  mutate(detection_flag = unname(dl.vector[as.character(concentration < 1.0)])) %>%
+  mutate(concentration = concentration * 96.06 / 1000,
+         constituent = "sulfate_ppm")
 
 
 #### Read in metals data ####
@@ -43,10 +47,10 @@ metals.data <- readRDS("dataEdited/waterChemistry/ICP/2020_2021_Fe_Mn_data.rds")
                              substr(state, 1, 4),
                              substr(constituent, 4, 6),
                              sep = "_"),
-         concentration = round(concentration, 3)) %>%
+         concentration = round(concentration, 4)) %>%
   select(date, depth, corewater, replicate, constituent, concentration) %>%
   # Detection limit ~0.02 ppm
-  mutate(detection_flag = unname(dl.vector[as.character(concentration < 0.02)])) %>%
+  mutate(detection_flag = unname(dl.vector[as.character(concentration < 0.001)])) %>%
   as.data.frame()
 
 
@@ -98,7 +102,8 @@ all.data.wide <- all.data %>%
   spread(key = constituent,
          value = assigned.value) %>%
   filter(!(date %in% c("2020-09-17",
-                       "2021-08-31")))
+                       "2021-08-31"))) %>%
+  as.data.frame()
 
 
 #### Save data ####
