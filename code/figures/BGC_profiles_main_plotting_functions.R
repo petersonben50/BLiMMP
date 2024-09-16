@@ -71,9 +71,10 @@ plot.exo.data <- function(exo.data.to.use = exo.data,
   #### Add incubation depths ####
   points(x = rep(9, length(sampling.depths.of.interest)),
          y = sampling.depths.of.interest,
-         pch = 16,
+         pch = 21,
          cex = 1,
-         col = cb.translator["skyblue"])
+         bg = cb.translator["yellow"],
+         col = cb.translator["black"])
   
   #### Add scales ####
   par(mgp = c(1.5, 0.2, 0))
@@ -133,13 +134,14 @@ plot.exo.data <- function(exo.data.to.use = exo.data,
   if (!is.null(plot_legend)) {
     legend("topleft",
            legend = c("Temp.", "DO", "Turb.", "Inc."),
-           col = c(cb.translator["blue"], cb.translator["black"], cb.translator["reddishpurple"], cb.translator["bluishgreen"]),
+           col = c(cb.translator["blue"], cb.translator["black"], cb.translator["reddishpurple"], cb.translator["black"]),
+           pt.bg = c(NA, NA, NA, cb.translator["yellow"]),
            cex = 7/12,
            lwd = c(1.5, 1.5, 1.5, NA),
            # pt.lwd = c(6, 6, 6, NA),
            lty = c(1, 2, 3, NA),
            pt.cex = c(NA, NA, NA, 1),
-           pch = c(NA, NA, NA, 16),
+           pch = c(NA, NA, NA, 21),
            bty = "n")
   }
 }
@@ -160,7 +162,7 @@ plot_redox_data <- function(date.of.sampling,
   names(point.vector) <- names(color.vector)
   line.vector <- c(2, 1, 2, 1)
   names(line.vector) <- names(color.vector)
-  naming.vector <- c("Part. Mn (mg/L)", "Diss. Mn (mg/L)",
+  naming.vector <- c("Part. Mn (mg/L)", "FP Mn (mg/L)",
                      "Sulfate (mg/L)", "Sulfide (mg/L)")
   names(line.vector) <- names(color.vector)
   
@@ -276,15 +278,15 @@ plot.Hg.profile <- function(date.of.sampling = "2021-09-10",
   #### Set up vectors for redox data ####
   color.vector <- c(cb.translator["bluishgreen"], cb.translator["vermillion"], 
                     cb.translator["black"])
-  names(color.vector) <- c("FTHG_NG.L", "FMHG_NG.L", "perFMHG")
+  names(color.vector) <- c("FiHg_NG.L", "FMHG_NG.L", "perFMHG")
   point.vector <- c(1, 16, 19)
   names(point.vector) <- names(color.vector)
   line.vector <- c(2, 1, 4)
   names(line.vector) <- names(color.vector)
-  naming.vector <- c("FP iHg", "FP MeHg", "% MeHg")
+  naming.vector <- c("FP Hg(II)", "FP MeHg", "% MeHg")
   names(line.vector) <- names(color.vector)
   
-  fudge_vector <- c(rep(5, 2), rep(0.1, 2))
+  fudge_vector <- c(rep(10, 2), 0.1)
   names(fudge_vector) <- names(color.vector)
   
   
@@ -331,8 +333,8 @@ plot.Hg.profile <- function(date.of.sampling = "2021-09-10",
   #### Add scales ####
   par(mgp = c(1.5, -0.1, 0))
   axis(1,
-       at = seq(0, 9, by = 3),
-       labels = seq(0, 9, by = 3)/fudge_vector["FTHG_NG.L"],
+       at = seq(0, 10, by = 2.5),
+       labels = seq(0, 10, by = 2.5)/fudge_vector["FiHg_NG.L"],
        cex.axis = axis_tick_label_size,
        gap.axis = -1,
        padj = 0)
@@ -345,7 +347,7 @@ plot.Hg.profile <- function(date.of.sampling = "2021-09-10",
        padj = 0)
   
   #### Add axis labels ####
-  mtext(paste("FP iHg/MeHg (ng/L)",
+  mtext(paste("Hg(II), MeHg (ng/L)",
               sep = ""),
         side = 1,
         line = 0.75,
