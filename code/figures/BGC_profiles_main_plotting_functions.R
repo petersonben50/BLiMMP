@@ -155,16 +155,16 @@ plot_redox_data <- function(date.of.sampling,
   color.vector <- c(cb.translator["orange"], cb.translator["orange"],
                     cb.translator["blue"], cb.translator["blue"])
   names(color.vector) <- c("Mn_part_ppm", "Mn_diss_ppm",
-                           "sulfate_uM", "sulfide_uM")
+                           "sulfate_ppm", "sulfide_ppm")
   point.vector <- c(1, 16, 1, 16)
   names(point.vector) <- names(color.vector)
   line.vector <- c(2, 1, 2, 1)
   names(line.vector) <- names(color.vector)
-  naming.vector <- c("Part. Mn (ppm)", "Diss. Mn (ppm)",
-                     "Sulfate (µM)", "Sulfide (µM)")
+  naming.vector <- c("Part. Mn (mg/L)", "Diss. Mn (mg/L)",
+                     "Sulfate (mg/L)", "Sulfide (mg/L)")
   names(line.vector) <- names(color.vector)
   
-  fudge_vector <- c(rep(20, 2), rep(0.04, 2))
+  fudge_vector <- c(rep(20, 2), 0.5, 2)
   names(fudge_vector) <- names(color.vector)
   
   
@@ -219,21 +219,33 @@ plot_redox_data <- function(date.of.sampling,
   axis(1,
        line = 2,
        at = seq(0, 10, by = 2.4),
-       labels = seq(0, 10, by = 2.4)/fudge_vector["sulfide_uM"],
+       labels = seq(0, 10, by = 2.4)/fudge_vector["sulfide_ppm"],
+       cex.axis = axis_tick_label_size,
+       gap.axis = -1,
+       padj = 0)
+  axis(1,
+       line = 4,
+       at = seq(0, 12, by = 3),
+       labels = seq(0, 12, by = 3)/fudge_vector["sulfate_ppm"],
        cex.axis = axis_tick_label_size,
        gap.axis = -1,
        padj = 0)
   
   #### Add axis labels ####
-  mtext(paste("Manganese (ppm)",
+  mtext(paste("Manganese (mg/L)",
               sep = ""),
         side = 1,
         line = 0.75,
         cex = axis_label_size)
-  mtext(paste("Sulfate/sulfide (µL)",
+  mtext(paste("Sulfide (mg/L)",
               sep = ""),
         side = 1,
         line = 2.75,
+        cex = axis_label_size)
+  mtext(paste("Sulfate (mg/L)",
+              sep = ""),
+        side = 1,
+        line = 4.75,
         cex = axis_label_size)
   
   #### Add SWI line ####
