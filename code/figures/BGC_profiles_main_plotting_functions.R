@@ -109,7 +109,7 @@ plot.exo.data <- function(exo.data.to.use = exo.data,
   mtext("Depth (m)",
         side = 2,
         line = 0.75,
-        cex = axis_label_size)
+        cex = axis_label_size*1.5)
   mtext(paste("Temp (", "\U02DA","C)",
               sep = ""),
         side = 1,

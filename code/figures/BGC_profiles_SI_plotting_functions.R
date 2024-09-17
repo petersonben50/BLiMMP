@@ -94,7 +94,7 @@ plot.exo.data <- function(exo.data.to.use = exo.data,
     mtext("Depth (m)",
           side = 2,
           line = 0.75,
-          cex = axis_label_size)
+          cex = axis_label_size + 2/12)
     mtext(paste("DO (%)",
                 sep = ""),
           side = 1,
@@ -142,8 +142,8 @@ plot_metal_data <- function(date.of.sampling,
   names(point.vector) <- names(color.vector)
   line.vector <- c(2, 1, 2, 1)
   names(line.vector) <- names(color.vector)
-  naming.vector <- c("Part. Mn (ppm)", "Diss. Mn (ppm)",
-                     "Part. Fe (ppm)", "Diss. Fe (ppm)")
+  naming.vector <- c("Part. Mn (mg/L)", "FP Mn (mg/L)",
+                     "Part. Fe (mg/L)", "FP Fe (mg/L)")
   names(line.vector) <- names(color.vector)
   
   fudge_vector <- c(rep(25, 4))
@@ -200,7 +200,7 @@ plot_metal_data <- function(date.of.sampling,
          padj = 0)
   
     #### Add axis labels ####
-    mtext(paste("Metals (ppm)",
+    mtext(paste("Metals (mg/L)",
                 sep = ""),
           side = 1,
           line = axis_label_line_1,
@@ -232,15 +232,15 @@ plot_sulfur_data <- function(date.of.sampling,
       tck = -0.008)
   #### Set up vectors for redox data ####
   color.vector <- c(cb.translator["blue"], cb.translator["blue"])
-  names(color.vector) <- c("sulfate_uM", "sulfide_uM")
+  names(color.vector) <- c("sulfate_ppm", "sulfide_ppm")
   point.vector <- c(1, 16)
   names(point.vector) <- names(color.vector)
   line.vector <- c(2, 1)
   names(line.vector) <- names(color.vector)
-  naming.vector <- c("Sulfate (µM)", "Sulfide (µM)")
-  names(line.vector) <- names(color.vector)
+  naming.vector <- c("Sulfate (mg/L)", "Sulfide (mg/L)")
+  names(naming.vector) <- names(color.vector)
   
-  fudge_vector <- c(rep(0.04, 2))
+  fudge_vector <- c(0.5, 2)
   names(fudge_vector) <- names(color.vector)
   
   if (plot_legend_only == "NO") {
@@ -289,19 +289,31 @@ plot_sulfur_data <- function(date.of.sampling,
     par(mgp = c(1.5, -0.3, 0))
     axis(1,
          line = axis_line_1,
-         at = seq(0, 9, by = 3),
-         labels = seq(0, 9, by = 3)/fudge_vector["sulfate_uM"],
+         at = seq(0, 10, by = 2.4),
+         labels = seq(0, 10, by = 2.4)/fudge_vector["sulfide_ppm"],
          cex.axis = axis_tick_label_size,
          gap.axis = -1,
          padj = 0)
+    axis(1,
+         line = axis_line_2,
+         at = seq(0, 12, by = 3),
+         labels = seq(0, 12, by = 3)/fudge_vector["sulfate_ppm"],
+         cex.axis = axis_tick_label_size,
+         gap.axis = -1,
+         padj = 0)
+
     
     #### Add axis labels ####
-    mtext(paste("S species (µM)",
-                sep = ""),
+    mtext(text = naming.vector["sulfide_ppm"],
           side = 1,
           line = axis_label_line_1,
           cex = axis_label_size)
+    mtext(text = naming.vector["sulfate_ppm"],
+          side = 1,
+          line = axis_label_line_2,
+          cex = axis_label_size)
     
+        
     #### Add SWI line ####
     abline(h = swi_line,
            lty = 3)
@@ -330,15 +342,15 @@ plot_filt_Hg_profile <- function(date.of.sampling = "2021-09-10",
   #### Set up vectors for redox data ####
   color.vector <- c(cb.translator["bluishgreen"], cb.translator["vermillion"], 
                     cb.translator["black"])
-  names(color.vector) <- c("FTHG_NG.L", "FMHG_NG.L", "perFMHG")
+  names(color.vector) <- c("FiHg_NG.L", "FMHG_NG.L", "perFMHG")
   point.vector <- c(1, 16, 19)
   names(point.vector) <- names(color.vector)
   line.vector <- c(2, 1, 4)
   names(line.vector) <- names(color.vector)
-  naming.vector <- c("FP iHg", "FP MeHg", "% MeHg")
+  naming.vector <- c("FP Hg(II)", "FP MeHg", "% MeHg")
   names(line.vector) <- names(color.vector)
   
-  fudge_vector <- c(rep(5, 2), rep(0.1, 2))
+  fudge_vector <- c(rep(10, 2), 0.1)
   names(fudge_vector) <- names(color.vector)
   
   if (plot_legend_only == "NO") {
@@ -387,7 +399,7 @@ plot_filt_Hg_profile <- function(date.of.sampling = "2021-09-10",
     axis(1,
          line = axis_line_1,
          at = seq(0, 9, by = 3),
-         labels = seq(0, 9, by = 3)/fudge_vector["FTHG_NG.L"],
+         labels = seq(0, 9, by = 3)/fudge_vector["FiHg_NG.L"],
          cex.axis = axis_tick_label_size,
          gap.axis = -1,
          padj = 0)
@@ -439,15 +451,15 @@ plot_part_Hg_profile <- function(date.of.sampling = "2021-09-10",
   #### Set up vectors for redox data ####
   color.vector <- c(cb.translator["bluishgreen"], cb.translator["vermillion"], 
                     cb.translator["black"])
-  names(color.vector) <- c("PTHG_NG.L", "PMHG_NG.L", "perPMHG")
+  names(color.vector) <- c("PiHg_NG.L", "PMHG_NG.L", "perPMHG")
   point.vector <- c(1, 16, 19)
   names(point.vector) <- names(color.vector)
   line.vector <- c(2, 1, 4)
   names(line.vector) <- names(color.vector)
-  naming.vector <- c("Part. iHg", "Part. MeHg", "% Part. MeHg")
+  naming.vector <- c("Part. Hg(II)", "Part. MeHg", "% Part. MeHg")
   names(line.vector) <- names(color.vector)
   
-  fudge_vector <- c(rep(5, 2), rep(0.1, 2))
+  fudge_vector <- c(rep(10, 2), 0.1)
   names(fudge_vector) <- names(color.vector)
   
   #### Set up data ####
@@ -496,7 +508,7 @@ plot_part_Hg_profile <- function(date.of.sampling = "2021-09-10",
     axis(1,
          line = axis_line_1,
          at = seq(0, 9, by = 3),
-         labels = seq(0, 9, by = 3)/fudge_vector["PTHG_NG.L"],
+         labels = seq(0, 9, by = 3)/fudge_vector["PiHg_NG.L"],
          cex.axis = axis_tick_label_size,
          gap.axis = -1,
          padj = 0)
@@ -548,14 +560,14 @@ plot_part_part_Hg_profile <- function(date.of.sampling = "2021-09-10",
       tck = -0.008)
   #### Set up vectors for redox data ####
   color.vector <- c(cb.translator["bluishgreen"], cb.translator["vermillion"])
-  names(color.vector) <- c("PTHG_NG.G", "PMHG_NG.G")
+  names(color.vector) <- c("PiHG_NG.G", "PMHG_NG.G")
   point.vector <- c(1, 16)
   names(point.vector) <- names(color.vector)
   line.vector <- c(2, 1)
   names(line.vector) <- names(color.vector)
-  naming.vector <- c("Part. iHg", "Part. MeHg")
+  naming.vector <- c("Part. Hg(II)", "Part. MeHg")
   names(line.vector) <- names(color.vector)
-  fudge_vector <- 0.04
+  fudge_vector <- 0.05
   
   #### Set up data ####
   waterChem.data.filtered <- waterChem.data %>%
@@ -788,14 +800,14 @@ plot_DGM_profile <- function(date.of.sampling = "2021-09-10",
     par(mgp = c(1.5, -0.3, 0))
     axis(1,
          line = axis_line_1,
-         at = seq(0, 12, by = 3),
-         labels = seq(0, 12, by = 3)/fudge_vector*1000,
+         at = seq(0, 12, by = 6),
+         labels = seq(0, 12, by = 6)/fudge_vector,
          cex.axis = axis_tick_label_size,
          gap.axis = -1,
          padj = 0)
     
     #### Add axis labels ####
-    mtext(paste("DGM (pg/L)",
+    mtext(paste("DGM (ng/L)",
                 sep = ""),
           side = 1,
           line = axis_label_line_1,
