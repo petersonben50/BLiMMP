@@ -23,11 +23,11 @@ rm(MG_metadata, MT_metadata)
 #### Read in sulfide data ####
 sulfide_data <- read.csv("dataFinal/water_chem_data.csv") %>%
   group_by(date, depth) %>%
-  summarize(sulfide_uM = mean(sulfide_uM, na.rm = TRUE)) %>%
+  summarize(sulfide_ppm = mean(sulfide_ppm, na.rm = TRUE)) %>%
   ungroup() %>%
   mutate(date_depth = paste(date, ":", depth, "m",
                             sep = "")) %>%
-  select(date_depth, sulfide_uM)
+  select(date_depth, sulfide_ppm)
 omic_metadata <- omic_metadata %>%
   left_join(sulfide_data)
 
@@ -62,34 +62,34 @@ plot_teap_genes_by_sulfide <- function(genes_to_plot = "red_dsrA",
   plotting_data <- TEAP_data_metadata %>%
     filter(geneName %in% genes_to_plot,
            seqType == omic_type) %>%
-    group_by(omicID, date_depth, sulfide_uM, geneName) %>%
+    group_by(omicID, date_depth, sulfide_ppm, geneName) %>%
     summarise(coverage = sum(coverage)) %>%
     ungroup() %>%
     spread(key = geneName,
            value = coverage) %>%
-    arrange(sulfide_uM) %>%
+    arrange(sulfide_ppm) %>%
     as.data.frame()
   
   if (log_scale == TRUE) {
     plot(x = NA,
          y = NA,
-         xlim = c(0, 150),
+         xlim = c(0, 4.6),
          ylim = ylim_to_use,
-         xlab = "Sulfide (µM)",
+         xlab = "Sulfide (mg/L)",
          ylab = ylab_to_use,
          log = "y")
   } else {
     plot(x = NA,
          y = NA,
-         xlim = c(0, 150),
+         xlim = c(0, 4.6),
          ylim = ylim_to_use,
-         xlab = "Sulfide (µM)",
+         xlab = "Sulfide (mg/L)",
          ylab = ylab_to_use)
     
   }
   
   for (gene_to_plot in genes_to_plot) {
-    points(plotting_data$sulfide_uM,
+    points(plotting_data$sulfide_ppm,
            plotting_data[, gene_to_plot],
            pch = 21,
            bg = color_vector_to_use[gene_to_plot],
