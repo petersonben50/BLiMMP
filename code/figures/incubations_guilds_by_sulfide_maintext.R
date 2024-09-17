@@ -63,7 +63,7 @@ Hg_Kmet_data <- read.csv("dataFinal/incubation_Hg_rate_data.csv") %>%
            gsub("unamended", "ambient", .)) %>%
   select(sampleID, date, depth, treatment, Kmet_int_t2)  %>%
   group_by(sampleID, date, depth, treatment) %>%
-  summarise(Kmet_mean = median(Kmet_int_t2),
+  summarise(Kmet_mean = mean(Kmet_int_t2),
             Kmet_sd = sd(Kmet_int_t2),
             Kmet_count = n(),
             Kmet_se = Kmet_sd / Kmet_count) %>%
@@ -91,11 +91,11 @@ Hg_Kmet_data <- read.csv("dataFinal/incubation_Hg_rate_data.csv") %>%
 #### Read in sulfide data ####
 sulfide_data <- read.csv("dataFinal/water_chem_data.csv") %>%
   group_by(date, depth) %>%
-  summarize(sulfide_uM = mean(sulfide_uM, na.rm = TRUE)) %>%
+  summarize(sulfide_ppm = mean(sulfide_ppm, na.rm = TRUE)) %>%
   ungroup() %>%
   mutate(date_depth = paste(date, ":", depth, "m",
                             sep = "")) %>%
-  select(date, date_depth, sulfide_uM)
+  select(date, date_depth, sulfide_ppm)
 
 
 #### Set up vectors for aesthetics ####
@@ -124,34 +124,34 @@ plot_Kmet_vs_sulfide_guilds <- function() {
                          sulfide_data)
   plot(x = NULL,
        y = NULL,
-       xlim = c(0, 150),
+       xlim = c(0, 5),
        ylim = c(0, 0.16),
        xlab = "",
        ylab = "")
   
-  title(xlab = expression("Sulfide (µM)"),
+  title(xlab = expression("Sulfide (mg/L)"),
         cex.lab = 1.2,
         line = 2)
   title(ylab = expression('K'['met']*' (day'^-1*')'),
         cex.lab = 1.2,
         line = 1.3)
   
-  arrows(plot_data$sulfide_uM, plot_data$nonSRB_Kmet_mean - plot_data$nonSRB_Kmet_se,
-         plot_data$sulfide_uM, plot_data$nonSRB_Kmet_mean + plot_data$nonSRB_Kmet_se,
+  arrows(plot_data$sulfide_ppm, plot_data$nonSRB_Kmet_mean - plot_data$nonSRB_Kmet_se,
+         plot_data$sulfide_ppm, plot_data$nonSRB_Kmet_mean + plot_data$nonSRB_Kmet_se,
          col = "gray",
          length = error_bar_width, angle = 90, code = 3)
-  arrows(plot_data$sulfide_uM, plot_data$SRB_Kmet_mean - plot_data$SRB_Kmet_se,
-         plot_data$sulfide_uM, plot_data$SRB_Kmet_mean + plot_data$SRB_Kmet_se,
+  arrows(plot_data$sulfide_ppm, plot_data$SRB_Kmet_mean - plot_data$SRB_Kmet_se,
+         plot_data$sulfide_ppm, plot_data$SRB_Kmet_mean + plot_data$SRB_Kmet_se,
          col = color_vector["SRB"],
          length = error_bar_width, angle = 90, code = 3)
   
-  points(x = plot_data$sulfide_uM,
+  points(x = plot_data$sulfide_ppm,
          y = plot_data$nonSRB_Kmet_mean,
          pch = year_vector_hgcA[as.character(year(plot_data$date))],
          cex = point_size,
          col = "gray",
          lwd = 1)
-  points(x = plot_data$sulfide_uM,
+  points(x = plot_data$sulfide_ppm,
          y = plot_data$SRB_Kmet_mean,
          pch = year_vector_hgcA[as.character(year(plot_data$date))],
          cex = point_size,
@@ -170,10 +170,10 @@ plot_Kmet_vs_sulfide_guilds <- function() {
 #### Set up function to generate colored points ####
 omics_points_function <- function(plot_data, omicType = "MT", guild = "KIR") {
   column_name <- paste(omicType, guild, "coverage_mean", sep = "_")
-  plot_data_temp <- plot_data[, c("date", "sulfide_uM", column_name)] %>%
+  plot_data_temp <- plot_data[, c("date", "sulfide_ppm", column_name)] %>%
     filter((!is.na(.data[[column_name]]))) %>%
     as.data.frame()
-  points(x = plot_data_temp[, "sulfide_uM"],
+  points(x = plot_data_temp[, "sulfide_ppm"],
          y = plot_data_temp[, column_name],
          pch = year_vector_hgcA[as.character(year(plot_data_temp$date))],
          col = color_vector[guild],
@@ -183,13 +183,13 @@ omics_points_function <- function(plot_data, omicType = "MT", guild = "KIR") {
 omics_points_se_function <- function(plot_data, omicType = "MT", guild = "KIR") {
   mean_column_name <- paste(omicType, guild, "coverage_mean", sep = "_")
   se_column_name <- paste(omicType, guild, "coverage_se", sep = "_")
-  plot_data_temp <- plot_data[, c("date", "sulfide_uM", mean_column_name, se_column_name)] %>%
+  plot_data_temp <- plot_data[, c("date", "sulfide_ppm", mean_column_name, se_column_name)] %>%
     filter(!is.na(.data[[mean_column_name]]),
            !is.na(.data[[se_column_name]])) %>%
     as.data.frame()
   
-  arrows(plot_data_temp[, "sulfide_uM"], plot_data_temp[, mean_column_name] - plot_data_temp[, se_column_name],
-         plot_data_temp[, "sulfide_uM"], plot_data_temp[, mean_column_name] + plot_data_temp[, se_column_name],
+  arrows(plot_data_temp[, "sulfide_ppm"], plot_data_temp[, mean_column_name] - plot_data_temp[, se_column_name],
+         plot_data_temp[, "sulfide_ppm"], plot_data_temp[, mean_column_name] + plot_data_temp[, se_column_name],
          length = error_bar_width, angle = 90, code = 3,
          col = color_vector[guild])
 }
@@ -202,18 +202,18 @@ hgcA_vs_sulfide_plot <- function(ylabel, yscale, omicType) {
                          sulfide_data) %>%
     mutate(identifier = paste(seqType, metabolic_assignment,
                               sep = "_")) %>%
-    select(date_depth, date, sulfide_uM, identifier, coverage_mean, coverage_se) %>%
+    select(date_depth, date, sulfide_ppm, identifier, coverage_mean, coverage_se) %>%
     gather(key = metric,
            value = value,
            -c(1:4)) %>%
     mutate(ID_metric = paste(identifier, metric, sep = "_")) %>%
-    select(date_depth, date, sulfide_uM, ID_metric, value) %>%
+    select(date_depth, date, sulfide_ppm, ID_metric, value) %>%
     spread(key = ID_metric,
            value = value)
     
   plot(x = NULL,
        y = NULL,
-       xlim = c(0, 150),
+       xlim = c(0, 5),
        ylim = yscale,
        xlab = "",
        ylab = "")
@@ -228,7 +228,7 @@ hgcA_vs_sulfide_plot <- function(ylabel, yscale, omicType) {
            omics_points_function(plot_data, omicType, guild_to_plot)
          })
   
-  title(xlab = expression("Sulfide (µM)"),
+  title(xlab = expression("Sulfide (mg/L)"),
         cex.lab = 1.2,
         line = 2)
   title(ylab = ylabel,
