@@ -406,7 +406,7 @@ for (date_depth_label in unique(plot_data$date_depth)) {
 
 #### Plot: Metatranscriptomes totals ####
 # Total metatranscriptomes y-axis
-MT_totals_max <- 8
+MT_totals_max <- 12
 screen(i)
 par(mar = margins_to_use)
 empty_plot_function()
