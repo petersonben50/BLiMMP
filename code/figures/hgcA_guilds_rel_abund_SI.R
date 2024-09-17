@@ -55,11 +55,11 @@ hgcA_abundance_guilds <- hgcA_abundance %>%
 #### Read in sulfide data ####
 sulfide_data <- read.csv("dataFinal/water_chem_data.csv") %>%
   group_by(date, depth) %>%
-  summarize(sulfide_uM = mean(sulfide_uM, na.rm = TRUE)) %>%
+  summarize(sulfide_ppm = mean(sulfide_ppm, na.rm = TRUE)) %>%
   ungroup() %>%
   mutate(date_depth = paste(date, ":", depth, "m",
                             sep = "")) %>%
-  select(date, date_depth, sulfide_uM)
+  select(date, date_depth, sulfide_ppm)
 
 
 #### hgcA gene statistics ####
@@ -107,11 +107,11 @@ hgcA_abundance_data_RA %>%
 #### Read in sulfide data ####
 sulfide_data <- read.csv("dataFinal/water_chem_data.csv") %>%
   group_by(date, depth) %>%
-  summarize(sulfide_uM = mean(sulfide_uM, na.rm = TRUE)) %>%
+  summarize(sulfide_ppm = mean(sulfide_ppm, na.rm = TRUE)) %>%
   ungroup() %>%
   mutate(date_depth = paste(date, ":", depth, "m",
                             sep = "")) %>%
-  select(date_depth, sulfide_uM)
+  select(date_depth, sulfide_ppm)
 
 
 #### Read in metadata ####
@@ -142,8 +142,8 @@ names(color_vector) <- c("KIR", "SRB", "RESP", "FERM", "UNK")
 plot_data <- hgcA_abundance_data_RA %>%
   left_join(omic_metadata) %>%
   left_join(sulfide_data) %>%
-  arrange(sulfide_uM) %>%
-  select(metabolic_assignment, omic_type, date_depth, groupID, coverage, rel_cov, sulfide_uM) %>%
+  arrange(sulfide_ppm) %>%
+  select(metabolic_assignment, omic_type, date_depth, groupID, coverage, rel_cov, sulfide_ppm) %>%
   mutate(date_depth = gsub(":", "\n", date_depth))
 plot_data <- plot_data %>%
   mutate(date_depth = factor(date_depth,
@@ -222,7 +222,7 @@ plot_sulfide <- function(DATE_DEPTH = "2021-10-14\n14.2m") {
   temp_data <- sulfide_data %>%
     mutate(date_depth = gsub(":", "\n", date_depth)) %>%
     filter(date_depth == DATE_DEPTH) %>%
-    select(sulfide_uM) %>%
+    select(sulfide_ppm) %>%
     as.matrix()
   barplot(temp_data,
             beside = TRUE,
@@ -317,7 +317,7 @@ for (date_depth_label in unique(plot_data$date_depth)) {
 #### Plot: sulfide ####
 # Sulfide y-axis
 screen(i)
-sulfide_max <- 150
+sulfide_max <- 5
 par(mar = margins_to_use)
 empty_plot_function()
 axis(side = 4,
@@ -330,7 +330,7 @@ axis(side = 4,
      hadj = 1)
 text(x = 0.5,
      y = 0.5,
-     labels = "Sulfide (µM)",
+     labels = "Sulfide\n(mg/L)",
      cex = 0.7,
      srt = 90)
 i <- i + 1
@@ -345,7 +345,7 @@ for (date_depth_label in unique(plot_data$date_depth)) {
 
 #### Plot: metagenomes totals ####
 # Total metagenomes y-axis
-MG_totals_max <- 15
+MG_totals_max <- 20
 screen(i)
 par(mar = margins_to_use)
 empty_plot_function()
