@@ -14,7 +14,8 @@ cb.translator <- readRDS("references/colorblind_friendly_colors.rds")
 
 #### Read in sulfide data from incubations, combine with metadata ####
 sulfide_data_MA <- read.csv("dataFinal/incubation_sulfide_data.csv",
-                            stringsAsFactors = FALSE)
+                            stringsAsFactors = FALSE) %>%
+  mutate(S_conc_ppm = S_conc_uM * 32.06 / 1000)
 
 
 
@@ -23,19 +24,19 @@ sulfide_data_WC <- read.csv("dataFinal/water_chem_data.csv",
                             stringsAsFactors = FALSE) %>%
   rename(startDate = date) %>%
   group_by(startDate, depth) %>%
-  summarize(original_sulfide_uM = mean(sulfide_uM, na.rm = TRUE))
+  summarize(original_sulfide_ppm = mean(sulfide_ppm, na.rm = TRUE))
 
 
 #### Join sulfide data ####
 sulfide_data <- left_join(sulfide_data_MA,
                           sulfide_data_WC) %>%
-  mutate(delta_sulfide_uM = (S_conc_uM - original_sulfide_uM)) %>%
-  select(tripID, incubationID, startDate, depth, filtered, treatment, incubationTimePoint, durationInDays, S_conc_uM, delta_sulfide_uM, original_sulfide_uM) %>%
+  mutate(delta_sulfide_ppm = (S_conc_ppm - original_sulfide_ppm)) %>%
+  select(tripID, incubationID, startDate, depth, filtered, treatment, incubationTimePoint, durationInDays, S_conc_ppm, delta_sulfide_ppm, original_sulfide_ppm) %>%
   filter(incubationTimePoint != "t3") %>%
   group_by(tripID, incubationID, startDate, depth, filtered, treatment, incubationTimePoint, durationInDays) %>%
-  summarize(S_conc_uM = mean(S_conc_uM),
-            delta_sulfide_uM = mean(delta_sulfide_uM),
-            original_sulfide_uM = mean(original_sulfide_uM)) %>%
+  summarize(S_conc_ppm = mean(S_conc_ppm),
+            delta_sulfide_ppm = mean(delta_sulfide_ppm),
+            original_sulfide_ppm = mean(original_sulfide_ppm)) %>%
   ungroup()
 
 rm(sulfide_data_MA,
@@ -66,7 +67,7 @@ plot.sulfide.levels <- function(start.date.of.interest,
                                 min.concentration = 0,
                                 legend.position.to.use = c(0.8, 0.2),
                                 color.vector.to.use = color.vector,
-                                number.of.days = 2,
+                                number.of.days = 4,
                                 conc.range = c(0, 100),
                                 xlab.to.use = NULL,
                                 ylab.to.use = NULL,
@@ -78,8 +79,9 @@ plot.sulfide.levels <- function(start.date.of.interest,
            depth == depth.of.interest) %>%
     arrange(durationInDays) %>%
     ggplot(aes(x = durationInDays,
-               y = S_conc_uM,
+               y = S_conc_ppm,
                color = treatment,
+               fill = treatment,
                group = incubationID)) +
     geom_point() +
     geom_line() +
@@ -90,7 +92,7 @@ plot.sulfide.levels <- function(start.date.of.interest,
     geom_hline(yintercept = sulfide_data %>%
                  filter(startDate == start.date.of.interest,
                         depth == depth.of.interest) %>%
-                 select(original_sulfide_uM) %>%
+                 select(original_sulfide_ppm) %>%
                  unlist(use.names = FALSE) %>% mean(),
                colour = cb.translator["reddishpurple"]) +
     theme_bw() +
@@ -140,23 +142,24 @@ plot.sulfide.levels <- function(start.date.of.interest,
 #### Plots: Generate sulfide plots for all locations ####
 sept.2020.upper <- plot.sulfide.levels(start.date.of.interest = "2020-09-02",
                                        depth.of.interest = 11,
-                                       max.concentration = 20,
+                                       max.concentration = 0.6,
+                                       min.concentration = 0,
                                        legend.position.to.use = "none",
                                        number.of.days = 4,
-                                       ylab.to.use = "Sulfide (µM)",
+                                       ylab.to.use = "Sulfide (mg/L)",
                                        xlab.to.use = "Days")
 
 sept.2020.mid <- plot.sulfide.levels(start.date.of.interest = "2020-09-02",
                                      depth.of.interest = 15.5,
-                                     max.concentration = 50,
-                                     min.concentration = -5,
+                                     max.concentration = 2,
+                                     min.concentration = 0,
                                      legend.position.to.use = "none",
                                      number.of.days = 4,
                                      xlab.to.use = "Days")
 
 sept.2020.bottom <- plot.sulfide.levels(start.date.of.interest = "2020-09-02",
                                         depth.of.interest = 20.7,
-                                        max.concentration = 150,
+                                        max.concentration = 5,
                                         legend.position.to.use = "none",
                                         number.of.days = 4,
                                         xlab.to.use = "Days")
@@ -164,10 +167,10 @@ sept.2020.bottom <- plot.sulfide.levels(start.date.of.interest = "2020-09-02",
 
 oct.2020.upper <- plot.sulfide.levels(start.date.of.interest = "2020-10-10",
                                       depth.of.interest = 15.7,
-                                      max.concentration = 20,
+                                      max.concentration = 0.6,
                                       legend.position.to.use = "none",
                                       number.of.days = 4,
-                                      ylab.to.use = "Sulfide (µM)",
+                                      ylab.to.use = "Sulfide (mg/L)",
                                       xlab.to.use = "Days")
 empty.plot <- sept.2020.bottom + theme_void() +
   theme(legend.position = c(0.5, 0.5)) +
@@ -177,8 +180,7 @@ empty.plot <- sept.2020.bottom + theme_void() +
   labs(subtitle = "")
 oct.2020.bottom <- plot.sulfide.levels(start.date.of.interest = "2020-10-10",
                                        depth.of.interest = 20.9,
-                                       max.concentration = 120,
-                                       min.concentration = -5,
+                                       max.concentration = 5,
                                        legend.position.to.use = "none",
                                        number.of.days = 4,
                                        xlab.to.use = "Days")
@@ -186,39 +188,39 @@ oct.2020.bottom <- plot.sulfide.levels(start.date.of.interest = "2020-10-10",
 
 sept.2021.upper <- plot.sulfide.levels(start.date.of.interest = "2021-09-10",
                                        depth.of.interest = 10.8,
-                                       max.concentration = 10,
+                                       max.concentration = 0.6,
                                        legend.position.to.use = "none",
-                                       ylab.to.use = "Sulfide (µM)",
+                                       ylab.to.use = "Sulfide (mg/L)",
                                        xlab.to.use = "Days")
 
 sept.2021.mid <- plot.sulfide.levels(start.date.of.interest = "2021-09-10",
                                      depth.of.interest = 11.9,
-                                     max.concentration = 50,
+                                     max.concentration = 2,
                                      legend.position.to.use = "none",
                                      xlab.to.use = "Days")
 
 sept.2021.bottom <- plot.sulfide.levels(start.date.of.interest = "2021-09-10",
                                         depth.of.interest = 19.9,
-                                        max.concentration = 150,
+                                        max.concentration = 5,
                                         legend.position.to.use = "none",
                                         xlab.to.use = "Days")
 
 oct.2021.upper <- plot.sulfide.levels(start.date.of.interest = "2021-10-14",
                                       depth.of.interest = 14.2,
-                                      max.concentration = 10,
+                                      max.concentration = 0.6,
                                       legend.position.to.use = "none",
-                                      ylab.to.use = "Sulfide (µM)",
+                                      ylab.to.use = "Sulfide (mg/L)",
                                       xlab.to.use = "Days")
 
 oct.2021.mid <- plot.sulfide.levels(start.date.of.interest = "2021-10-14",
                                     depth.of.interest = 15.2,
-                                    max.concentration = 100,
+                                    max.concentration = 4,
                                     legend.position.to.use = "none",
                                     xlab.to.use = "Days")
 
 oct.2021.bottom <- plot.sulfide.levels(start.date.of.interest = "2021-10-14",
                                        depth.of.interest = 19.9,
-                                       max.concentration = 200,
+                                       max.concentration = 6.5,
                                        legend.position.to.use = "none",
                                        xlab.to.use = "Days")
 
