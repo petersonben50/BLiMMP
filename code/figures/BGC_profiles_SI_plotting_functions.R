@@ -35,7 +35,7 @@ plot.exo.data <- function(exo.data.to.use = exo.data,
       tck = -0.008)
   if (plot_legend_only == "NO") {
     #### Exo variables ####
-    DO_fudge_factor <- 15
+    DO_fudge_factor <- 12
     turb_fudge_factor <- 0.5
     
     #### Isolate needed exo data ####
@@ -77,8 +77,8 @@ plot.exo.data <- function(exo.data.to.use = exo.data,
     par(mgp = c(1.5, -0.3, 0))
     axis(1,
          line = axis_line_1,
-         at = seq(0, 10, by = 5),
-         labels = seq(0, 10, by = 5)*DO_fudge_factor,
+         at = seq(0, 10, by = 2.5),
+         labels = seq(0, 10, by = 2.5)*DO_fudge_factor,
          cex.axis = axis_tick_label_size,
          gap.axis = -1,
          padj = 0)
@@ -142,8 +142,8 @@ plot_metal_data <- function(date.of.sampling,
   names(point.vector) <- names(color.vector)
   line.vector <- c(2, 1, 2, 1)
   names(line.vector) <- names(color.vector)
-  naming.vector <- c("Part. Mn (mg/L)", "FP Mn (mg/L)",
-                     "Part. Fe (mg/L)", "FP Fe (mg/L)")
+  naming.vector <- c("p.Mn (mg/L)", "f.Mn (mg/L)",
+                     "p.Fe (mg/L)", "f.Fe (mg/L)")
   names(line.vector) <- names(color.vector)
   
   fudge_vector <- c(rep(25, 4))
@@ -347,7 +347,7 @@ plot_filt_Hg_profile <- function(date.of.sampling = "2021-09-10",
   names(point.vector) <- names(color.vector)
   line.vector <- c(2, 1, 4)
   names(line.vector) <- names(color.vector)
-  naming.vector <- c("FP Hg(II)", "FP MeHg", "% MeHg")
+  naming.vector <- c("f.Hg(II)", "f.MeHg", "% MeHg")
   names(line.vector) <- names(color.vector)
   
   fudge_vector <- c(rep(10, 2), 0.1)
@@ -412,12 +412,12 @@ plot_filt_Hg_profile <- function(date.of.sampling = "2021-09-10",
          padj = 0)
     
     #### Add axis labels ####
-    mtext(paste("FP Hg (ng/L)",
+    mtext(paste("f.Hg (ng/L)",
                 sep = ""),
           side = 1,
           line = axis_label_line_1,
           cex = axis_label_size)
-    mtext(paste("FP MeHg (%)",
+    mtext(paste("f.MeHg (%)",
                 sep = ""),
           side = 1,
           line = axis_label_line_2,
@@ -456,7 +456,7 @@ plot_part_Hg_profile <- function(date.of.sampling = "2021-09-10",
   names(point.vector) <- names(color.vector)
   line.vector <- c(2, 1, 4)
   names(line.vector) <- names(color.vector)
-  naming.vector <- c("Part. Hg(II)", "Part. MeHg", "% Part. MeHg")
+  naming.vector <- c("p.Hg(II)", "p.MeHg", "% p.MeHg")
   names(line.vector) <- names(color.vector)
   
   fudge_vector <- c(rep(10, 2), 0.1)
@@ -521,12 +521,12 @@ plot_part_Hg_profile <- function(date.of.sampling = "2021-09-10",
          padj = 0)
     
     #### Add axis labels ####
-    mtext(paste("Part. Hg (ng/L)",
+    mtext(paste("p.Hg (ng/L)",
                 sep = ""),
           side = 1,
           line = axis_label_line_1,
           cex = axis_label_size)
-    mtext(paste("Part. MeHg (%)",
+    mtext(paste("p.MeHg (%)",
                 sep = ""),
           side = 1,
           line = axis_label_line_2,
@@ -565,7 +565,7 @@ plot_part_part_Hg_profile <- function(date.of.sampling = "2021-09-10",
   names(point.vector) <- names(color.vector)
   line.vector <- c(2, 1)
   names(line.vector) <- names(color.vector)
-  naming.vector <- c("Part. Hg(II)", "Part. MeHg")
+  naming.vector <- c("p.Hg(II)", "p.MeHg")
   names(line.vector) <- names(color.vector)
   fudge_vector <- 0.05
   
@@ -620,7 +620,7 @@ plot_part_part_Hg_profile <- function(date.of.sampling = "2021-09-10",
          padj = 0)
     
     #### Add axis labels ####
-    mtext(paste("Part. Hg (ng/g)",
+    mtext(paste("p.Hg (ng/g)",
                 sep = ""),
           side = 1,
           line = axis_label_line_1,

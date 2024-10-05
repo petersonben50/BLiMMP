@@ -30,7 +30,7 @@ plot.exo.data <- function(exo.data.to.use = exo.data,
   par(mar = c(0, 0, 0, 0),
       tck = -0.008)
   #### Exo variables ####
-  DO_fudge_factor <- 15
+  DO_fudge_factor <- 12
   turb_fudge_factor <- 0.5
   
   #### Isolate needed exo data ####
@@ -92,8 +92,8 @@ plot.exo.data <- function(exo.data.to.use = exo.data,
        padj = 0)
   axis(1,
        line = 2,
-       at = seq(0, 10, by = 2),
-       labels = seq(0, 10, by = 2)*DO_fudge_factor,
+       at = seq(0, 10, by = 2.5),
+       labels = seq(0, 10, by = 2.5)*DO_fudge_factor,
        cex.axis = axis_tick_label_size,
        gap.axis = -1,
        padj = 0)
@@ -162,7 +162,7 @@ plot_redox_data <- function(date.of.sampling,
   names(point.vector) <- names(color.vector)
   line.vector <- c(2, 1, 2, 1)
   names(line.vector) <- names(color.vector)
-  naming.vector <- c("Part. Mn (mg/L)", "FP Mn (mg/L)",
+  naming.vector <- c("p.Mn (mg/L)", "f.Mn (mg/L)",
                      "Sulfate (mg/L)", "Sulfide (mg/L)")
   names(line.vector) <- names(color.vector)
   
@@ -283,7 +283,7 @@ plot.Hg.profile <- function(date.of.sampling = "2021-09-10",
   names(point.vector) <- names(color.vector)
   line.vector <- c(2, 1, 4)
   names(line.vector) <- names(color.vector)
-  naming.vector <- c("FP Hg(II)", "FP MeHg", "% MeHg")
+  naming.vector <- c("f.Hg(II)", "f.MeHg", "% MeHg")
   names(line.vector) <- names(color.vector)
   
   fudge_vector <- c(rep(10, 2), 0.1)
