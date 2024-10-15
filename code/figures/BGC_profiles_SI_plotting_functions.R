@@ -714,10 +714,10 @@ plot_C_profile <- function(date.of.sampling = "2021-09-10",
          padj = 0)
     
     #### Add axis labels ####
-    mtext(paste("DOC/SPM (mg/L)",
+    mtext(paste("DOC (mg/L)\nSPM (mg/L)",
                 sep = ""),
           side = 1,
-          line = axis_label_line_1,
+          line = mean(x = c(axis_label_line_1, axis_label_line_2)),
           cex = axis_label_size)
     
     #### Add SWI line ####
