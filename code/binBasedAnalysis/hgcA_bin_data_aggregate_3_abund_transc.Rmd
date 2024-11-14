@@ -1,0 +1,113 @@
+---
+title: "Abundance and transcription of hgcA+ bins"
+author: "Benjamin D. Peterson"
+date: "2024-04-25"
+output: html_document
+---
+
+
+```{r setup, include = FALSE}
+rm(list = ls())
+library(tidyverse)
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(echo = TRUE)
+new.wd <- gsub("\\/[[:alpha:]]+\\/[[:alpha:]]+$", "", getwd())
+knitr::opts_knit$set(root.dir = new.wd)
+rm(new.wd)
+```
+
+First we'll read in the previous aggregation of the bin data.
+
+```{r read_in_bin_data, warning=FALSE, message=FALSE}
+bin_metadata <- readRDS(file = 'dataEdited/bin_based_analyses/bin_data_aggregate_2_metabolism.rds')
+```
+
+
+
+# Metatranscriptome data processing
+
+Next, bring in the metatranscriptome data and normalize it using the normalization vector previously generated.
+The bin RNA data has already been normalized to the effective length of the gene.
+
+```{r normalize_MT_data, message = FALSE }
+NF_vector <- readRDS("dataEdited/metatranscriptomes/normalization_vector.rds")
+
+bin_MT_data <- read.table("dataEdited/bin_based_analyses/final_bin_data/bin_MT_data.tsv",
+                      sep = '\t', header = TRUE) %>%
+  gather(key = mt_id,
+         value = rna_abund_per_eff_length,
+         -c(1:2)) %>%
+  mutate(million_counts_per_liter = rna_abund_per_eff_length*NF_vector[mt_id]/1000000) %>%
+  select(-rna_abund_per_eff_length) %>%
+  ungroup() %>%
+  spread(key = mt_id,
+         value = million_counts_per_liter)
+
+# Isolate the hgcA RNA reads from bins
+bin_hgcA_MT_data <- bin_metadata %>%
+  select(bin_id, hgca_id) %>%
+  rename(gene_id = hgca_id) %>%
+  left_join(bin_MT_data) %>%
+  select(bin_id, all_of(grep("_MT_",
+                             names(bin_MT_data),
+                             value = TRUE))) %>%
+  gather(key = "mt_id",
+         value = "hgcA_MT_reads",
+         -1)
+
+# Get the gyrB transcription data
+bin_gyrB_key <- read.table("dataEdited/bin_based_analyses/final_bin_data/gyrB_to_bin.tsv",
+                            sep = '\t', col.names = c("gene_id", "bin_id"))
+bin_gyrB_MT_data <- bin_gyrB_key %>%
+  left_join(bin_MT_data) %>%
+  select(bin_id, all_of(grep("_MT_",
+                             names(bin_MT_data),
+                             value = TRUE))) %>%
+  # Some bins have multiple gyrB genes, seems that the more abundant one is the correct one.
+  # See analysis in hgcA_transcription.Rmd for more details.
+  group_by(bin_id) %>%
+  summarize_all(max) %>%
+  ungroup() %>%
+  gather(key = "mt_id",
+         value = "gyrB_MT_reads",
+         -1)
+
+# Summarize the total bin MT data.
+bin_total_MT_data <- bin_MT_data %>%
+  select(-gene_id) %>%
+  group_by(bin_id) %>%
+  summarise_all(sum) %>%
+  ungroup() %>%
+  gather(key = "mt_id",
+         value = "total_MT_reads",
+         -1)
+
+bin_clean_MT_data <- bin_hgcA_MT_data %>%
+  full_join(bin_gyrB_MT_data) %>%
+  full_join(bin_total_MT_data) %>%
+  gather(key = gene_source,
+         value = transcription,
+         -c(1:2)) %>%
+  mutate(gene_source = gsub("_MT_reads", "", gene_source),
+         identifier = paste(gene_source, mt_id, sep = "-")) %>%
+  select(bin_id, identifier, transcription) %>%
+  spread(key = identifier,
+         value = transcription)
+```
+
+Now add this to the bin_metadata file:
+
+```{r add_MT_data, message = FALSE}
+bin_metadata_MT <- bin_metadata %>%
+  left_join(bin_clean_MT_data)
+```
+
+Read out the new data file:
+
+```{r read_out_data, message = FALSE}
+saveRDS(bin_metadata_MT,
+        file = 'dataEdited/bin_based_analyses/bin_data_aggregate_3.rds')
+write.csv(bin_metadata_MT,
+          file = 'dataFinal/hgcA_bins.csv',
+          row.names = FALSE)
+```

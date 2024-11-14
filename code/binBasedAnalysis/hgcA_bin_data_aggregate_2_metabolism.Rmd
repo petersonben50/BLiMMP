@@ -1,0 +1,577 @@
+---
+title: "Metabolic assignment of hgcA+ bins"
+author: "Benjamin D. Peterson"
+date: "2023-12-21"
+output: html_document
+---
+
+```{r setup, include = FALSE}
+rm(list = ls())
+#setwd("/Users/benjaminpeterson/Documents/research/BLiMMP")
+#new.wd <- "/Users/benjaminpeterson/Documents/research/BLiMMP"
+library(tidyverse)
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(echo = TRUE)
+new.wd <- gsub("\\/[[:alpha:]]+\\/[[:alpha:]]+$", "", getwd())
+knitr::opts_knit$set(root.dir = new.wd)
+rm(new.wd)
+```
+
+First let's read in the initial bin data, with the completeness, taxonomy, grouping, etc.
+This is intended to work on the file from the initial bin data aggregation step.
+
+```{r read_in_hgcA_bin_data }
+hgcA_bin_data <- readRDS('dataEdited/bin_based_analyses/bin_data_aggregate_1.rds')
+```
+
+### Batch HMM data
+
+First we'll read in the data that we want to use to classify the different bins metabolically.
+We'll use two primary data sources for this:
+First, we'll use the batch HMM workflow that I've developed.
+Second, we'll use KOFAMscan data, using on the confident hits.
+
+```{r read_in_and_prep_data }
+batch_hmm_data <- read.table("dataEdited/bin_based_analyses/final_bin_data/batch_HMMs_bin_hits.tsv",
+                             sep = '\t',
+                             header = TRUE) %>%
+  group_by(binID, proteinName) %>%
+  summarise(geneIDs = paste0(geneID, collapse = ";")) %>%
+  spread(key = proteinName,
+         value = geneIDs) %>%
+  dplyr::rename(bin_id = binID)
+hgcA_bin_metabolism_assignment <- hgcA_bin_data %>%
+  left_join(batch_hmm_data)
+
+kofamscan_data <- read.table("dataEdited/bin_based_analyses/final_bin_data/kofam_data.tsv",
+                             sep = '\t',
+                             header = FALSE,
+                             col.names = c("bin_id", "delete1", "gene_id", "KOFAM", "delete2", "delete3", "delete4", "gene_info"))
+kofamscan_data <- kofamscan_data %>%
+  select(!any_of(grep("delete", names(kofamscan_data),
+                   value = TRUE)))
+```
+
+# Sulfate-reducing bacteria
+
+First I looked for sulfate-reducing bacteria.
+
+```{r SRBs }
+dsr_bin_info <- hgcA_bin_metabolism_assignment %>%
+  select(bin_id, hms_id, all_of(grep("dsr", names(hgcA_bin_metabolism_assignment))), "aprA") %>%
+  gather(key = gene_name,
+         value = name,
+         -c(1:2)) %>%
+  filter(!is.na(name)) %>%
+  spread(key = gene_name,
+         value = name)
+```
+
+This is pretty clear.
+All 11 of these bins, which fit into 2 HMSs, are clear sulfate-reducers, they have *dsrABD*.
+All but 2 have *aprA* (and the other bin in the HMS does have it), and a previous screen showed they all had *sat*.
+We'll mark all 11 as SRBs.
+
+```{r SRB_bin_list}
+binList_srb <- dsr_bin_info$bin_id
+```
+
+# Nitrate reducers
+
+Next I looked for nitrate reduction capacity.
+
+```{r nitrate_reducers }
+nar_bin_info <- hgcA_bin_metabolism_assignment %>%
+  select(bin_id, hms_id, gtdb_tax, all_of(grep("nar", names(hgcA_bin_metabolism_assignment)))) %>%
+  gather(key = gene_name,
+         value = name,
+         -c(1:3)) %>%
+  filter(!is.na(name)) %>%
+  spread(key = gene_name,
+         value = name)
+binList_nar <- nar_bin_info$bin_id
+```
+
+One Verruco and one Bacteroidetes with respiratory nitrate reduction.
+*narG* and *narH* show up in the KOFAMscan data as "nitrate reductase / nitrite oxidoreductase", either the alpha or beta subunit.
+Also in the KOFAM scan data is "nitrate reductase (cytochrome)".
+None of the genomes has nirS or nirK, so no full denitrification.
+However, for both bins, they are one of 3-4 bins in an HMS, but the only bin with the narG:
+- For the Bacteroidetes (BLI21_coassembly_anvio_bin_0147), the bin with narG was definitely the most complete.
+The contig with narG just has narH on it as well, at least that's annotated by KOFAMscan.
+Only other MoOR that was identified in this HMS (BLI_hgcA_HMS_0016) was next two an aconitase subunit.
+- For the Verruco (BLI21_coassembly_dasTool_bin_0260), there are 3 other bins in the HMS (BLI_hgcA_HMS_0004). The narG+ one was not manually binned. They all do, however, have cytochrome c oxidase, cytochrome bd oxidase, and complex I, as well as 9-14 MHCs (not many MHCs with 10 multi-heme binding sites, at most 1).
+
+Either way, both of these are probably close enough to be called a high-redox respiratory bin.
+However, we'll just stick to calling them RESP, assuming that the bin is capable of respiration and if it's not using sulfate or methanogenesis, it's probably higher up on the redox ladder.
+
+Looked for nitrate reductases in the KOFAM scan results as well.
+
+```{r nitrate_reductase_cytochrome, message = FALSE }
+check_data <- kofamscan_data %>%
+  filter(grepl("nitrate reductase \\(cytochrome\\)", gene_info)) %>%
+  left_join(hgcA_bin_data %>%
+              select(bin_id, hms_id, gtdb_tax))
+```
+
+Interesting, these are the two sulfate reducers we identified previously.
+These are both under the *napA* classification.
+
+# Terminal oxidases
+
+Let's look at what kind of oxidases are present.
+
+Searched for cytochrome o ubiquinol oxidase, called cyo, but there was nothing.
+
+Next checked out the HMMs for cox and cco genes, which both correspond to cytochrome c oxidase, cbb3-type.
+They correspond to EC7.1.1.9 (https://www.genome.jp/entry/7.1.1.9), a cytochrome-c oxidase with many different names/subsets.
+
+```{r cco_and_cox_oxidases }
+binInfo_cytcOxidase <- hgcA_bin_metabolism_assignment %>%
+  select(bin_id, hms_id, gtdb_tax,
+         all_of(grep("cco", names(hgcA_bin_metabolism_assignment))),
+         all_of(grep("cox", names(hgcA_bin_metabolism_assignment)))) %>%
+  gather(key = gene_name,
+         value = name,
+         -c(1:3)) %>%
+  filter(!is.na(name)) %>%
+  spread(key = gene_name,
+         value = name)
+```
+
+The cox HMM picks up on way more genes than the cco one, and all the ones cco picks up on, cox gets as well.
+We'll just say that all of these bins have a cytochrome-c oxidase in that class.
+
+```{r cytcOxidase_list }
+binList_cytcOxidase <- binInfo_cytcOxidase$bin_id
+```
+
+Last I looked at the cydAB genes, correspond to cytochrome bd terminal oxidase.
+Got cydA with PF01654.hmm, and cydB with TIGR00203.HMM.
+
+```{r cyd_oxidases }
+binInfo_cyd <- hgcA_bin_metabolism_assignment %>%
+  select(bin_id, hms_id, gtdb_tax, all_of(grep("cyd", names(hgcA_bin_metabolism_assignment)))) %>%
+  gather(key = gene_name,
+         value = name,
+         -c(1:3)) %>%
+  filter(!is.na(name)) %>%
+  spread(key = gene_name,
+         value = name)
+```
+
+Most all of these have both A and B annotated; for the bins with no cydB hit in the batch HMMs, a quick look at kofam suggests that these is a downstream subunit IIl, with one exception.
+We'll keep all these bins and describe them as carrying a cytochrome bd terminal oxidase.
+This protein has been described as being involved in microaerobic conditions (https://www.ebi.ac.uk/interpro/entry/pfam/PF01654/).
+
+```{r cyd_list }
+binList_cyd <- binInfo_cyd$bin_id
+```
+
+
+
+
+
+# Electron transport chain Complex I
+
+I looked for three different types of complex I of the electron transport chain in my bins.
+The purpose of looking for these was to identify genomes potentially capable of respiration.
+For more information on these complexes, see Kaila and Wikström 2021 (DOI:10.1038/s41579-020-00486-4).
+
+### nuo
+
+First I looked at the batch HMM data for complex I (*nuo*) genes.
+
+```{r nuo }
+binInfo_nuo <- hgcA_bin_metabolism_assignment %>%
+  select(bin_id, hms_id, gtdb_tax, all_of(grep("nuo", names(hgcA_bin_metabolism_assignment)))) %>%
+  gather(key = gene_name,
+         value = name,
+         -c(1:3)) %>%
+  filter(!is.na(name)) %>%
+  spread(key = gene_name,
+         value = name)
+```
+
+However, this data was a little noisy and hard to interpret.
+Instead, I looked in the KOFAM scan data and identified bins likely to have complex I.
+
+```{r ETC_manual_ID }
+
+ETC_S1_manual <- c("BLI20_assembly002_dasTool_bin_0004", "BLI20_coassembly_anvio_bin_0009", "BLI20_coassembly_anvio_bin_0027",
+                   "BLI20_coassembly_dasTool_bin_0007", "BLI20_coassembly_dasTool_bin_0100", "BLI21_assembly102_anvio_bin_0033",
+                   "BLI21_assembly102_dasTool_bin_0076", "BLI21_assembly103_anvio_bin_0017", "BLI21_assembly103_anvio_bin_0023",
+                   "BLI21_assembly103_dasTool_bin_0044", "BLI21_assembly103_dasTool_bin_0050", "BLI21_assembly105_anvio_bin_0010",
+                   "BLI21_assembly105_dasTool_bin_0059", "BLI21_assembly105_dasTool_bin_0060", "BLI21_assembly105_dasTool_bin_0068",
+                   "BLI21_assembly106_anvio_bin_0003", "BLI21_assembly106_anvio_bin_0010", "BLI21_assembly106_dasTool_bin_0028",
+                   "BLI21_assembly106_dasTool_bin_0040", "BLI21_assembly106_dasTool_bin_0077", "BLI21_coassembly_anvio_bin_0005",
+                   "BLI21_coassembly_anvio_bin_0085", "BLI21_coassembly_anvio_bin_0107", "BLI21_coassembly_anvio_bin_0128",
+                   "BLI21_coassembly_anvio_bin_0147", "BLI21_coassembly_dasTool_bin_0029", "BLI21_coassembly_dasTool_bin_0158",
+                   "BLI21_coassembly_dasTool_bin_0178", "BLI21_coassembly_dasTool_bin_0253", "BLI21_coassembly_dasTool_bin_0256",
+                   "BLI21_coassembly_dasTool_bin_0260", "BLI21_coassembly_dasTool_bin_0275")
+```
+
+This was a slog. One thing to note is that many bins have genes annotated as *nuoEF*, but these are not necessarily indicative of a complex I.
+A quicker way to do this, and perhaps a gut check, is to select all the "NADH-quinone oxidoreductase" entries, filter out all the *nuoEF* genes, then only keep bins that have more than 3 entries.
+
+```{r ETC_manual_better method}
+ETC_S1_auto <- kofamscan_data %>%
+  filter(grepl("NADH-quinone oxidoreductase", gene_info)) %>%
+  filter(!grepl("subunit [E-F]", gene_info)) %>%
+  group_by(bin_id) %>%
+  summarise(subunit_count = n()) %>%
+  filter(subunit_count > 3) %>%
+  select(bin_id) %>%
+  unlist(use.names = FALSE)
+all(sort(ETC_S1_auto) == sort(ETC_S1_manual))
+```
+
+These match up, little extra confidence that the bins were correctly annotated.
+
+
+### nqr
+
+Next I looked for the nqr gene set, which is the sodium-translocating complex I and contains nqrA, B, C, D, E and F
+For this, I just looked in the KOFAMscan data for NADH:ubiquinone oxidoreductase, which I had found to identify Na+-transporting NADH:ubiquinone oxidoreductase subunits.
+Many of these bins have just D, E, and/or F subunits, let's look for bins with more than 3 types of subunits.
+This pathway shares homology with Rnf.
+Nice review by Barquera 2014 on the the biochemistry of this gene.
+
+```{r nqr_search }
+nqr_data <- kofamscan_data %>%
+  filter(bin_id %in% (kofamscan_data %>%
+                        filter(grepl("EC:7.2.1.1", gene_info)) %>% # This returns 204 results, which matches my manual filtering.
+                        group_by(bin_id) %>%
+                        summarise(nqr_count = n()) %>%
+                        filter(nqr_count > 3) %>%
+                        select(bin_id) %>%
+                        unlist(use.names = FALSE)),
+         grepl("EC:7.2.1.1", gene_info)) 
+# Summarize what we have
+nqr_data_counts <- nqr_data %>%
+  group_by(bin_id) %>%
+  summarise(nqr_count = n()) %>%
+  ungroup()
+test <- hgcA_bin_metabolism_assignment %>%
+  filter(bin_id %in% nqr_data_counts$bin_id)
+```
+
+Decided to label any bin with 4 or more *nqr* subunits as nqr+.
+All of the nqr+ bins also have *rnf*.
+
+```{r nqr_designation }
+binList_nqr <- nqr_data_counts %>%
+  select(bin_id) %>%
+  unlist(use.names = FALSE)
+```
+
+
+# Multiheme cytochrome c
+
+One of the metrics I use to determine an obligate fermenter vs. an organism capable of respiration is the presence of multiheme cytochrome c (MHC) genes.
+Obligate fermenters tend to have low numbers of MHCs.
+MHCs are identified by CXXCH motifs, and I (somewhat arbitrarily) define "multi" as three.
+I use a custom python script written by Shaomei He to determine these.
+I looked at two metrics: number of MHCs with 3 heme-binding motifs, and numbers of MHCs with 10 heme-binding motifs.
+
+```{r MHC_data, message=FALSE}
+MHC_raw_data <- read.table("dataEdited/bin_based_analyses/final_bin_data/heme3_count_bins.tsv",
+                       header = TRUE) %>%
+  dplyr::rename(bin_id = binID)
+MHC_data_3 <- MHC_raw_data %>%
+  group_by(bin_id) %>%
+  summarize(MHCs_3HBS = n())
+MHC_data_10 <- MHC_raw_data %>%
+  filter(hemeCount >= 10) %>%
+  group_by(bin_id) %>%
+  summarize(MHCs_10HBS = n())
+MHC_data <- hgcA_bin_data %>%
+  select(bin_id, hms_id, gtdb_tax) %>%
+  left_join(MHC_data_3,) %>%
+  left_join(MHC_data_10) %>%
+  mutate(MHCs_3HBS = replace_na(MHCs_3HBS, 0)) %>%
+  mutate(MHCs_10HBS = replace_na(MHCs_10HBS, 0))
+```
+
+# Metabolic guild assignment
+
+
+```{r aggregate_data }
+assignment_table <- hgcA_bin_data %>%
+  select(bin_id, hms_id, hgca_id, completeness, contamination, genome_length, N50, GC,
+         gtdb_tax) %>%
+  mutate(SRB = (bin_id %in% binList_srb),
+         nitrate_reducer = (bin_id %in% binList_nar),
+         cyt_c = (bin_id %in% binList_cytcOxidase),
+         cyd = (bin_id %in% binList_cyd)) %>%
+  left_join(MHC_data)
+assignment_table$complexI[(assignment_table$bin_id %in% ETC_S1_manual)] <- "nuo"
+assignment_table$complexI[(assignment_table$bin_id %in% binList_nqr)] <- "nqr"
+assignment_table$complexI[(assignment_table$bin_id %in% ETC_S1_manual) &
+                            (assignment_table$bin_id %in% binList_nqr)] <- "nuo;nqr"
+#assignment_table %>%
+#  filter(hms_id != "BLI_hgcA_HMS_0006",
+#         !(hms_id %in% c("BLI_hgcA_bin_0001", "BLI_hgcA_bin_0004")))
+```
+
+There is a strong overlap between bins with high MHC content and the *nuo* complex I.
+However, the bins in BLI_hgcA_HMS_0006 have high MHC content (~12-14) and no complex I, either *nuo* or *nqr*.
+BLI_hgcA_bin_0001 and BLI_hgcA_bin_0004 also show MHC but no complex I of either type.
+They're all in the UBA1067 family, within the RFP12 order in Kiritimatiellae.
+Only ones in that family have this scheme.
+The bins in HMS BLI_hgcA_HMS_0011 (order UBA8416 in Kiritimatiellae) have no cytochrome c or bd, *nuo*, *dsr*, or *nar*, but do have 4-7 MHCs and an *nqr*.
+
+Conversely, the HMS BLI_hgcA_HMS_0019 (Actinobacteriota, genus Fen713) has three bins that have nuo but few to no MHCs, no cyd, no cytochrome c oxidase.
+These three each have a hit against the MoOR HMM, but none of them are assigned in KOFAM, which makes me think they're divergent MoOR genes. 
+
+Otherwise, all bins with two or less MHCs do not have cytochrome c oxidases, cytochrome bd oxidates, complex I machinery, dissimilatory sulfite reductase, or membrane-associated nitrate reductase.
+Technically, bin BLI21_coassembly_dasTool_bin_0331 in HMS BLI_hgcA_HMS_0024 does have a gene annotated as cytochrome c oxidase, but the other bin in the HMS does not, and it has no MHCs, so I think the cyt_c annotation is in error.
+All of these I will declare as obligately fermentative.
+
+```{r obligate_fermenters}
+binAssignment_obligateFermenters <- assignment_table %>%
+  filter(MHCs_3HBS <= 2) %>%
+  select(bin_id) %>%
+  unlist(use.names = FALSE)
+```
+
+Now I started to put these together.
+
+```{r add_metabolic_code_to_hgcA_bin_data }
+hgcA_bin_data_final <- hgcA_bin_data
+hgcA_bin_data_final$meta_code <- NA
+hgcA_bin_data_final$meta_code[hgcA_bin_data_final$bin_id %in% binAssignment_obligateFermenters] <- "OB_FERM"
+hgcA_bin_data_final$meta_code[hgcA_bin_data_final$bin_id %in% binList_srb] <- "SRB"
+hgcA_bin_data_final$meta_code[hgcA_bin_data_final$bin_id %in% binList_nar] <- "FERM"
+```
+
+Let's see what we have, and who is lacking an assignment.
+While developing this document, I ran this after each new segment below.
+
+```{r check_for_missing_assignments }
+check_for_missing_assignments <- hgcA_bin_metabolism_assignment %>%
+  filter(bin_id %in% (hgcA_bin_data_final %>%
+           filter(is.na(meta_code)) %>%
+           select(bin_id) %>%
+           unlist(use.names = FALSE)))
+```
+
+### BLI_hgcA_HMS_0011
+
+All of the bins in BLI_hgcA_HMS_0011 have *nqr* and MHCs, but not clear what the TEAPs.
+Each bin in the HMS has a hit to the pcc_porin HMM, so let's check the neighborhood:
+- BLI21_assembly103_000000002038_7: Not near an MHC. Near a HemX protein (whatever that is) and a cytochrome c biogenesis protein.
+- The other are the same.
+All bins also have nrfAH, but no molybdopterin oxidoreductases.
+Let's call this "RESP", given that the genomes likely have some capacity for respiration.
+
+```{r meta_code_for_HMS_0011 }
+hgcA_bin_data_final$meta_code[hgcA_bin_data_final$bin_id %in% (hgcA_bin_metabolism_assignment %>%
+                                                                 filter(hms_id == "BLI_hgcA_HMS_0011") %>%
+                                                                 select(bin_id) %>%
+                                                                 unlist(use.names = FALSE))] <- "RESP"
+```   
+
+### BLI_hgcA_HMS_0006
+
+The HMS BLI_hgcA_HMS_0006 is also missing an assignment.
+All the bins have complete Rnf sequences and *nrfAH*.
+Several have pcc_porin hits, which don't have annotations in KOFAMscan, and are close to HemX protein, glutamyl-tRNA reductase, and Fe-coproporphyrin III synthase.
+Not sure if that means anything.
+They all have at least 10 MHCs and *cyd*.
+No complex I (neither *nuo* nor *nqr*) though and no MoOR hits.
+Let's look more closely at the MHCs, see if there are hints in the KOFAMscan results.
+
+```{r kofam_entries_for_MHCs_in_BLI_hgcA_HMS_0006 }
+MHC_genes_in_HMS_0006 <- kofamscan_data %>%
+  filter(gene_id %in% (MHC_raw_data %>%
+                         filter(bin_id %in% (hgcA_bin_data %>%
+                                               filter(hms_id == "BLI_hgcA_HMS_0006") %>%
+                                               select(bin_id) %>%
+                                               unlist(use.names = FALSE))) %>%
+                         select(geneID) %>%
+                         unlist(use.names = FALSE)))
+```
+
+The only ones that are present in the KOFAMscan data are the nitrite reductases.
+Let's poke around, see what else is here.
+
+```{r kofam_entries_for_BLI_hgcA_HMS_0006 }
+kofam_genes_in_HMS_0006 <- kofamscan_data %>%
+  filter(bin_id %in% (hgcA_bin_data %>%
+                        filter(hms_id == "BLI_hgcA_HMS_0006") %>%
+                        select(bin_id) %>%
+                        unlist(use.names = FALSE)))
+```
+
+Most of these bins have NADH-quinone oxidoreductase subunit E and F.
+These are directly adjacent to a NADP-reducing hydrogenase subunit HndD [EC:1.12.1.3], which is an FeFe hydrogenase.
+Not particularly enlightening.
+
+```{r check_BLI21_coassembly_anvio_bin_0181, include=FALSE}
+test <- kofamscan_data %>%
+  filter(bin_id %in% "BLI21_coassembly_anvio_bin_0181")
+```
+
+I doubt this is a respiratory organism. I think the nitrite reductases and the cytochrome bd oxidase are for oxidative stress protection.
+The cytochrome bd oxidase does not pump protons, simply transfers charge, and has a very high O~2~ affinity, which makes it an efficient detoxifier.
+Maybe that's what the remaining MHCs are for as well.
+I'm going to call this one a "FERM", to distinguish from the "OB_FERM", but will aggregate their abundance for the paper figures.
+
+```{r meta_code_for_HMS_0006 }
+hgcA_bin_data_final$meta_code[hgcA_bin_data_final$bin_id %in% (hgcA_bin_metabolism_assignment %>%
+                                                                 filter(hms_id == "BLI_hgcA_HMS_0006") %>%
+                                                                 select(bin_id) %>%
+                                                                 unlist(use.names = FALSE))] <- "FERM"
+```   
+
+### BLI_hgcA_HMS_0002
+
+The bins in HMS BLI_hgcA_HMS_0002 also don't have an assignment.
+This is clearly "RESP", as the bins have MHCs (including some with >= 10 heme-binding sites), *nuo*, MoORs, and cytochrome c and bd oxidases.
+It's not clear what they respire, but for our purposes we'll stick with "RESP".
+
+```{r meta_code_for_HMS_0002 }
+hgcA_bin_data_final$meta_code[hgcA_bin_data_final$bin_id %in% (hgcA_bin_metabolism_assignment %>%
+                                                                 filter(hms_id == "BLI_hgcA_HMS_0002") %>%
+                                                                 select(bin_id) %>%
+                                                                 unlist(use.names = FALSE))] <- "RESP"
+```
+
+### BLI_hgcA_HMS_0004 and BLI_hgcA_HMS_0016
+
+Both of these HMS have one bin in them that was assigned a RESP based on the presence of a *narG* gene.
+However, a quick glance at the remaining bins shows that they have *nuo*, MHCs, MoORs, oxidases, etc.
+Naming them all as "RESP".
+
+```{r meta_code_for_HMS_0004_and_0016 }
+hgcA_bin_data_final$meta_code[hgcA_bin_data_final$bin_id %in% (hgcA_bin_metabolism_assignment %>%
+                                                                 filter(hms_id %in% c("BLI_hgcA_HMS_0004", "BLI_hgcA_HMS_0016")) %>%
+                                                                 select(bin_id) %>%
+                                                                 unlist(use.names = FALSE))] <- "RESP"
+```
+
+### BLI_hgcA_HMS_0018
+
+Four bins in the Kiritimatiellae class.
+
+```{r kofam_entries_for_BLI_hgcA_HMS_0018 }
+kofam_genes_in_HMS_0018 <- kofamscan_data %>%
+  filter(bin_id %in% (hgcA_bin_data %>%
+                        filter(hms_id == "BLI_hgcA_HMS_0018") %>%
+                        select(bin_id) %>%
+                        unlist(use.names = FALSE)))
+```
+
+
+All of these have *nuo* and the *rnf* chain.
+They also all have *nrfAH*, *cydAB*, and a bunch of MHCs.
+Definitely a respiratory group:
+
+```{r meta_code_for_HMS_0018 }
+hgcA_bin_data_final$meta_code[hgcA_bin_data_final$bin_id %in% (hgcA_bin_metabolism_assignment %>%
+                                                                 filter(hms_id %in% c("BLI_hgcA_HMS_0018")) %>%
+                                                                 select(bin_id) %>%
+                                                                 unlist(use.names = FALSE))] <- "RESP"
+```
+
+
+### BLI_hgcA_HMS_0022
+
+Next we have BLI_hgcA_HMS_0022, which in phylum Actinobacteriota, class Coriobacteriia, genus PHET01.
+Two bins, both incomplete (BLI21_coassembly_anvio_bin_0181 -> 53%, 1.4Gbp long; BLI21_coassembly_dasTool_bin_0253 -> 62%, 1.8 Gbp long).
+Both have a lot of MHCs, including 10 heme-binding sites.
+BLI21_coassembly_dasTool_bin_0253 has *nuo*, but BLI21_coassembly_anvio_bin_0181 does not.
+Could be that it didn't assemble in, given the incompleteness.
+One MoOR.
+
+```{r kofam_entries_for_BLI_hgcA_HMS_0022 }
+kofam_genes_in_HMS_0022 <- kofamscan_data %>%
+  filter(bin_id %in% (hgcA_bin_data %>%
+                        filter(hms_id == "BLI_hgcA_HMS_0022") %>%
+                        select(bin_id) %>%
+                        unlist(use.names = FALSE)))
+```
+
+Let's see if the MHCs correspond to any KOFAM entry.
+
+```{r kofam_entries_for_MHCs_in_BLI_hgcA_HMS_0022 }
+MHC_genes_in_HMS_0022 <- kofamscan_data %>%
+  filter(gene_id %in% (MHC_raw_data %>%
+                         filter(bin_id %in% (hgcA_bin_data %>%
+                                               filter(hms_id == "BLI_hgcA_HMS_0022") %>%
+                                               select(bin_id) %>%
+                                               unlist(use.names = FALSE))) %>%
+                         select(geneID) %>%
+                         unlist(use.names = FALSE)))
+```
+
+Wow, no KOFAMscan results for any of the MHCs in these bins.
+Still, I feel pretty comfortable assigning this a RESP.
+
+```{r meta_code_for_HMS_0022 }
+hgcA_bin_data_final$meta_code[hgcA_bin_data_final$bin_id %in% (hgcA_bin_metabolism_assignment %>%
+                                                                 filter(hms_id %in% c("BLI_hgcA_HMS_0022")) %>%
+                                                                 select(bin_id) %>%
+                                                                 unlist(use.names = FALSE))] <- "RESP"
+```
+
+
+### BLI_hgcA_bin_0001  and BLI_hgcA_bin_0004
+
+These two bins are in the UBA1067 family of Kiritimatiellae.
+The HMS BLI_hgcA_bin_0001 consists only of bin BLI20_coassembly_dasTool_bin_0110.
+The HMS BLI_hgcA_bin_0004 consists only of bin BLI21_coassembly_anvio_bin_0184.
+Just like BLI_hgcA_HMS_0006, they have complete Rnf sequences and *nrfAH*.
+One of them (BLI_hgcA_bin_0001) has a *cyd* and two pcc_porin hits (no KOFAMscan annotations).
+BLI20_coassembly_dasTool_bin_0110 has 9 MHCs and BLI21_coassembly_anvio_bin_0184 has 6 (all have less than 10 heme-binding sites).
+No complex I (neither *nuo* nor *nqr*) though and no MoOR hits.
+Let's look more closely at the MHCs, see if there are hints in the KOFAMscan results.
+
+```{r kofam_entries_for_MHCs_in_BLI_hgcA_HMS_0001_0004 }
+MHC_genes_in_HMSs_0001_0004 <- kofamscan_data %>%
+  filter(gene_id %in% (MHC_raw_data %>%
+                         filter(bin_id %in% (hgcA_bin_data %>%
+                                               filter(hms_id %in% c("BLI_hgcA_bin_0001", "BLI_hgcA_bin_0004")) %>%
+                                               select(bin_id) %>%
+                                               unlist(use.names = FALSE))) %>%
+                         select(geneID) %>%
+                         unlist(use.names = FALSE)))
+```
+
+The only ones that are present in the KOFAMscan data are the nitrite reductases.
+Let's poke around, see what else is here.
+
+```{r kofam_entries_for_BLI_hgcA_HMS_0001_004 }
+kofam_genes_in_HMS_0001_0004 <- kofamscan_data %>%
+  filter(bin_id %in% (hgcA_bin_data %>%
+                        filter(hms_id %in% c("BLI_hgcA_bin_0001", "BLI_hgcA_bin_0004")) %>%
+                        select(bin_id) %>%
+                        unlist(use.names = FALSE)))
+```
+
+I doubt these are respiratory organisms, comparable to how we described BLI_hgcA_bin_0006.
+
+```{r meta_code_for_HMS_0001_004 }
+hgcA_bin_data_final$meta_code[hgcA_bin_data_final$bin_id %in% (hgcA_bin_metabolism_assignment %>%
+                                                                 filter(hms_id %in% c("BLI_hgcA_bin_0001", "BLI_hgcA_bin_0004")) %>%
+                                                                 select(bin_id) %>%
+                                                                 unlist(use.names = FALSE))] <- "FERM"
+```   
+
+ASSIGNMENTS COMPLETE.
+
+```{r check_for_missing_assignments_last }
+check_for_missing_assignments_last <- hgcA_bin_metabolism_assignment %>%
+  filter(bin_id %in% (hgcA_bin_data_final %>%
+           filter(is.na(meta_code)) %>%
+           select(bin_id) %>%
+           unlist(use.names = FALSE)))
+```
+
+
+# Save out assignment data
+
+```{r save_out_data }
+saveRDS(hgcA_bin_data_final,file = 'dataEdited/bin_based_analyses/bin_data_aggregate_2_metabolism.rds')
+```
