@@ -36,10 +36,12 @@ plot.exo.data <- function(exo.data.to.use = exo.data,
   #### Isolate needed exo data ####
   exo.data.for.profile <- exo.data.to.use %>%
     filter(date == date.of.sampling)
-  sampling.depths.of.interest <- incubation.depths.to.use %>%
-    filter(startDate == date.of.sampling) %>%
-    select(depth) %>%
-    unlist(use.names = FALSE)
+  if (!is.null(incubation.depths.to.use)) {
+    sampling.depths.of.interest <- incubation.depths.to.use %>%
+      filter(startDate == date.of.sampling) %>%
+      select(depth) %>%
+      unlist(use.names = FALSE)
+  }
   
   #### Plot the temp points and set up graph ####
   plot(x = (exo.data.for.profile$Temp_C-5)/2.5,
@@ -67,14 +69,16 @@ plot.exo.data <- function(exo.data.to.use = exo.data,
         col = cb.translator["reddishpurple"],
         lwd = 4,
         lty = 3)
-  
-  #### Add incubation depths ####
-  points(x = rep(9, length(sampling.depths.of.interest)),
-         y = sampling.depths.of.interest,
-         pch = 21,
-         cex = 1,
-         bg = cb.translator["yellow"],
-         col = cb.translator["black"])
+  if (!is.null(incubation.depths.to.use)) {
+    # Plot the incubation depths
+    points(x = rep(9, length(sampling.depths.of.interest)),
+           y = sampling.depths.of.interest,
+           pch = 21,
+           cex = 1,
+           bg = cb.translator["yellow"],
+           col = cb.translator["black"])
+  }
+
   
   #### Add scales ####
   par(mgp = c(1.5, 0.2, 0))

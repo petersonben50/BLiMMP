@@ -88,7 +88,7 @@ Hg_Kmet_data <- read.csv("dataFinal/incubation_Hg_rate_data.csv") %>%
 #### Read in sulfide data ####
 sulfide_data <- read.csv("dataFinal/water_chem_data.csv") %>%
   group_by(date, depth) %>%
-  summarize(sulfide_uM = mean(sulfide_uM, na.rm = TRUE)) %>%
+  summarize(sulfide_ppm = mean(sulfide_ppm, na.rm = TRUE)) %>%
   ungroup() %>%
   mutate(date_depth = paste(date, ":", depth, "m",
                             sep = ""))
@@ -100,20 +100,20 @@ Kmet_vs_sulfide <- function() {
     left_join(sulfide_data)
   plot(x = NULL,
        y = NULL,
-       xlim = c(0, 150),
+       xlim = c(0, 5),
        ylim = c(0, 0.2),
        xlab = "",
        ylab = "")
-  title(xlab = expression("Sulfide (µM)"),
+  title(xlab = expression("Sulfide (mg/L)"),
         cex.lab = label_size,
         line = 2)
   title(ylab = expression('K'['met']*' (day'^-1*')'),
         cex.lab = label_size,
         line = 1.5)
-  arrows(plot_data$sulfide_uM, plot_data$Kmet_mean - plot_data$Kmet_se,
-         plot_data$sulfide_uM, plot_data$Kmet_mean + plot_data$Kmet_se,
+  arrows(plot_data$sulfide_ppm, plot_data$Kmet_mean - plot_data$Kmet_se,
+         plot_data$sulfide_ppm, plot_data$Kmet_mean + plot_data$Kmet_se,
          length = 0.05, angle = 90, code = 3)
-  points(x = plot_data$sulfide_uM,
+  points(x = plot_data$sulfide_ppm,
          y = plot_data$Kmet_mean,
          pch = year_vector[as.character(year(plot_data$date))],
          col = "gray25",
@@ -230,6 +230,14 @@ hgcA_abundance_total %>%
             sd_mg_hgcA = sd(coverage_mean),
             count_mg_hgcA = n(),
             sem_mg_hgcA = sd_mg_hgcA / sqrt(count_mg_hgcA))
+
+
+#### Linear regression for Kmet and hgcA gene abundance ####
+regression_data <- left_join(hgcA_abundance_total %>%
+                               filter(seqType == "MG"),
+                             Hg_Kmet_data)
+regression_data_lm <- lm(Kmet_mean ~ coverage_mean, data = regression_data)
+summary(regression_data_lm)
 
 
 #### Linear regression for Kmet and hgcA transcripts ####

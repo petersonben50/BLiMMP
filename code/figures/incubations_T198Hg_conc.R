@@ -1,4 +1,4 @@
-#### code/figures/incubations_Me198Hg_conc.R ####
+#### code/figures/incubations_T198Hg_conc.R ####
 # Written for BLiMMP project
 # Benjamin D. Peterson
 
@@ -115,3 +115,53 @@ ggarrange(sept.2020.11m, sept.2020.15m, sept.2020.20m,
           oct.2021.14m, oct.2021.15m, oct.2021.19m,
           nrow = 4, ncol = 3)
 dev.off()
+
+
+#### Stats on T198Hg loss from t0 to t2 ####
+stats_T198Hg_loss <- Hg_inc_data %>%
+  mutate(date_depth = paste(startDate, "\n", depth, "m",
+                            sep = "")) %>%
+  select(incubationID, date_depth, treatment, t, HgT_198_ppt) %>%
+  spread(key = t,
+         value = HgT_198_ppt) %>%
+  filter(!is.na(t2)) %>%
+  mutate(T198Hg_loss = (t0 - t2)/t0 * 100)
+
+hist(stats_T198Hg_loss$T198Hg_loss,
+     breaks = 25
+     )
+mean(stats_T198Hg_loss$T198Hg_loss)
+max(stats_T198Hg_loss$T198Hg_loss)
+min(stats_T198Hg_loss$T198Hg_loss)
+
+stats_T198Hg_loss %>%
+  ggplot(aes(x = date_depth,
+             y = T198Hg_loss,
+             color = treatment)) +
+  geom_point() +
+  theme_bw()
+
+
+#### Stats on T198Hg loss from t1 to t2 ####
+stats_T198Hg_loss <- Hg_inc_data %>%
+  mutate(date_depth = paste(startDate, "\n", depth, "m",
+                            sep = "")) %>%
+  select(incubationID, date_depth, treatment, t, HgT_198_ppt) %>%
+  spread(key = t,
+         value = HgT_198_ppt) %>%
+  filter(!is.na(t2)) %>%
+  mutate(T198Hg_loss = (t0 - t1)/t0 * 100)
+
+hist(stats_T198Hg_loss$T198Hg_loss,
+     breaks = 25
+)
+mean(stats_T198Hg_loss$T198Hg_loss)
+max(stats_T198Hg_loss$T198Hg_loss)
+min(stats_T198Hg_loss$T198Hg_loss)
+
+stats_T198Hg_loss %>%
+  ggplot(aes(x = date_depth,
+             y = T198Hg_loss,
+             color = treatment)) +
+  geom_point() +
+  theme_bw()

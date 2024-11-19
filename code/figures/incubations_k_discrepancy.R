@@ -21,7 +21,7 @@ incubation_data <- read.csv('dataFinal/incubation_Hg_rate_data.csv') %>%
   filter(!(date == "2020-10-10" & depth == 15.7))
 
 incubation_data$Kdem[incubation_data$Kdem <= 0.005] <- 0.005
-incubation_data$Kmet[incubation_data$Kmet <= 0.001] <- 0.001
+incubation_data$Kmet[incubation_data$Kmet <= 0.002] <- 0.002
 
 ratio_data_rates <- incubation_data %>%
   filter(treatment == "unfiltered-unamended") %>%
@@ -40,10 +40,11 @@ ratio_data_conc <- read.csv("dataFinal/water_chem_data.csv") %>%
   filter(!is.na(FMHG_NG.L)) %>%
   group_by(date, depth) %>%
   summarise(FMHG_NG.L = mean(FMHG_NG.L),
-            FiHg_NG.L = mean(FiHg_NG.L)) %>%
+            FiHg_NG.L = mean(FiHg_NG.L),
+            sulfide_ppm = mean(sulfide_ppm)) %>%
   ungroup() %>%
   mutate(conc_ratio = FMHG_NG.L / FiHg_NG.L) %>%
-  select(date, depth, conc_ratio)
+  select(date, depth, sulfide_ppm, conc_ratio)
 
 
 #### Combine ratio data ####
@@ -59,6 +60,11 @@ year_vector <- c(21, 24)
 names(year_vector) <- c("2020", "2021")
 
 
+#### Define color palette ####
+# Define colour pallete
+color_ramp = colorRampPalette(c("white", cb.translator["blue"]))
+
+
 #### Function to plot data ####
 plot_ratio_data <- function() {
   plot(y = log(all_data$conc_ratio, 10),
@@ -67,11 +73,16 @@ plot_ratio_data <- function() {
        ylim = c(-1.0, 1.0),
        pch = year_vector[substr(all_data$date, 1, 4)],
        col = "grey25",
+       #bg = color_ramp(max(all_data$sulfide_ppm, na.rm = TRUE)*10)[all_data$sulfide_ppm*10],
        bg = "grey85",
        cex = 1.8,
-       # cex = sqrt(ratio_data$sulfide_uM)/10,
-       ylab = expression("MeHg / Hg(II) ratio"),
-       xlab = expression('K'['met']*' /  K'['dem']*' ratio'))
+       #cex = sqrt(all_data$sulfide_ppm),
+       ylab = expression("Log of MeHg / Hg(II) ratio"),
+       xlab = expression('Log of K'[italic('met')]*' /  K'[italic('dem')]*' ratio'))
+  text(x = log(all_data$K_ratio_mean, 10),
+       y = log(all_data$conc_ratio, 10),
+       labels = paste(all_data$date, all_data$depth, sep = ", "),
+       cex = 0.8)
   arrows(x0 = log((all_data$K_ratio_mean - all_data$K_ratio_sem), 10),
          x1 = log((all_data$K_ratio_mean + all_data$K_ratio_sem), 10),
          y0 = log(all_data$conc_ratio, 10), y1 = log(all_data$conc_ratio, 10),
@@ -87,10 +98,10 @@ plot_ratio_data <- function() {
 
 
 #### Generate plot ####
-cairo_pdf("results/figures/incubations_K_discrepancy.pdf",
-          family = "Arial",
-          height = 4,
-          width = 4)
+# cairo_pdf("results/figures/incubations_K_discrepancy.pdf",
+#           family = "Arial",
+#           height = 4,
+#           width = 4)
 par(mfrow = c(1, 1),
     mar = c(3.5, 3.5, 1, 1),
     tck = -0.008,
@@ -98,4 +109,4 @@ par(mfrow = c(1, 1),
     cex.axis = 1.1,
     cex.lab = 1.2)
 plot_ratio_data()
-dev.off()
+# dev.off()
