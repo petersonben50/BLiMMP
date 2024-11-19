@@ -1,0 +1,480 @@
+---
+title: "hgcA transcription analysis"
+author: "Benjamin D. Peterson"
+date: "2023-11-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+rm(list = ls())
+#setwd("/Users/benjaminpeterson/Documents/research/BLiMMP")
+library(tidyverse)
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(echo = TRUE)
+new.wd <- gsub("\\/[[:alpha:]]+$", "", getwd())
+knitr::opts_knit$set(root.dir = new.wd)
+rm(new.wd)
+```
+
+```{r color_vector, include=FALSE}
+cb_translator <- readRDS("references/colorblind_friendly_colors.rds")
+```
+
+# Set up data sheets
+
+First, pull in the metatranscriptomics metadata.
+
+```{r read_in_metadata}
+MT_metadata <- read.csv("metadata/metatranscriptome_metadata.csv") %>%
+  dplyr::rename(mt_id = metatranscriptomeID) %>%
+  mutate(seqType = "MT") %>%
+  mutate(date_depth = paste(startDate, ":", depth, "m",
+                            sep = "")) %>%
+  select(mt_id, date_depth)
+
+```
+
+Then, pull in the *gyrB* gene-to-bin information and metatranscriptome data for all genes.
+Combine that to get *gyrB* info per genome.
+
+```{r reading_in_gyr_data, warning=FALSE, message=FALSE}
+gyrB_bin_info <- read.table("dataEdited/bin_based_analyses/final_bin_data/gyrB_to_bin.tsv",
+                            sep = '\t', col.names = c("gene_id", "bin_id"))
+MT_data <- read.table("dataEdited/bin_based_analyses/final_bin_data/bin_MT_data.tsv",
+                      sep = '\t', header = TRUE)
+gyrB_bin_data <- left_join(gyrB_bin_info, MT_data)
+rm(gyrB_bin_info)
+```
+
+Some of the bins have multiple *gyrB* annotations.
+
+```{r investigate_dups_in_gyrB}
+dups <- gyrB_bin_data %>%
+  filter(duplicated(bin_id)) %>% select(bin_id) %>% unlist(use.names = FALSE)
+investigate_dups <- gyrB_bin_data %>% filter(bin_id %in% dups)
+investigate_dups
+rm(dups)
+```
+
+Looks like the dups usually have one that is much more abundant.
+The low abundance one is often non-existent.
+We'll use the highest coverage of any of them for this analysis.
+
+```{r clean_up_dups_in_gyrB, message = FALSE}
+gyrB_ref_data <- gyrB_bin_data %>%
+  gather(key = mt_id,
+         value = gyr_cov,
+         -c(1,2)) %>%
+  group_by(bin_id, mt_id) %>%
+  summarise(gyr_cov = max(gyr_cov))
+```
+
+Now get the hgcA bin data together, joining the *hgcA* gene ID to the bin ID, taxonomy, and metabolic classification. 
+
+```{r hgcA_data_prep, message = FALSE}
+hgcA_bin_info <- read.table("dataEdited/bin_based_analyses/final_bin_data/hgcA_to_bin.tsv",
+                            sep = '\t', col.names = c("gene_id", "bin_id"))
+bin_data <- readRDS(file = 'dataEdited/bin_based_analyses/bin_data_aggregate_2_metabolism.rds') %>%
+  mutate(phylum = gtdb_tax %>%
+           strsplit("p__") %>% sapply('[', 2) %>%
+           strsplit(";c__") %>% sapply('[', 1)) %>%
+  select(bin_id, cluster_ID, hms_id, phylum, meta_code) %>%
+  left_join(hgcA_bin_info)
+rm(hgcA_bin_info)
+# Two of these hgcA sequences are in the same bin, need to parse those out:
+bin_data[which(bin_data$gene_id == "BLI21_assembly105_000000000783_11"), "cluster_ID"] <- "BLI_hgcA_clstr_0056"
+bin_data[which(bin_data$gene_id == "BLI21_assembly105_000000003111_6"), "cluster_ID"] <- "BLI_hgcA_clstr_0066"
+```
+
+Next we'll add the transcriptional regulation information generated in the `hgcA_GN.Rmd` document.
+
+```{r add_transcriptional_regulation_info}
+TR_data <- readRDS("working_directory/transcriptional_regulation_vector.rds")
+bin_data <- bin_data %>%
+  mutate(TR_assignment = TR_data[cluster_ID])
+attr(bin_data$TR_assignment, "names") <- NULL
+```
+
+Next we'll read in the sulfide data.
+
+```{r read_in_sulfide_data}
+#### Read in geochem data ####
+sulfide_data <- read.csv("dataFinal/water_chem_data.csv") %>%
+  mutate(date_depth = paste(date, ":", depth, "m",
+                            sep = "")) %>%
+  group_by(date_depth) %>%
+  summarize(sulfide_uM = mean(sulfide_uM, na.rm = TRUE)) %>%
+  ungroup()
+```
+
+Finally we'll combine all the data together.
+
+```{r combine_all_data, message = FALSE }
+hgcA_bin_data <- left_join(bin_data %>%
+                             select(bin_id, gene_id, hms_id, phylum, meta_code, TR_assignment),
+                           MT_data %>%
+                             filter(gene_id %in% bin_data$gene_id)) %>%
+  gather(key = mt_id,
+         value = hgcA_cov,
+         -c(1:6)) %>%
+  left_join(gyrB_ref_data) %>%
+  filter(!is.na(gyr_cov),
+         gyr_cov != 0) %>%
+  mutate(hgcA_gyrB_ratio = hgcA_cov / gyr_cov) %>%
+  left_join(MT_metadata) %>%
+  # group_by(bin_id, date_depth, hgcA_gyrB_ratio) %>%
+  # left_join(hgcA_taxonomy) %>%
+  left_join(sulfide_data)
+```
+
+One of these bins has two *hgcA* sequences, let's see how they compare:
+
+```{r compare_two_genes_same_bin}
+hgcA_bin_data %>%
+  filter(gene_id %in% c("BLI21_assembly105_000000000783_11", "BLI21_assembly105_000000003111_6"),
+         hgcA_gyrB_ratio > 0) %>%
+  group_by(date_depth, gene_id) %>%
+  summarise(count = n())
+
+hgcA_bin_data %>%
+  filter(gene_id %in% c("BLI21_assembly105_000000000783_11", "BLI21_assembly105_000000003111_6")) %>%
+  ggplot(aes(x = sulfide_uM,
+             y = hgcA_gyrB_ratio,
+             group = gene_id,
+             color = gene_id,
+             shape = gene_id)) +
+  geom_point() +
+  xlim(c(0, 150)) +
+  ylab("hgcA:gyrB transcription") +
+  xlab("Sulfide (µM)") +
+  theme_bw() + 
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank())
+```
+This data is super noisy actually, very few locations where the *hgcA* gene has any transcripts.
+Overall, the 783_11 gene is more transcribed, but it's noisy.
+Neither has a preceding transcriptional regulator, so no need to consider that.
+We'll just keep both of them in the dataset, as it shouldn't change much regarding how the downstream analyses are done.
+
+
+# Dealing with 0's. 
+
+Okay, in later analyses I was running into some serious issues with 0's.
+The 0 ratios are throwing off the analyses, and since the *hgcA* gene seems to be on the lower end of transcription, we're getting several genes where there is *gyr* but no *hgcA*.
+We can't just remove the zeros, since that will skew the analysis; rather, I need to filter out the lower abundance genes, or more specifically, the genomes that are low enough in abundance to be susceptible to having zeros.
+How to identify the threshold though?
+What if we take the abundance of each hgcA+ genome and plot it on the x-axis, while on the y-axis we plot the number of 0 values in the triplicate metatranscriptomes?
+To do this, first we'll need to calculate the genome abundance at each date-depth.
+Actually, we didn't calculate the genomes depths, so instead I'll use the *hgcA* gene.
+
+```{r genome_abundance_at each date-depth, message = FALSE}
+MG_data <- read.csv("dataFinal/hgcA_data.csv") 
+MG_data <- MG_data %>%
+  select(seqID, all_of(grep("_MG_", names(MG_data),
+                            value = TRUE))) %>%
+  gather(key = metagenomeID,
+         value = MG_coverage,
+         -1) %>%
+  left_join(read.csv("metadata/metagenome_metadata.csv") %>%
+              mutate(date_depth = paste(startDate, ":", depth, "m",
+                                        sep = "")) %>%
+              select(metagenomeID, date_depth)) %>%
+  mutate(scaffold_id = paste(seqID %>% strsplit("_") %>% sapply("[", 1),
+                             seqID %>% strsplit("_") %>% sapply("[", 2),
+                             seqID %>% strsplit("_") %>% sapply("[", 3),
+                             sep = "_")) %>%
+  group_by(scaffold_id, date_depth) %>%
+  summarise(MG_coverage = mean(MG_coverage)) %>%
+  ungroup()
+```
+
+Next, look at the number of MT replicates at each date-depth that have *hgcA* hits (hgcA:gyrA is above 0) and plot this against the gene abundance.
+
+```{r zero_counts, message = FALSE}
+zero_counts_data <- hgcA_bin_data %>%
+  filter(hgcA_gyrB_ratio > 0) %>%
+  group_by(date_depth, gene_id, bin_id) %>%
+  summarise(count = n()) %>%
+  ungroup() %>%
+  # group_by(date_depth, gene_id) %>%
+  # summarise(count = as.integer(mean(count))) %>%
+  # ungroup() %>%
+  mutate(scaffold_id = paste(gene_id %>% strsplit("_") %>% sapply("[", 1),
+                             gene_id %>% strsplit("_") %>% sapply("[", 2),
+                             gene_id %>% strsplit("_") %>% sapply("[", 3),
+                             sep = "_"))
+zero_counts_data <- zero_counts_data %>%
+  inner_join(MG_data,
+            by = c("date_depth", "scaffold_id")) %>%
+  select(-scaffold_id)
+zero_counts_data %>%
+  ggplot(aes(x = MG_coverage,
+             y = count)) +
+  geom_jitter(height = 0.1) +
+  theme_bw() +
+  scale_x_log10()
+```
+
+Hmm, this did not show a clear cutoff point.
+Let's see how many genomes we have with hits in all three MTs at multiple sites.
+
+```{r bins_with_hgcA_hits_all_MTs }
+zero_counts_data %>%
+  filter(count == 3) %>%
+  group_by(gene_id, bin_id) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count)) %>%
+  # Keep ones that appear in all three replicates at least 4 times
+  filter(count >= 2) %>%
+  left_join(bin_data)
+  
+```
+
+Only one HMS (BLI_hgcA_HMS_0012) has hits in all metatranscriptomes we sequenced, with the exception of the one with no *hgcA*.
+This HMS is a SRB and has arsR.
+BLI_hgcA_HMS_0019 has hits in all three metatranscriptomes replicates from 5 locations, while BLI_hgcA_HMS_0009 has hits from all three metatranscriptomes replicates from 4 locations.
+Let's look more closely at these before diving into the others.
+
+```{r BLI_hgcA_HMS_0012_TR, message = FALSE }
+HMS_TO_PLOT <- "BLI_hgcA_HMS_0012"
+plot_HMS_hgcA_rel_expr_by_sulfide <- function(HMS_TO_PLOT) {
+  HMS_info <- hgcA_bin_data %>%
+    filter(hms_id == HMS_TO_PLOT,
+           hgcA_gyrB_ratio > 0) %>%
+    group_by(hms_id) %>%
+    summarise(phylum = unique(phylum),
+              TR_assignment = unique(TR_assignment)) %>%
+    ungroup() %>%
+    select(-hms_id) %>%
+    unlist(use.names = FALSE) %>%
+    paste(., collapse = ":")
+  hgcA_bin_data %>%
+    filter(hms_id == HMS_TO_PLOT,
+           hgcA_gyrB_ratio > 0) %>%
+    group_by(bin_id, sulfide_uM) %>%
+    summarise(hgcA_gyrB_ratio_mean = mean(hgcA_gyrB_ratio),
+              hgcA_gyrB_ratio_sd = sd(hgcA_gyrB_ratio),
+              hgcA_gyrB_ratio_count = n(),
+              hgcA_gyrB_ratio_sem = hgcA_gyrB_ratio_sd / sqrt(hgcA_gyrB_ratio_count)) %>%
+    ggplot(aes(x = sulfide_uM,
+               y = hgcA_gyrB_ratio_mean,
+               group = bin_id,
+               color = bin_id)) +
+    geom_point() +
+    geom_line() +
+    geom_errorbar(aes(ymin = hgcA_gyrB_ratio_mean - hgcA_gyrB_ratio_sem,
+                      ymax = hgcA_gyrB_ratio_mean + hgcA_gyrB_ratio_sem),
+                  width = 2) +
+    xlim(c(0, 150)) +
+    ylab("hgcA:gyrB transcription") +
+    theme_bw() + 
+    theme(panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank()) +
+    scale_y_log10(limits = c(0.01, 10)) +
+    theme(legend.position = "none") +
+    labs(title = HMS_info)
+}
+ggarrange(plot_HMS_hgcA_rel_expr_by_sulfide("BLI_hgcA_HMS_0012"),
+          plot_HMS_hgcA_rel_expr_by_sulfide("BLI_hgcA_HMS_0019"),
+          plot_HMS_hgcA_rel_expr_by_sulfide("BLI_hgcA_HMS_0009"),
+          plot_HMS_hgcA_rel_expr_by_sulfide("BLI_hgcA_HMS_0016"),
+          nrow = 2,
+          ncol = 2)
+```
+
+Finally, some of these are going to be affected by the fact that there are multiple bins representing one organism.
+We'll need to combine this information by HMS. 
+
+# hgcA expression by transcriptional regulation
+
+
+```{r hgcA_expression_by_transcriptional_regulation, message = FALSE }
+
+hgcA_bin_data %>%
+  filter(hgcA_gyrB_ratio > 0) %>%
+  group_by(hms_id, mt_id, sulfide_uM, TR_assignment) %>%
+  summarize(hgcA_gyrB_ratio = mean(hgcA_gyrB_ratio)) %>%
+  ungroup() %>%
+  group_by(hms_id, sulfide_uM, TR_assignment) %>%
+  summarise(hgcA_gyrB_ratio_mean = mean(hgcA_gyrB_ratio),
+            hgcA_gyrB_ratio_sd = sd(hgcA_gyrB_ratio),
+            hgcA_gyrB_ratio_count = n(),
+            hgcA_gyrB_ratio_sem = hgcA_gyrB_ratio_sd / sqrt(hgcA_gyrB_ratio_count)) %>%
+  ggplot(aes(x = sulfide_uM,
+             y = hgcA_gyrB_ratio_mean,
+             group = hms_id,
+             color = TR_assignment)) +
+  geom_point() +
+  geom_line() +
+  geom_errorbar(aes(ymin = hgcA_gyrB_ratio_mean - hgcA_gyrB_ratio_sem,
+                    ymax = hgcA_gyrB_ratio_mean + hgcA_gyrB_ratio_sem),
+                width = 2) +
+  xlim(c(0, 150)) +
+  ylab("hgcA:gyrB transcription") +
+  theme_bw() + 
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()) +
+  scale_y_log10(limits = c(0.01, 10)) +
+  theme(legend.position = "none") +
+  labs(title = HMS_info)
+
+
+hgcA_bin_data %>%
+  filter(hgcA_gyrB_ratio > 0) %>%
+  group_by(hms_id, mt_id, sulfide_uM, TR_assignment) %>%
+  summarize(hgcA_gyrB_ratio = mean(hgcA_gyrB_ratio)) %>%
+  ungroup() %>%
+  group_by(hms_id, sulfide_uM, TR_assignment) %>%
+  summarise(hgcA_gyrB_ratio_mean = mean(hgcA_gyrB_ratio),
+            hgcA_gyrB_ratio_sd = sd(hgcA_gyrB_ratio),
+            hgcA_gyrB_ratio_count = n(),
+            hgcA_gyrB_ratio_sem = hgcA_gyrB_ratio_sd / sqrt(hgcA_gyrB_ratio_count)) %>%
+  ggplot(aes(x = sulfide_uM,
+             y = hgcA_gyrB_ratio_mean,
+             group = TR_assignment,
+             color = TR_assignment)) +
+  geom_boxplot() 
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Next I'm 
+
+```{r plot_by_transcription_reg, message = FALSE, echo = FALSE }
+TR_data <- hgcA_bin_data %>%
+  filter(TR_assignment != "unknown",
+         date_depth != "2020-10-10:15.7m") %>%
+  group_by(bin_id, date_depth, TR_assignment, sulfide_uM)%>%
+  summarise(hgcA_gyrB_ratio = mean(hgcA_gyrB_ratio)) %>%
+  arrange(sulfide_uM, date_depth) %>%
+  mutate(date_depth = factor(date_depth, unique(date_depth)))
+
+plot_data <- TR_data
+plot_data$hgcA_gyrB_ratio[which(plot_data$hgcA_gyrB_ratio == 0)] <- 0.005
+plot_data %>%
+  ggplot(aes(x = date_depth,
+             y = hgcA_gyrB_ratio,
+             color = TR_assignment)) +
+  geom_boxplot() +
+  # xlim(c(0, 150)) +
+  ylab("hgcA:gyrB transcription") +
+  xlab("Sulfide (µM)") +
+  theme_bw() + 
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()) +
+  scale_y_log10()
+
+
+# hgcA_bin_data %>%
+#   filter(hgcA_gyrB_ratio > 0) %>%
+#   group_by(hms_id, mt_id, date_depth, TR_assignment, sulfide_uM) %>%
+#   summarise(hgcA_gyrB_ratio = median(hgcA_gyrB_ratio)) %>%
+#   group_by(hms_id, date_depth, TR_assignment, sulfide_uM) %>%
+#   summarise(hgcA_gyrB_ratio = mean(hgcA_gyrB_ratio)) %>%
+#   ggplot(aes(x = sulfide_uM,
+#              y = log(hgcA_gyrB_ratio, 10),
+#              group = hms_id,
+#              color = TR_assignment)) +
+#   geom_point() +
+#   geom_line() +
+#   # xlim(c(0, 150)) +
+#   ylab("hgcA:gyrB transcription") +
+#   xlab("Sulfide (µM)") +
+#   theme_bw() + 
+#   theme(panel.grid.major = element_blank(),
+#         panel.grid.minor = element_blank())
+```
+
+
+```{r plot_by_guild }
+hgcA_bin_data %>%
+  group_by(bin_id, date_depth, sulfide_uM, meta_code) %>%
+  summarise(hgcA_gyrB_ratio = mean(hgcA_gyrB_ratio)) %>%
+  ggplot(aes(x = as.character(sulfide_uM),
+             y = hgcA_gyrB_ratio,
+             color = meta_code)) +
+  geom_boxplot() +
+  # xlim(c(0, 150)) +
+  ylab("hgcA:gyrB transcription") +
+  xlab("Sulfide (µM)") +
+  theme_bw() + 
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank())
+```
+
+
+
+```{r hgcA_data_plot}
+# cairo_pdf("/Users/benjaminpeterson/crashplan/poulinLab/labMeetings/myPresentations/20231114/images/hgcA_transcription_sulfide.pdf",
+#           width = 6,
+#           height = 4)
+color_vector <- cb_translator[c("blue", "black")]
+names(color_vector) <- c("SRB", "FERM")
+hgcA_bin_data %>%
+  filter(sulfide_uM > 25) %>%
+  group_by(metabolism, sulfide_uM, date_depth) %>%
+  summarise(hgcA_gyrB_ratio = mean(hgcA_gyrB_ratio)) %>%
+  ungroup() %>%
+  ggplot(aes(x = sulfide_uM,
+             y = hgcA_gyrB_ratio,
+             group = metabolism,
+             color = metabolism)) +
+  geom_point() +
+  geom_line() +
+  ylim(c(0, 0.22)) +
+  xlim(c(0, 150)) +
+  scale_color_manual(values = color_vector) +
+  ylab("hgcA:gyrB transcription") +
+  xlab("Sulfide (µM)") +
+  theme_bw() + 
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank())
+# hgcA_bin_data %>%
+#   filter(sulfide_uM > 25) %>%
+#   group_by(metabolism, sulfide_uM, date_depth) %>%
+#   summarise(gyr_cov = mean(gyr_cov)) %>%
+#   ungroup() %>%
+#   ggplot(aes(x = sulfide_uM,
+#              y = gyr_cov,
+#              group = metabolism,
+#              color = metabolism)) +
+#   geom_point() +
+#   geom_line() +
+#   scale_color_manual(values = color_vector) +
+#   ylab("gyrB coverage") +
+#   xlab("Sulfide (µM)") +
+#   theme_bw()
+# dev.off()
+```
+
+
+
+
+
+
+
+```{r total_transcript_plot}
+
+hgcA_bin_data %>%
+  group_by(sulfide_uM, date_depth) %>%
+  summarise(hgcA_gyrB_ratio = mean(log(hgcA_gyrB_ratio,10))) %>%
+  ungroup() %>%
+  ggplot(aes(x = sulfide_uM,
+             y = hgcA_gyrB_ratio)) +
+  geom_point() +
+  geom_line() +
+  theme_bw()
+
+```

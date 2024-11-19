@@ -1,0 +1,208 @@
+---
+title: "BLiMMP project - TEAP analyses"
+author: "Benjamin D. Peterson"
+date: "2024-05-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+rm(list = ls())
+#setwd("/Users/benjaminpeterson/Documents/research/BLiMMP")
+#new.wd <- "/Users/benjaminpeterson/Documents/research/BLiMMP"
+library(tidyverse)
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(echo = TRUE)
+new.wd <- gsub("\\/[[:alpha:]]+$", "", getwd())
+knitr::opts_knit$set(root.dir = new.wd)
+rm(new.wd)
+```
+
+# Prepare data
+
+First we'll read in the metadata and generate a useful table to link to the abundance data.
+
+```{r prepare_MG_MT_metadata}
+MG_metadata <- read.csv("metadata/metagenome_metadata.csv") %>%
+  dplyr::rename(omicID = metagenomeID) %>%
+  mutate(seqType = "MG") %>%
+  select(omicID, sampleID, startDate, depth, seqType)
+MT_metadata <- read.csv("metadata/metatranscriptome_metadata.csv") %>%
+  dplyr::rename(omicID = metatranscriptomeID) %>%
+  mutate(seqType = "MT") %>%
+  select(omicID, sampleID, startDate, depth, seqType)
+omic_metadata <- rbind(MG_metadata,
+                       MT_metadata) %>%
+  mutate(date_depth = paste(startDate, ":", depth, "m",
+                            sep = ""))
+rm(MG_metadata, MT_metadata)
+```
+
+Then I read in the sulfide data and added it to the omic data.
+
+```{r sulfide_data, message = FALSE, warning = FALSE}
+# Read in sulfide data
+sulfide_data <- read.csv("dataFinal/water_chem_data.csv") %>%
+  group_by(date, depth) %>%
+  summarize(sulfide_uM = mean(sulfide_uM, na.rm = TRUE)) %>%
+  ungroup() %>%
+  mutate(date_depth = paste(date, ":", depth, "m",
+                            sep = "")) %>%
+  select(date_depth, sulfide_uM)
+omic_metadata <- omic_metadata %>%
+  left_join(sulfide_data)
+```
+
+Last, read in the processed TEAP gene data.
+
+```{r read_in_TEAP_data}
+TEAP_data <- read.csv(file = "dataFinal/TEAP_data.csv")
+```
+
+Next, aggregate the data and get it into a format that we can work with.
+
+```{r consolidate_data, message = FALSE}
+TEAP_data_metadata <- TEAP_data %>%
+  gather(key = omicID,
+         value = coverage,
+         all_of(grep("BLI2", names(TEAP_data),
+                     value = TRUE))) %>%
+  group_by(clstr_ID, geneName, omicID) %>%
+  summarise(coverage = mean(coverage)) %>%
+  ungroup() %>%
+  left_join(omic_metadata) %>%
+    filter(!(startDate == "2020-10-10" & depth == 15.7))
+rm(TEAP_data)
+```
+
+# Plot TEAP data
+
+```{r function_to_plot_teap_genes_by_sulfide, include = FALSE}
+plot_teap_genes_by_sulfide <- function(gene_to_plot = "red_dsrA",
+                                       omic_type = "MT",
+                                       ylim_to_use = c(0, 2500),
+                                       ylab_to_use = "Reductive dsrA transcription\n(million copies/L)") {
+  
+  plotting_data <- TEAP_data_metadata %>%
+    filter(geneName == gene_to_plot,
+           seqType == omic_type) %>%
+    group_by(omicID, date_depth, sulfide_uM) %>%
+    summarise(coverage = sum(coverage)) %>%
+    arrange(sulfide_uM)
+  
+  par(mar = c(3, 4.5, 1, 1),
+      tck = -0.008,
+      mgp = c(1.5, 0.2, 0))
+  plot(x = plotting_data$sulfide_uM,
+       y = plotting_data$coverage,
+       xlim = c(0, 150),
+       ylim = ylim_to_use,
+       xlab = "Sulfide (µM)",
+       ylab = ylab_to_use,
+       pch = 16)
+  }
+```
+
+First let's look at the abundance and transcription of the TEAP genes plotted by sulfide.
+
+```{r plot_TEAP_gene_abundance_transcription_by_sulfide, fig.height = 6, fig.width = 6, message = FALSE, echo = FALSE}
+par(mfrow = c(2, 2))
+plot_teap_genes_by_sulfide(gene_to_plot = "narG",
+                           omic_type = "MG",
+                           ylim_to_use = c(0, 8),
+                           ylab_to_use = "narG abundance(%)")
+plot_teap_genes_by_sulfide(gene_to_plot = "narG",
+                           omic_type = "MT",
+                           ylim_to_use = c(0, 25),
+                           ylab_to_use = "narG transcription\n(million copies/L)")
+plot_teap_genes_by_sulfide(gene_to_plot = "red_dsrA",
+                           omic_type = "MG",
+                           ylim_to_use = c(0, 8),
+                           ylab_to_use = "Reductive dsrA abundance(%)")
+plot_teap_genes_by_sulfide(gene_to_plot = "red_dsrA",
+                           omic_type = "MT",
+                           ylim_to_use = c(0, 2500),
+                           ylab_to_use = "Reductive dsrA transcription\n(million copies/L)")
+```
+
+Couple of things to point out here.
+
+1. The *narG* gene is more abundant than the *dsrA* gene, but not by much. At very low sulfide concentrations, *narG* is around 4-8% of the microbial community, while it is more consistently around 4% at higher sulfide concentrations. On the other hand, *dsrA* increased from nearly 0% of the community under low sulfide concentrations to ~4% when sulfide is over 140 µM.
+2. *narG* is barely expressed compared to *dsrA*, with less than 5 million transcripts per liter. *dsrA* is well over 100 million copies per liter in all samples, and goes up to nearly 2500 million copies per liter in one of the replicates.
+3. There is little change in *dsrA* transcription over the sulfide gradient. Some noise, but generally stays in the 200 to 800 million counts range. Considering the increase in *dsrA* over this gradient, it seems like that either the rest of the microbial community is becoming less abundant under higher sulfide conditions, or the SRBs are downregulating sulfide. Let's look more into both of these.
+
+For reference, the *hgcA* transcripts peak at ~10 million transcripts per liter, but most of them are around 1 - 4 million per liter.
+
+
+# Change in microbial transcription and community activity
+
+We don't have a good metric to look for absolute changes in microbial abundance, since we did not use an internal standard in our metagenomic sequencing.
+Thus, we can't say for sure if the increase in relative abundance of the reductive *dsrA* gene is due to increasing numbers of SRBs or declining numbers of everything else.
+But, we can look at the transcription rates and microbial community activity by looking at the total number of RNA reads or the leucine uptake rates, respectively.
+Let's look at transcription first.
+We'll read in the RNA counts (after having removed the internal standard reads) then transform that using our 
+
+```{r total_RNA_reads, message = FALSE}
+NFs.expression <- readRDS("dataEdited/metatranscriptomes/normalization_vector.rds")
+total_rna_reads <- read.table("dataEdited/metatranscriptomes/reports/mt_read_counts_rRNA.tsv",
+                              sep = '\t',
+                              header = TRUE) %>%
+  rename(omicID = mtID) %>%
+  mutate(nonrRNA_reads_per_L = nonrRNA_reads*NFs.expression[omicID]/1000000) %>%
+  left_join(omic_metadata) %>%
+  filter(!(startDate == "2020-10-10" & depth == 15.7))
+```
+
+Now, plot those total reads against sulfide concentrations:
+
+```{r total_RNA_reads_vs_sulfide, echo = FALSE, fig.height = 4, fig.width = 5}
+par(mar = c(3, 4.5, 1, 1),
+    tck = -0.008,
+    mgp = c(1.5, 0.2, 0))
+plot(x = total_rna_reads$sulfide_uM,
+     y = total_rna_reads$nonrRNA_reads_per_L,
+     xlim = c(0, 150),
+     ylim = c(0, 2e9),
+     xlab = "Sulfide (µM)",
+     ylab = "Total mRNA reads (million transcripts/L)",
+     pch = 16)
+```
+
+This data is noisy, strongly suggests no trend of total mRNA levels with sulfide.
+
+How does the bacterial production measurements compare?
+First read in the measurements and combine them with our sulfide data.
+The overlap between the mercury methylation incubations and the leucine uptake measurements was not perfect; however, here we're more broadly interested in microbial community activity along the sulfide gradient.
+So, I'll include in this all the samples for which we have both sulfide measurements and leucine uptake measurements.
+
+For some of these measurements, I did two different time points, but am only including the first one here.
+I'm also only plotting up the ambient data here, no molybdate treatments.
+
+```{r read_in_BP_data, message = FALSE }
+bacterial_production <- read.csv('dataFinal/bacterial_production.csv')
+bacterial_production_sulfide_data <- bacterial_production %>%
+  filter(treatment == 'ambient',
+         timePoint != 't2' | is.na(timePoint)) %>%
+  mutate(date_depth = paste(startDate, ":", depth, "m",
+                            sep = "")) %>%
+  select(date_depth, µgBPP_per_L_hr) %>%
+  left_join(sulfide_data) %>%
+  filter(!is.na(sulfide_uM))
+```
+
+```{r plot_BP_vs_sulfide, echo = FALSE, fig.height = 4, fig.width = 5}
+par(mar = c(3, 4.5, 1, 1),
+    tck = -0.008,
+    mgp = c(1.5, 0.2, 0))
+plot(x = bacterial_production_sulfide_data$sulfide_uM,
+     y = bacterial_production_sulfide_data$µgBPP_per_L_hr,
+     xlim = c(0, 150),
+     ylim = c(0, 27),
+     xlab = "Sulfide (µM)",
+     ylab = "Bacterial production (µg/L/hr)",
+     pch = 16)
+```
+
+General decrease in bacterial production as sulfide increases, particularly from sulfide <10 µM to about 75 µM.
+Not actually sure how to interpret this in terms of what I was looking at above.
+
+# Influence of molybdate on 

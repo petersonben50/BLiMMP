@@ -99,7 +99,7 @@ Hg_Kmet_data <- read.csv("dataFinal/incubation_Hg_rate_data.csv") %>%
   mutate(treatment = treatment %>%
            gsub("unfiltered-", "", .) %>%
            gsub("unamended", "ambient", .)) %>%
-  select(sampleID, date, depth, treatment, Kmet_t1) 
+  select(sampleID, date, depth, treatment, Kmet_int_t2) 
 
 # Read in sulfide data
 sulfide_data <- read.csv("dataFinal/water_chem_data.csv") %>%
@@ -112,8 +112,8 @@ sulfide_data <- read.csv("dataFinal/water_chem_data.csv") %>%
 # Calculate SRB-dependent Kmet
 Hg_Kmet_modified <- Hg_Kmet_data %>%
   group_by(sampleID, date, depth, treatment) %>%
-  summarise(Kmet_mean = median(Kmet_t1),
-            Kmet_sd = sd(Kmet_t1),
+  summarise(Kmet_mean = median(Kmet_int_t2),
+            Kmet_sd = sd(Kmet_int_t2),
             Kmet_count = n(),
             Kmet_se = Kmet_sd / Kmet_count) %>%
   ungroup() %>%
@@ -163,7 +163,7 @@ Hg_Kmet_modified <- Hg_Kmet_modified %>%
 
 First, let's just plot the methylation rate constant against the sulfide concentrations, metagenomic abundance of *hgcA*, and expression of *hgcA*.
 
-```{r Kmet_vs_hgcA, echo = FALSE, message = FALSE, fig.width = 9, fig.height = 3 }
+```{r Kmet_vs_hgcA, echo = FALSE, message = FALSE, fig.width = 7.5, fig.height = 7.5 }
 year_vector <- c(21, 24)
 names(year_vector) <- c("2020", "2021")
 
@@ -227,14 +227,42 @@ Kmet_vs_hgcA_MT <- function() {
          cex = 1)
 }
 
+hgcA_MT_vs_hgcA_MG <- function() {
+  plot_data <- left_join(hgcA_abundance_final,
+                         Hg_Kmet_modified %>%
+                           filter(guild == "total")) %>%
+    filter(!is.na(MG),
+           !is.na(MT))
+  plot(x = log(plot_data$MG, 10),
+       y = log(plot_data$MT, 10),
+       # xlim = c(0, 17),
+       # ylim = c(0, 12),
+       pch = year_vector[as.character(year(plot_data$date))],
+       col = "gray25",
+       bg = "gray85",
+       lwd = 1.5,
+       cex = 2,
+       xlab = "Log10 hgcA gene abundance (%)",
+       ylab = "Log10 hgcA gene transcription (million transcripts per L)")
+  legend(x = 8,
+         y = 0.05,
+         legend = names(year_vector),
+         pch = year_vector,
+         col = "gray25",
+         pt.bg = "gray85",
+         lwd = 1.5,
+         cex = 1)
+}
+
 #### Set up plots ####
-par(mfrow = c(1, 3),
+par(mfrow = c(2, 2),
     mar = c(3, 3, 1, 1),
     tck = -0.008,
     mgp = c(1.5, 0.2, 0))
 Kmet_vs_sulfide()
 Kmet_vs_hgcA_MG()
 Kmet_vs_hgcA_MT()
+hgcA_MT_vs_hgcA_MG()
 
 #### Generate table for Kmet and sulfide ####
 knitr::kable(left_join(hgcA_abundance_final,
@@ -393,6 +421,7 @@ hgcA_MT_plot()
 
 ```
 
+Does the abundance and/or transcription of SRB-associated *hgcA* correlate to the influence of molybdate on methylation rates?
 
 ```{r SRB_dependence, message = FALSE, echo = FALSE }
 hgcA_percent_SRB <- left_join(Hg_Kmet_modified %>%
@@ -429,4 +458,191 @@ plot(x = hgcA_percent_SRB$SRB_per_MT,
      ylim = c(0, 100))
 hgcA_percent_SRB
 ```
+
+Not really, but the relative abundance of SRB-associated *hgcA* genes in the metatranscriptomes is closer to the relative inhibition of Kmet by molybdate.
+
+
+# Drivers of increased SRB *hgcA* transcription
+
+Are the SRBs in general more transcriptionally active, or is it specific to the *hgcA* gene?
+Here, we'll hone in on the bins that have *hgcA* rather than the total of the assembly-derived *hgcA* sequences and use both *gyrB* and total mRNA reads to compare to *hgcA*.
+First read in the data.
+
+```{r read_in_and_prepare_bin_MT_data, warning=FALSE, message=FALSE}
+bin_metadata <- readRDS(file = 'dataEdited/bin_based_analyses/bin_data_aggregate_3.rds')
+```
+
+Next, plot the RNA levels from each metabolic group of *hgcA*, *gyrB*, and total RNA. We'll do this against sulfide, as we did for the assembly-derived *hgcA* genes.
+
+```{r plot_RNA_data, warning = FALSE, message = FALSE, echo = FALSE, fig.width = 8, fig.height = 3}
+sulfide_data_for_omics <- omic_metadata %>%
+  select(omicID, date_depth) %>%
+  filter(grepl("_MT_", omicID)) %>%
+  rename(mt_id = omicID) %>%
+  left_join(sulfide_data %>%
+              select(date_depth, sulfide_uM))
+
+constituent <- "hgcA"
+# Metatranscriptomes
+plot_bin_MT_by_sulfide <- function(constituent,
+                                   y_scale_to_use,
+                                   y_label_to_use = "testing") {
+  # Add KIR notation to meta_code
+  plot_data <- bin_metadata
+  plot_data$meta_code[bin_metadata$class == "Kiritimatiellae"] <- "KIR"
+  plot_data$meta_code <- gsub(pattern = "OB_",
+                              replacement = "",
+                              plot_data$meta_code)
+  plot_data <- plot_data %>%
+    select(meta_code, hms_id, all_of(grep("_MT_",
+                                          names(plot_data),
+                                          value = TRUE))) %>%
+    gather(key = gene_mt_id,
+           value = gene_transcription,
+           all_of(grep("_MT_",
+                       names(plot_data),
+                       value = TRUE))) %>%
+    mutate(gene = gene_mt_id %>% strsplit("-") %>% sapply("[", 1),
+           mt_id = gene_mt_id %>% strsplit("-") %>% sapply("[", 2)) %>%
+    select(-gene_mt_id) %>%
+    filter(!is.na(gene_transcription),
+           gene == constituent) %>%
+    group_by(meta_code, hms_id, mt_id) %>%
+    summarise(gene_transcription = mean(gene_transcription))
+  
+  # Set up proper constituent
+  plot_data <- left_join(plot_data,
+                         sulfide_data_for_omics)
+  plot_data <- plot_data %>%
+    group_by(meta_code, date_depth, mt_id, sulfide_uM) %>%
+    summarise(gene_transcription = sum(gene_transcription,
+                                       na.rm = TRUE)) %>%
+    ungroup() %>%
+    group_by(meta_code, date_depth, sulfide_uM) %>%
+    summarise(gene_transcription = mean(gene_transcription,
+                                        na.rm = TRUE))
+
+  # Generate plots
+  plot(x = plot_data$sulfide_uM,
+       y = plot_data$gene_transcription,
+       xlim = c(0, 150),
+       lwd = 2,
+       cex = 2,
+       pch = 21,
+       col = "gray20",
+       bg = color_vector[plot_data$meta_code],
+       xlab = "Sulfide (µM)",
+       ylab = y_label_to_use)
+}
+par(mfrow = c(1, 3),
+    mar = c(3, 3, 1, 1),
+    tck = -0.008,
+    mgp = c(1.5, 0.2, 0))
+
+plot_bin_MT_by_sulfide(constituent = "hgcA",
+                       y_label_to_use = "hgcA expression (million copies/L)")
+plot_bin_MT_by_sulfide(constituent = "gyrB",
+                       y_label_to_use = "gyrB expression (million copies/L)")
+plot_bin_MT_by_sulfide(constituent = "total",
+                       y_label_to_use = "Total RNA expression (million copies/L)")
+legend(x = 0,
+       y = 70000,
+       legend = names(color_vector),
+       pch = c(16),
+       col = color_vector,
+       pt.cex = 2,
+       bty = "n")
+```
+
+Overall, these match up relatively well across the different metrics.
+Notably, the KIR hgcA+ genomes account for a higher percent of the *hgcA* expression relative to SRB-associated genomes than observed for the assembly-based analyses.
+This is likely due to the increased recovery of the KIR genomes, since they were far higher in abundance in the metagenomes.
+
+To isolate this from the effect of increased bin recovery, I'll compare the *hgcA* expression to *gyrB* within the same genome.
+
+```{r plot_RNA_data_hgcA_gyrB, warning = FALSE, message = FALSE, echo = FALSE, fig.width = 9, fig.height = 4}
+plot_bin_MT_genes <- function(constituent_1,
+                              constituent_2,
+                              label_1,
+                              label_2,
+                              xlim_to_use = NULL,
+                              ylim_to_use = NULL) {
+  # Add KIR notation to meta_code
+  plot_data <- bin_metadata
+  plot_data$meta_code[bin_metadata$class == "Kiritimatiellae"] <- "KIR"
+  plot_data$meta_code <- gsub(pattern = "OB_",
+                              replacement = "",
+                              plot_data$meta_code)
+  plot_data_1 <- plot_data %>%
+    select(meta_code, hms_id, all_of(grep("_MT_",
+                                          names(plot_data),
+                                          value = TRUE))) %>%
+    gather(key = gene_mt_id,
+           value = gene_transcription,
+           all_of(grep("_MT_",
+                       names(plot_data),
+                       value = TRUE))) %>%
+    mutate(gene = gene_mt_id %>% strsplit("-") %>% sapply("[", 1),
+           mt_id = gene_mt_id %>% strsplit("-") %>% sapply("[", 2)) %>%
+    select(-gene_mt_id) %>%
+    filter(!is.na(gene_transcription)) %>%
+    group_by(meta_code, gene, hms_id, mt_id) %>%
+    summarise(gene_transcription = mean(gene_transcription)) %>%
+    spread(key = gene,
+           value = gene_transcription) 
+  if ("gyrB" %in% c(constituent_1, constituent_2)) {
+    plot_data_1 <- plot_data_1 %>%
+      filter(gyrB > 0)
+  }
+  if ("hgcA" %in% c(constituent_1, constituent_2)) {
+    plot_data_1$hgcA[plot_data_1$hgcA == 0] <- 0.004
+  }
+  plot_data_1 <- plot_data_1 %>% as.data.frame()
+  paste(length(log(plot_data_1[, constituent_1], 10)),
+        length(log(plot_data_1[, constituent_2], 10)),
+        length(color_vector[plot_data_1$meta_code]))
+  
+    plot(x = log(plot_data_1[, constituent_1], 10),
+         y = log(plot_data_1[, constituent_2], 10),
+         xlim = xlim_to_use,
+         ylim = ylim_to_use,
+         xlab = label_1,
+         ylab = label_2,
+         col = color_vector[plot_data_1$meta_code],
+         pch = 18,
+         cex = 0.8)
+    }
+  
+par(mfrow = c(1, 3),
+    mar = c(4.5, 4.5, 1, 1),
+    tck = -0.008,
+    mgp = c(2, 0.2, 0))
+
+plot_bin_MT_genes(constituent_1 = "gyrB",
+                  constituent_2 = "hgcA",
+                  label_1 = "gyrB transcription\n(log million copies/L)",
+                  label_2 = "hgcA transcription\n(log million copies/L)",
+                  xlim_to_use = c(log(0.004, 10), 1),
+                  ylim_to_use = c(log(0.004, 10), 1))
+abline(a = 0, b = 1)
+plot_bin_MT_genes(constituent_1 = "total",
+                  constituent_2 = "hgcA",
+                  label_1 = "Total RNA\n(log million copies/L)",
+                  label_2 = "hgcA transcription\n(log million copies/L)")
+plot_bin_MT_genes(constituent_1 = "total",
+                  constituent_2 = "gyrB",
+                  label_1 = "Total RNA\n(log million copies/L)",
+                  label_2 = "gyrB transcription\n(log million copies/L)")
+```
+
+Let's save out the two *hgcA* plots to use in the manuscript:
+
+```{r save_out_transcription_plots}
+
+```
+
+----
+
+
+# 
 

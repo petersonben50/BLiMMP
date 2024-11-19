@@ -6,7 +6,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-rm(list = ls())
+#rm(list = ls())
 #setwd("/Users/benjaminpeterson/Documents/research/BLiMMP")
 #new.wd <- "/Users/benjaminpeterson/Documents/research/BLiMMP"
 library(tidyverse)
@@ -16,9 +16,7 @@ new.wd <- gsub("\\/[[:alpha:]]+$", "", getwd())
 knitr::opts_knit$set(root.dir = new.wd)
 rm(new.wd)
 ```
-```{r read_in_color_translator, include = FALSE}
-cb.translator <- readRDS("references/colorblind_friendly_colors.rds")
-```
+
 
 This document contains my analyses pertaining to the neighborhood of *hgcA* genes in the metagenomes from the Mendota incubations project. I will use the gene neighborhood information for three purposes:
 
@@ -144,12 +142,51 @@ Okay, now we can start to annotate.
 
 Quick way to identify *asrR* genes:
 
-```{r join_blast_kofamscan_data, message = FALSE}
+```{r transc_reg_arsR, message = FALSE}
 arsR_check_data <- annotation_data %>%
   filter(grepl("ArsR", BLAST_gene_type, ignore.case = TRUE))
-hgcA_gff$gene_info[which(hgcA_gff$seqID %in% unique(arsR_check_data$seqID))] <- "arsR-like"
+hgcA_gff$gene_info[which(hgcA_gff$seqID %in% unique(arsR_check_data$seqID))] <- "transc_reg_arsR"
 ```
- 
+
+In searching for "transcription" in the BLAST_gene_type, I identified a number of other potential transcriptional regulators. We have:
+- GntR (just one)
+- helix-turn-helix transcriptional regulator
+- MarR (just one)
+- sigma 54-interacting
+
+
+```{r other_transcriptional_regulators, message = FALSE}
+GntR <- annotation_data %>%
+  filter(grepl("GntR", BLAST_gene_type, ignore.case = TRUE)) %>%
+  select(seqID) %>% unlist(use.names = FALSE)
+hgcA_gff$gene_info[which(hgcA_gff$seqID %in% GntR)] <- "transc_reg_gntR"
+
+MarR <- annotation_data %>%
+  filter(grepl("MarR", BLAST_gene_type, ignore.case = TRUE)) %>%
+  select(seqID) %>% unlist(use.names = FALSE)
+hgcA_gff$gene_info[which(hgcA_gff$seqID %in% MarR)] <- "transc_reg_marR"
+
+helix_turn_helix <- annotation_data %>%
+  filter(grepl("helix-turn-helix", BLAST_gene_type, ignore.case = TRUE)) %>%
+  select(seqID) %>% unlist(use.names = FALSE)
+hgcA_gff$gene_info[which(hgcA_gff$seqID %in% helix_turn_helix)] <- "transc_reg_HTH"
+
+transc_reg_sig54 <- annotation_data %>%
+  filter(grepl("sigma[ ,-]54", BLAST_gene_type, ignore.case = TRUE)) %>%
+  select(seqID) %>% unlist(use.names = FALSE)
+hgcA_gff$gene_info[which(hgcA_gff$seqID %in% transc_reg_sig54)] <- "transc_reg_sig54"
+
+rm(GntR, MarR, helix_turn_helix, transc_reg_sig54)
+```
+
+The *gntR* gene preceeds *hgcA* in one of the Actinobacteria sequences, but is well upstream.
+The MarR gene is found preceeding one of the Desulfomonilaceae *hgcA* genes.
+The other two are preceeded by *arsR*.
+
+The helix-turn-helix is in only one *hgcA* cluster, far from the *hgcA* and not relevant.
+
+The sigma-54 interaction factor in Desulfobacter is directly downstream of the *hgcB* or one ORF down, in the reverse direction.
+When it's found in Kiritimatiellae, it's still downstream of *hgcB*, but much further, enough that it's not on the scaffold sometimes, and it is in the same direction.
 
 # Arsenic-processing genes
 
@@ -164,7 +201,7 @@ hgcA_gff$gene_info[which(hgcA_gff$seqID %in% arsenite_efflux)] <- "ACR3_arsenite
 ```
 
 
-```{r ACR3_arsenite_efflux, message = FALSE}
+```{r ArsC_arsenate_reductase, message = FALSE}
 arsenate_reductase <- unique(annotation_data %>%
                             filter(grepl("arsenate reductase ArsC", BLAST_gene_type, ignore.case = TRUE)) %>%
                             select(seqID) %>% unlist(use.names = FALSE))
@@ -172,12 +209,165 @@ hgcA_gff$gene_info[which(hgcA_gff$seqID %in% arsenate_reductase)] <- "ArsC_arsen
 ```
 
 
-# Visualize gene neighborhood
+# Heavy metal resistance and other efflux proteins 
 
-```{r visualize_GN}
+There's also a number of heavy metal efflux proteins.
+A subset of these are found in pairs, with a "CusA/CzcA family heavy metal efflux RND transporter" and a "efflux RND transporter periplasmic adaptor subunit".
+The CusA transporter is part of the RNA antimicrobial resistance complex known to be specific to heavy metals. 
+More information here: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4622206/
+We'll call the CusA-annotations "metal_efflux_RND_CusA" and the other member of the pair "metal_efflux_RND_adaptor".
+There are also several TolC annotations mixed in with "efflux RND transporter permease" or "outer membrane protein, heavy metal efflux system" annotations.
+We'll call these metal_efflux_RND_TolC.
+
+```{r metal_efflux_RND_CusA, message = FALSE}
+metal_efflux_RND_CusA <- unique(annotation_data %>%
+                                         filter(grepl("CusA/CzcA", BLAST_gene_type, ignore.case = TRUE)) %>%
+                                         select(seqID) %>% unlist(use.names = FALSE))
+hgcA_gff$gene_info[which(hgcA_gff$seqID %in% metal_efflux_RND_CusA)] <- "metal_efflux_RND_CusA"
+rm(metal_efflux_RND_CusA)
+
+metal_efflux_RND_adaptor <- unique(annotation_data %>%
+                                     filter(grepl("efflux RND transporter periplasmic adaptor subunit", BLAST_gene_type, ignore.case = TRUE)) %>%
+                                         select(seqID) %>% unlist(use.names = FALSE))
+hgcA_gff$gene_info[which(hgcA_gff$seqID %in% metal_efflux_RND_adaptor)] <- "metal_efflux_RND_adaptor"
+rm(metal_efflux_RND_adaptor)
+
+metal_efflux_RND_TolC <- unique(annotation_data %>%
+                                     filter(grepl("TolC", BLAST_gene_type, ignore.case = TRUE)) %>%
+                                         select(seqID) %>% unlist(use.names = FALSE))
+hgcA_gff$gene_info[which(hgcA_gff$seqID %in% metal_efflux_RND_TolC)] <- "metal_efflux_RND_TolC"
+rm(metal_efflux_RND_TolC)
+```
+
+There are also "heavy metal translocating P-type ATPase" BLAST annotations, which often correspond to Zn2+/Cd2+-exporting ATPase (EC:7.2.2.12 7.2.2.21) annotation from kofamscan.
+Link here for more info on these: https://biocyc.org/gene?orgid=META&id=YHHO-MONOMER.
+Looks like it's used for Zn homostasis and resistence to lead and cadmium, and has low activity with other divalent metals.
+The "heavy metal translocating P-type ATPase" BLAST annotations encompass the kofamscan "Zn2+/Cd2+-exporting ATPase" annotations, so we'll use the former to mark them:
+
+```{r metal_translocating_P_ATPase, message = FALSE}
+metal_translocating_P_ATPase <- unique(annotation_data %>%
+                                         filter(grepl("heavy metal translocating P-type ATPase", BLAST_gene_type, ignore.case = TRUE)) %>%
+                                         select(seqID) %>% unlist(use.names = FALSE))
+hgcA_gff$gene_info[which(hgcA_gff$seqID %in% metal_translocating_P_ATPase)] <- "metal_translocating_P_ATPase"
+```
+
+In the Actinobacteria gene neighborhood, there is a tellurite resistance protein (TerC).
+Review paper: https://www.frontiersin.org/articles/10.3389/fmicb.2021.681175/full
+
+```{r TerC, message = FALSE}
+terC <- unique(annotation_data %>%
+                 filter(grepl("TerC family protein", BLAST_gene_type, ignore.case = TRUE)) %>%
+                 select(seqID) %>% unlist(use.names = FALSE))
+hgcA_gff$gene_info[which(hgcA_gff$seqID %in% terC)] <- "terC"
+rm(terC)
+```
+
+
+
+# Save out hgcA gene neighborhood data
+
+```{r save_out_data}
+test <- as.Date('2024-10-03')
+write.csv(hgcA_gff,
+          file = "dataEdited/bin_based_analyses/hgcA_geneNeighborhood_annotated.csv",
+          quote = FALSE,
+          row.names = FALSE)
+```
+
+
+# Label
+
+For now, we'll stick with looking at the effect of the *arsR* sequence, and thus will manually annotate the genes based on it's presence.
+First we'll look at the gene immediately preceeding *hgcA* and see if it's annotated as *arsR*.
+This is a bit tricky since my gene neighborhood script flips all the scaffolds so the center genes to be in the positive.
+It always starts at 5000 though, so let's take the highest gene that starts before that on each scaffold
+
+```{r arsR_annotation_identify_preceeding_genes}
+preceeding_genes <- hgcA_gff %>%
+  filter(gene_start < 5000) %>%
+  group_by(scaffoldID) %>%
+  summarise(gene_start = max(gene_start)) %>%
+  mutate(gene_preceeding_hgcA = "yes") %>%
+  right_join(hgcA_gff) %>%
+  filter(gene_preceeding_hgcA == "yes")
+```
+
+Next, we'll look at just the *hgcA* genes, and add a column with notes on what the preceeding gene is.
+
+
+```{r assign_regulation_status }
+regulation_notes <- hgcA_gff %>%
+  filter(gene_info == "hgcA") %>%
+  select(cluster_ID, taxonomic_assignment, metabolic_assignment, scaffoldID) %>%
+  mutate(regulation_notes = NA)
+
+regulation_notes$regulation_notes[which(!(regulation_notes$scaffoldID %in% preceeding_genes$scaffoldID))] <- "no_gene"
+regulation_notes$regulation_notes[which(regulation_notes$scaffoldID %in% (preceeding_genes %>%
+                                                                              filter(gene_info == "transc_reg_arsR") %>%
+                                                                              select(scaffoldID) %>% unlist(use.names = FALSE)))] <- "arsR"
+regulation_notes$regulation_notes[which(regulation_notes$scaffoldID %in% (preceeding_genes %>%
+                                                                              filter(gene_info == "transc_reg_marR") %>%
+                                                                              select(scaffoldID) %>% unlist(use.names = FALSE)))] <- "marR"
+# Some have a arsenate reductase, arsenite transporter, or terC. We'll call those none, as in, no transcriptional regulation.
+regulation_notes$regulation_notes[which(regulation_notes$scaffoldID %in% (preceeding_genes %>%
+                                                                              filter(gene_info == "ACR3_arsenite_efflux") %>%
+                                                                              select(scaffoldID) %>% unlist(use.names = FALSE)))] <- "none"
+regulation_notes$regulation_notes[which(regulation_notes$scaffoldID %in% (preceeding_genes %>%
+                                                                              filter(gene_info == "ArsC_arsenate_reductase") %>%
+                                                                              select(scaffoldID) %>% unlist(use.names = FALSE)))] <- "none"
+regulation_notes$regulation_notes[which(regulation_notes$scaffoldID %in% (preceeding_genes %>%
+                                                                              filter(is.na(gene_info)) %>%
+                                                                              select(scaffoldID) %>% unlist(use.names = FALSE)))] <- "none"
+regulation_notes$regulation_notes[which(regulation_notes$scaffoldID %in% (preceeding_genes %>%
+                                                                              filter(gene_info == "terC") %>%
+                                                                              select(scaffoldID) %>% unlist(use.names = FALSE)))] <- "none"
 
 ```
 
+Here I want to specifically target which clusters are going to have *arsR*.
+The other clear transcriptional regulator preceeding *hgcA* is *marR*.
+For the *hgcA* genes that don't have an ORF upstream (meaning, the scaffold is truncated), we'll label them "unknown".
+Three groups: arsR, marR, none, and unknown.
+We'll combine these into a named vector that we can read in to other analytical scripts.
+
+```{r regulation_vector}
+clusters_with_arsR <- regulation_notes %>%
+  filter(regulation_notes == "arsR") %>%
+  select(cluster_ID) %>% unlist(use.names = FALSE) %>% unique()
+
+clusters_with_marR <- regulation_notes %>%
+  filter(regulation_notes == "marR") %>%
+  select(cluster_ID) %>% unlist(use.names = FALSE) %>% unique()
+# Only keep ones that aren't annotated as arsR already
+clusters_with_marR <- clusters_with_marR[!(clusters_with_marR %in% clusters_with_arsR)]
+
+clusters_with_no_reg <- regulation_notes %>%
+  filter(regulation_notes == "none") %>%
+  select(cluster_ID) %>% unlist(use.names = FALSE) %>% unique()
+# Only keep ones that aren't annotated elsewhere
+clusters_with_no_reg <- clusters_with_no_reg[!(clusters_with_no_reg %in% c(clusters_with_arsR, clusters_with_marR))]
+
+clusters_with_unknown_reg <- regulation_notes %>%
+  filter(regulation_notes == "no_gene") %>%
+  select(cluster_ID) %>% unlist(use.names = FALSE) %>% unique()
+# Only keep ones that aren't annotated elsewhere
+clusters_with_unknown_reg <- clusters_with_unknown_reg[!(clusters_with_unknown_reg %in% c(clusters_with_arsR, clusters_with_marR, clusters_with_no_reg))]
+
+list_of_vectors <- list(arsR = clusters_with_arsR, marR = clusters_with_marR,
+                        no_reg = clusters_with_no_reg, unknown = clusters_with_unknown_reg)
+regulation_vector <- vector()
+for (annotation_vector_index in 1:length(list_of_vectors)) {
+  name_to_use <- names(list_of_vectors)[annotation_vector_index]
+  vector_to_use <- list_of_vectors[[annotation_vector_index]]
+  temp_vector <- rep(name_to_use, length(vector_to_use))
+  names(temp_vector) <- vector_to_use
+  regulation_vector <- c(regulation_vector, temp_vector)
+}
+rm(list_of_vectors, clusters_with_arsR, clusters_with_marR, clusters_with_no_reg, clusters_with_unknown_reg)
+
+saveRDS(object = regulation_vector,
+        file = "working_directory/transcriptional_regulation_vector.rds")
+```
 
 
 # Check on cluster of Desulfo
@@ -220,5 +410,15 @@ unique(check_data$scaffoldID)
 Many of the genes here are annotated as *Desulfomonile*, *Desulfobacter*, so I think our taxonomic affiliation is correct.
 Interestingly, several of the *hgcA* genes are annotated as *Anaerocolumna jejuensis*, which is a Clostridia.
 Perhaps there was a transfer of the *hgcA* gene.
-Either way, safe to continue with these as SRBs, and I fixed the annotation for these *hgcA* seqs in `hgcA_bin_data_aggregate_initial.Rmd`.
+Either way, safe to continue with these as SRBs, and I fixed the annotation for these *hgcA* seqs in `hgcA_data_processing.Rmd`.
 
+
+# Save out gene neighborhood information
+
+I'm going to want to look at the *hgcA* gene neighborhood of specific bins, so let's add that info here. 
+```{r save_gene_neighborhood_info}
+write.csv(hgcA_gff,
+          file = "dataFinal/hgcA_GNs.csv",
+          quote = FALSE,
+          row.names = FALSE)
+```

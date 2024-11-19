@@ -19,7 +19,7 @@ rm(new.wd)
 ```
 
 ```{r, load_functions, include = FALSE}
-source("code/BLiMMP_functions.R")
+source("code/figures/BGC_profiles_main_plotting_functions.R")
 ```
 
 ```{r read_in_data, include = FALSE}
@@ -70,7 +70,8 @@ sapply(c("2020-10-10",
          "2021-09-10", "2021-10-14"),
        function(date_of_interest){
          plot.exo.data(exo.data.to.use = exo_data,
-              date.of.sampling = date_of_interest)
+                       date.of.sampling = date_of_interest,
+                       incubation.depths.to.use = NULL)
          plot_bacterial_production(date_of_interest)
          axis(1, at = seq(0, 10, by = 2),
               labels = seq(0, 10, by = 2)*2.5,

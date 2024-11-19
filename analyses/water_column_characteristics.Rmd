@@ -87,7 +87,6 @@ generate_geochem_plots <- function(date.of.interest,
                 date.of.sampling = date.of.interest,
                 legend.location = "bottomleft",
                 points.of.sampling = sampling.depths.of.interest)
-
   # Plot metals data
   color.vector <- c(cb.translator["orange"], cb.translator["orange"],
                     cb.translator["yellow"], cb.translator["yellow"])
@@ -107,7 +106,7 @@ generate_geochem_plots <- function(date.of.interest,
                    naming.vector.to.use = naming.vector,
                    xlim.to.use = c(0, 0.4),
                    date.of.sampling = date.of.interest)
-
+  abline(h = sampling.depths.of.interest)
   # Plot sulfate/sulfide data
   color.vector <- c(cb.translator["blue"], cb.translator["blue"])
   names(color.vector) <- c("sulfate_uM", "sulfide_uM")
@@ -125,6 +124,7 @@ generate_geochem_plots <- function(date.of.interest,
                  xlim.to.use = c(0, 250),
                  date.of.sampling = date.of.interest,
                  xlab.to.use = "Sulfate/Sulfide (µM)")
+  abline(h = sampling.depths.of.interest)
 
   # Plot Hg data
   color.vector <- c(cb.translator["vermillion"], cb.translator["bluishgreen"])
@@ -143,6 +143,7 @@ generate_geochem_plots <- function(date.of.interest,
                  xlim.to.use = c(0, 1.2),
                  date.of.sampling = date.of.interest,
                  xlab.to.use = "Hg (ng/L)")
+  abline(h = sampling.depths.of.interest)
 
 }
 par(mfrow = c(4, 4),

@@ -20,27 +20,54 @@ knitr::opts_knit$set(root.dir = new.wd)
 rm(new.wd)
 ```
 
-```{r read_in_and_prep_data, include = FALSE}
-incubation_data <- read.csv('dataFinal/incubation_Hg_rate_data.csv') %>%
-  rename(date = startDate,
-         Kmet = Kmet_t1) %>%
-  select(date, depth, treatment, Kmet, Kdem_t1) %>%
-  filter(!(date == "2020-10-10" & depth == 15.7)) %>%
-  group_by(date, depth, treatment) %>%
-  summarise(Kmet = mean(Kmet),
-            Kdem = mean(Kdem_t1)) %>%
-  ungroup()
+```{r color, include = FALSE}
+cb_translator <- readRDS("references/colorblind_friendly_colors.rds")
+```
 
-#
+Read in incubation data and prepare it.
+
+```{r read_in_and_prep_inc_data, include = FALSE}
+incubation_data_raw <- read.csv('dataFinal/incubation_Hg_rate_data.csv') %>%
+  rename(date = startDate,
+         Kmet = Kmet_int_t2,
+         Kdem = Kdem_slope) %>%
+  select(date, depth, treatment, Kmet, Kdem) %>%
+  filter(!(date == "2020-10-10" & depth == 15.7)) 
+incubation_data <- incubation_data_raw %>%
+  group_by(date, depth, treatment) %>%
+  summarise(counts = n(),
+            Kmet_mean = mean(Kmet),
+            Kmet_sem = sd(Kmet)/sqrt(counts),
+            Kdem_mean = mean(Kdem),
+            Kdem_sem = sd(Kdem)/sqrt(counts)) %>%
+  ungroup() %>%
+  select(-counts)
+```
+
+Check out the differences in 
+
+
+Add the geochem data.
+
+```{r read_in_geochem_and_add_it, include = FALSE}
 geochem_data <- read.csv("dataFinal/water_chem_data.csv") %>%
   filter(!is.na(sulfate_uM),
          !corewater) %>%
-  group_by(date, depth) %>%
-  summarise(sulfide_uM = mean(sulfide_uM, na.rm = TRUE),
-            FMHG_NG.L = mean(FMHG_NG.L, na.rm = TRUE),
-            perFMHG = mean(perFMHG)) %>%
-  ungroup()
+  gather(key = constituent,
+         value = concentration,
+         -c(1:4)) %>%
+  filter(!is.na(concentration),
+         !grepl("_df", constituent)) %>%
+  group_by(date, depth, constituent) %>%
+  summarise(concentration = mean(as.numeric(concentration))) %>%
+  ungroup() %>%
+  spread(key = constituent,
+         value = concentration)
+```
 
+Add the omic data.
+
+```{r omic_data, message = FALSE}
 # Omic metadata
 MG_metadata <- read.csv("metadata/metagenome_metadata.csv") %>%
   rename(omicID = metagenomeID) %>%
@@ -58,6 +85,7 @@ omic_metadata <- rbind(MG_metadata,
 hgcA_data <- read.csv("dataFinal/hgcA_data.csv") 
 MG_names <- grep("_MG_", names(hgcA_data), value = TRUE)
 MT_names <- grep("_MT_", names(hgcA_data), value = TRUE)
+
 clean_hgcA_data <- hgcA_data %>%
   filter(verified_hgcA) %>%
   select(cluster_ID, all_of(c(MG_names, MT_names))) %>%
@@ -73,13 +101,477 @@ clean_hgcA_data <- hgcA_data %>%
   left_join(omic_metadata) %>%
   rename(date = startDate) %>%
   group_by(date, depth, seqType) %>%
-  summarise(abundance = mean(abundance)) %>%
+  summarise(hgca_mean = mean(abundance),
+            hgca_sd = sd(abundance)) %>%
+  gather(key = type,
+         value = value,
+         -c(1:3)) %>%
+  mutate(header = paste(seqType, "_", type,
+                        sep = "")) %>%
+  select(date, depth, header, value) %>%
+  spread(key = header,
+         value = value) %>%
   ungroup()
-rm(omic_metadata, MT_metadata, MG_metadata, hgcA_data)
-
 ```
 
-```{r assign_position_status, include = FALSE }
+
+```{r combine_all_the_data}
+all_data <- incubation_data %>%
+  left_join(geochem_data) %>%
+  left_join(clean_hgcA_data)
+rm(geochem_data, incubation_data, MG_names, MT_names,
+   omic_metadata, MT_metadata, MG_metadata, hgcA_data, clean_hgcA_data)
+```
+
+# K~met~ values
+
+Look at the average values for K~met~ under ambient conditions.
+```{r Kmet_ambient_stats, echo = FALSE }
+incubation_data_raw %>%
+  group_by(treatment, date, depth) %>%
+  summarise(Kmet = mean(Kmet)) %>%
+  ungroup() %>%
+  group_by(treatment)  %>%
+  summarise(Kmet_mean = mean(Kmet),
+            Kmet_sd = sd(Kmet),
+            Kmet_count = n(),
+            Kmet_sem = Kmet_mean / sqrt(Kmet_count),
+            Kmet_max = max(Kmet),
+            Kmet_min = min(Kmet)) %>%
+  ungroup() %>%
+  select(treatment, Kmet_mean, Kmet_sem, Kmet_max, Kmet_min)
+```
+
+Next, I looked at the visual representation of these along the sulfate gradient.
+
+```{r Kmet_visualization, echo = FALSE }
+
+#### Set up aesthetic vectors ####
+naming_vector_kmet <- c("Ambient", "Molybdate-treated", "Filtered control")
+names(naming_vector_kmet) <- c("unfiltered-unamended", "unfiltered-molybdate", "filtered-unamended")
+color_vector_kmet <- cb_translator[c("bluishgreen", "black", "orange")]
+names(color_vector_kmet) <- names(naming_vector_kmet)
+
+# First order by sulfide
+date_depth_order_by_sulfide <- all_data %>%
+  filter(treatment == "unfiltered-unamended") %>%
+  arrange(sulfide_uM) %>%
+  mutate(date_depth = paste(date, "\n",
+                            depth, "m",
+                            sep = "")) %>%
+  select(date_depth) %>%
+  unlist()
+names(date_depth_order_by_sulfide) <- NULL
+
+incubation_data_for_graph <- incubation_data_raw
+incubation_data_for_graph$Kmet[which(incubation_data_for_graph$Kmet < 0.001)] <- 0.001
+
+# Generate graph
+Kmet_barplot <- incubation_data_for_graph %>%
+  group_by(date, depth, treatment) %>%
+  summarise(Kmet_mean = mean(Kmet),
+            Kmet_sd = sd(Kmet),
+            Kmet_count = n(),
+            Kmet_sem = Kmet_mean / sqrt(Kmet_count)) %>%
+  ungroup() %>%
+  left_join(all_data %>%
+              select(date, depth, sulfide_uM) %>%
+              group_by(date, depth) %>%
+              summarise(sulfide_uM = mean(sulfide_uM))%>%
+              ungroup()) %>%
+  mutate(date_depth = paste(date, "\n",
+                            depth, "m",
+                            sep = ""),
+         date_depth = as.factor(date_depth),
+         date_depth = fct_relevel(date_depth, date_depth_order_by_sulfide),
+         treatment = as.factor(treatment),
+         treatment = fct_relevel(treatment, names(naming_vector_kmet))) %>%
+  ggplot(aes(x = as.factor(date_depth),
+             y = Kmet_mean,
+             fill = treatment)) +
+  geom_bar(stat = "identity",
+           color = "black", 
+           position = position_dodge()) +
+  scale_fill_manual(values = color_vector_kmet,
+                    labels = naming_vector_kmet,
+                    name = expression(italic(Treatment))) +
+  geom_errorbar(aes(ymin = Kmet_mean - Kmet_sem,
+                    ymax = Kmet_mean + Kmet_sem),
+                width = 0.2,
+                position = position_dodge(0.9)) +
+  ylab(expression('K'[italic(met)])) +
+  xlab(element_blank()) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle =  90),
+        axis.text = element_text(colour = "black"),
+        axis.ticks = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank())
+Kmet_barplot
+
+# Save out plot
+cairo_pdf("results/figures/incubations_Kmet.pdf",
+          family = "Arial",
+          height = 4.5,
+          width = 7.2)
+Kmet_barplot
+dev.off()
+
+rm(incubation_data_for_graph, Kmet_barplot,
+   color_vector_kmet, naming_vector_kmet,
+   date_depth_order_by_sulfide)
+```
+
+Next, I checked for an effect of molybdate on K~met~.
+
+```{r Kmet_statistics, echo = FALSE }
+inc_data_for_test <- incubation_data_raw %>%
+  filter(treatment != 'filtered-unamended') %>%
+  left_join(all_data %>%
+              select(date, depth, sulfide_uM))
+inc_data_for_test$Kmet[which(inc_data_for_test$Kmet < 0.001)] <- 0.001
+model_result <- aov(log(Kmet, 10) ~ treatment * sulfide_uM,
+                    data = inc_data_for_test)
+summary(model_result)
+rm(model_result)
+```
+
+There is a significant effect of treatment, sulfide, and the interaction between them.
+However, the interaction effect is significantly lower, so let's look at AIC criteria for selecting the best model.
+
+```{r Kmet_model_selection, echo = FALSE }
+library(AICcmodavg)
+# Use AIC to test for interaction
+Cand.mod <- list()
+Cand.mod[["treatment"]] <- lm(log(Kmet, 10) ~ treatment,
+                              data = inc_data_for_test)
+Cand.mod[["sulfide"]] <- lm(log(Kmet, 10) ~ sulfide_uM,
+                              data = inc_data_for_test)
+Cand.mod[["treatment_sulfide_noInt"]] <- lm(log(Kmet, 10) ~ treatment + sulfide_uM,
+                                            data = inc_data_for_test)
+Cand.mod[["treatment_sulfide_Int"]] <- lm(log(Kmet, 10) ~ treatment * sulfide_uM,
+                                          data = inc_data_for_test)
+
+aictab(cand.set = Cand.mod,modnames = names(Cand.mod))
+rm(Cand.mod, inc_data_for_test)
+```
+
+It appears that the model that includes both factors and the interaction effect is the best model.
+Thus, we'll include that in our final analysis.
+
+
+# K rate potential and ambient Hg speciation
+
+Assuming the K~met~ values are accurate and representative of the ambient Hg(II), we suspect that MeHg and Hg(II) are at equilibrium.
+In this case, the following relationship should hold true: Kmet/Kdem = MeHg/Hg(II).
+This is assuming that the bioavailability of the tracer is consistent with the bioavailability of the ambient Hg(II), which is likely not true.
+However, let's take a look at the two ratios.
+Let's do this two ways.
+First, we'll use the ambient K~dem~ ratios.
+Then, we'll use the filtered K~dem~ ratios, which are higher.
+
+```{r Kdem_relationship_to_Kmet, fig.height = 5, fig.width = 10, echo = FALSE}
+plot_ratios_ambient <- function() {
+  ratio_data <- all_data %>%
+    filter(treatment == "unfiltered-unamended") 
+  ratio_data$Kdem_mean[ratio_data$Kdem_mean <= 0.01] <- 0.01
+  # ratio_data$Kmet_mean[ratio_data$Kmet_mean < 0.005] <- 0.005
+  ratio_data <- ratio_data %>%
+    mutate(conc_ratio = FMHG_NG.L / FiHg_NG.L,
+           K_ratio = Kmet_mean / Kdem_mean,
+           K_discrepancy = K_ratio / conc_ratio) %>%
+    select(date, depth, K_discrepancy, conc_ratio, K_ratio, FMHG_NG.L, FiHg_NG.L, Kmet_mean, Kdem_mean, sulfide_uM)
+  
+  year_vector <- c(21, 24)
+  names(year_vector) <- c("2020", "2021")
+  
+  plot(y = log(ratio_data$conc_ratio, 10),
+       x = log(ratio_data$K_ratio, 10),
+       xlim = c(-1.5, 1.5),
+       ylim = c(-0.8, 0.8),
+       pch = year_vector[substr(ratio_data$date, 1, 4)],
+       col = "grey25",
+       bg = "grey85",
+       # cex = ratio_data$Kmet_mean*20 + 0.5,
+       # cex = sqrt(ratio_data$sulfide_uM)/10,
+       ylab = expression("FP MeHg:FP iHg ratio"),
+       xlab = "Kmet:Kdem ratio")
+  abline(a = 0, b = 1)
+  legend("topright",
+         legend = names(year_vector),
+         pch = year_vector,
+         col = "grey25",
+         pt.bg = "grey85")
+}
+
+plot_ratios_filtered <- function() {
+  ratio_data_kmet <- all_data %>%
+    filter(treatment == "unfiltered-unamended") %>%
+    select(date, depth, FMHG_NG.L, FiHg_NG.L, Kmet_mean, sulfide_uM)
+  ratio_data_kdem <- all_data %>%
+    filter(treatment == "filtered-unamended") %>%
+    select(date, depth, Kdem_mean)
+  ratio_data <- full_join(ratio_data_kmet,
+                          ratio_data_kdem)
+  ratio_data$Kdem_mean[ratio_data$Kdem_mean <= 0.02] <- 0.02
+  # ratio_data$Kmet_mean[ratio_data$Kmet_mean < 0.005] <- 0.005
+  ratio_data <- ratio_data %>%
+    mutate(conc_ratio = FMHG_NG.L / FiHg_NG.L,
+           K_ratio = Kmet_mean / Kdem_mean,
+           K_discrepancy = K_ratio / conc_ratio) %>%
+    select(date, depth, K_discrepancy, conc_ratio, K_ratio, FMHG_NG.L, FiHg_NG.L, Kmet_mean, Kdem_mean, sulfide_uM)
+  
+  year_vector <- c(21, 24)
+  names(year_vector) <- c("2020", "2021")
+  
+  plot(y = log(ratio_data$conc_ratio, 10),
+       x = log(ratio_data$K_ratio, 10),
+       xlim = c(-1.5, 1.5),
+       ylim = c(-0.8, 0.8),
+       pch = year_vector[substr(ratio_data$date, 1, 4)],
+       col = "grey25",
+       bg = "grey85",
+       # cex = ratio_data$Kmet_mean*20 + 0.5,
+       # cex = sqrt(ratio_data$sulfide_uM)/10,
+       ylab = expression("FP MeHg:FP iHg ratio"),
+       xlab = "Kmet:Kdem ratio")
+  abline(a = 0, b = 1)
+}
+
+par(mfrow = c(1, 2),
+    mar = c(3, 3, 1, 1),
+    tck = -0.008,
+    mgp = c(1.5, 0.2, 0))
+plot_ratios_ambient()
+plot_ratios_filtered()
+```
+
+```{r Kdem_relationship_to_Kmet, fig.height = 5, fig.width = 5, }
+plot_ratios_ambient <- function() {
+  
+  incubation_data_raw$Kdem[incubation_data_raw$Kdem <= 0.005] <- 0.005
+  incubation_data_raw$Kmet[incubation_data_raw$Kmet <= 0.001] <- 0.001
+  
+  ratio_data_rates <- incubation_data_raw %>%
+    filter(treatment == "unfiltered-unamended") %>%
+    mutate(K_ratio = Kmet / Kdem) %>%
+    group_by(date, depth) %>%
+    summarize(K_ratio_mean = mean(K_ratio),
+              K_ratio_sd = sd(K_ratio),
+              K_ratio_n = n(),
+              K_ratio_sem = K_ratio_sd / sqrt(K_ratio_n)) %>%
+    select(date, depth, K_ratio_mean, K_ratio_sem)
+  
+  
+  # ratio_data$Kmet_mean[ratio_data$Kmet_mean < 0.005] <- 0.005
+  ratio_data_conc <- all_data %>%
+    filter(treatment == "unfiltered-unamended") %>%
+    mutate(conc_ratio = FMHG_NG.L / FiHg_NG.L) %>%
+    select(date, depth, conc_ratio)
+  
+  ratio_data <- full_join(ratio_data_rates,
+                          ratio_data_conc) %>%
+    select(date, depth, K_ratio_mean, K_ratio_sem, conc_ratio)
+  
+  year_vector <- c(21, 24)
+  names(year_vector) <- c("2020", "2021")
+  
+  plot(y = log(ratio_data$conc_ratio, 10),
+       x = log(ratio_data$K_ratio_mean, 10),
+       xlim = c(-1.5, 1.5),
+       ylim = c(-0.8, 0.8),
+       pch = year_vector[substr(ratio_data$date, 1, 4)],
+       col = "grey25",
+       bg = "grey85",
+       cex = 1.8,
+       # cex = sqrt(ratio_data$sulfide_uM)/10,
+       ylab = expression("FP MeHg:FP iHg ratio"),
+       xlab = "Kmet:Kdem ratio")
+  arrows(x0 = log((ratio_data$K_ratio_mean - ratio_data$K_ratio_sem), 10),
+         x1 = log((ratio_data$K_ratio_mean + ratio_data$K_ratio_sem), 10),
+         y0 = log(ratio_data$conc_ratio, 10), y1 = log(ratio_data$conc_ratio, 10),
+         angle = 90, code = 3, length = 0.05)
+  abline(a = 0, b = 1)
+  legend("topright",
+         legend = names(year_vector),
+         pch = year_vector,
+         col = "grey25",
+         pt.bg = "grey85")
+}
+par(mfrow = c(1, 1),
+    mar = c(3, 3, 1, 1),
+    tck = -0.008,
+    mgp = c(1.5, 0.2, 0))
+plot_ratios_ambient()
+```
+
+
+
+
+Next I looked at the relationship between SRB with *hgcA* and ^SRB^K~met~
+
+First prep the data.
+```{r SRB_hgcA_SRBKmet, include = FALSE}
+# Prepare Kmet data
+kmet_prep_data <- all_data
+kmet_prep_data$Kmet_mean[which(kmet_prep_data$Kmet_mean < 0.001)] <- 0.001
+SRB_Kmet_data <- kmet_prep_data %>%
+  select(date, depth, treatment, Kmet_sem, Kmet_mean) %>%
+  gather(key = type,
+         value = value,
+         c(Kmet_sem, Kmet_mean)) %>%
+  mutate(type = paste(type, "_", treatment,
+                      sep = "")) %>%
+  select(date, depth, type, value) %>%
+  spread(key = type,
+         value = value) %>%
+  mutate(SRB_Kmet_mean = (`Kmet_mean_unfiltered-unamended` - `Kmet_mean_unfiltered-molybdate`) / `Kmet_mean_unfiltered-unamended`,
+         SRB_Kmet_sem = sqrt(
+           (sqrt((`Kmet_sem_unfiltered-unamended`)^2 + (`Kmet_sem_unfiltered-molybdate`)^2) /
+           (`Kmet_mean_unfiltered-unamended` - `Kmet_mean_unfiltered-molybdate`))^2 +
+           (`Kmet_sem_unfiltered-unamended` / `Kmet_mean_unfiltered-unamended`)^2) *
+           SRB_Kmet_mean) %>%
+  select(date, depth, SRB_Kmet_mean, SRB_Kmet_sem)
+
+# Prepare for hgcA SRB calculations
+omic_metadata <- rbind(read.csv("metadata/metagenome_metadata.csv") %>%
+                         rename(omicID = metagenomeID) %>%
+                         mutate(seqType = "MG") %>%
+                         select(omicID, startDate, depth, seqType),
+                       read.csv("metadata/metatranscriptome_metadata.csv") %>%
+                         rename(omicID = metatranscriptomeID) %>%
+                         mutate(seqType = "MT") %>%
+                         select(omicID, startDate, depth, seqType)) %>%
+                         mutate(date_depth = paste(startDate, ":", depth, "m",
+                                                   sep = ""))
+hgcA_data <- read.csv("dataFinal/hgcA_data.csv") 
+hgcA_data$BLI21_MT_003 <- 0
+
+MG_names <- grep("_MG_", names(hgcA_data), value = TRUE)
+MT_names <- grep("_MT_", names(hgcA_data), value = TRUE)
+
+# hgcA calculations
+temp_hgcA_data <- hgcA_data %>%
+  filter(verified_hgcA) %>%
+  select(metabolic_assignment, cluster_ID, all_of(c(MG_names, MT_names))) %>%
+  gather(key = "omicID",
+         value = "abundance",
+         -c(1, 2)) %>%
+  group_by(metabolic_assignment, cluster_ID, omicID) %>%
+  summarise(abundance = mean(abundance)) %>%
+  ungroup() %>%
+  group_by(metabolic_assignment, omicID) %>%
+  summarize(abundance = sum(abundance)) %>%
+  ungroup() %>%
+  left_join(omic_metadata) %>%
+  rename(date = startDate) %>%
+  select(date, depth, seqType, omicID, metabolic_assignment, abundance)
+total_hgcA <- temp_hgcA_data %>%
+  group_by(date, depth, omicID, seqType) %>%
+  summarise(abundance = sum(abundance)) %>%
+  ungroup() %>%
+  group_by(date, depth, seqType) %>%
+  summarise(hgca_mean = mean(abundance),
+            hgca_sd = sd(abundance)) %>%
+  ungroup()
+SRB_hgcA <- temp_hgcA_data %>%
+  group_by(date, depth, seqType, metabolic_assignment) %>%
+  summarise(SRB_hgca_mean = mean(abundance),
+            SRB_hgca_sd = sd(abundance)) %>%
+  filter(metabolic_assignment == "SRB") %>%
+  select(date, depth, seqType, SRB_hgca_mean, SRB_hgca_sd) %>%
+  ungroup()
+SRB_hgcA_data <- left_join(total_hgcA,
+                           SRB_hgcA) %>%
+  mutate(percent_SRB_hgcA = SRB_hgca_mean / hgca_mean,
+         seqType_name = paste(seqType, "_percent_SRB_hgcA",
+                              sep = "")) %>%
+  select(date, depth, seqType_name, percent_SRB_hgcA) %>%
+  spread(key = seqType_name,
+         value = percent_SRB_hgcA)
+
+SRB_plotting_data <- left_join(SRB_Kmet_data, SRB_hgcA_data)
+
+rm(SRB_Kmet_data, SRB_hgcA_data,
+   SRB_hgcA, total_hgcA, temp_hgcA_data,
+   MT_names, MG_names, hgcA_data, omic_metadata,
+   kmet_prep_data)
+```
+
+
+```{r plot_SRB_effects, fig.height = 4, fig.width = 8, echo = FALSE}
+year_vector <- c(21, 24)
+names(year_vector) <- c("2020", "2021")
+
+SRB_effects_figure <- ggarrange(SRB_plotting_data %>%
+                                  ggplot(aes(x = MG_percent_SRB_hgcA,
+                                             y = SRB_Kmet_mean,
+                                             shape = as.character(year(date)))) +
+                                  geom_point(fill = "grey85", color = "grey25", size = 3) +
+                                  geom_abline(slope=1, intercept = 0) +
+                                  # geom_errorbar(aes(ymin = SRB_Kmet_mean - SRB_Kmet_sem,
+                                  #                   ymax = SRB_Kmet_mean + SRB_Kmet_sem),
+                                  #               width = 0.2,
+                                  #               position = position_dodge(0.9)) +
+                                  scale_shape_manual(values = year_vector,
+                                                     name = "Year") +
+                                  scale_y_continuous(limits = c(0, 1),
+                                                     oob = scales::oob_keep) +
+                                  ylab(expression(""^SRB*"K"[italic(met)]*" / K"[italic(met)])) +
+                                  xlab(expression("Abundance of SRB-associated "*italic(hgcA)*" / total "*italic(hgcA))) +
+                                  xlim(0, 1) +
+                                  theme_bw() +
+                                  theme(legend.position = "inside",
+                                        legend.position.inside = c(0.75, 0.25),
+                                        axis.text = element_text(colour = "black"),
+                                        axis.ticks = element_line(colour = "black"),
+                                        panel.grid.major = element_blank(),
+                                        panel.grid.minor = element_blank()),
+                                SRB_plotting_data %>%
+                                  ggplot(aes(x = MT_percent_SRB_hgcA,
+                                             y = SRB_Kmet_mean,
+                                             shape = as.character(year(date)))) +
+                                  geom_point(fill = "grey85", color = "grey25", size = 3) +
+                                  geom_abline(slope=1, intercept = 0) +
+                                  # geom_errorbar(aes(ymin = SRB_Kmet_mean - SRB_Kmet_sem,
+                                  #                   ymax = SRB_Kmet_mean + SRB_Kmet_sem),
+                                  #               width = 0.2,
+                                  #               position = position_dodge(0.9)) +
+                                  scale_shape_manual(values = year_vector,
+                                                     name = "Year") +
+                                  scale_y_continuous(limits = c(0, 1),
+                                                     oob = scales::oob_keep) +
+                                  ylab(expression(""^SRB*"K"[italic(met)]*" / K"[italic(met)])) +
+                                  xlab(expression("Transcription of SRB-associated "*italic(hgcA)*" / total "*italic(hgcA))) +
+                                  xlim(0, 1) +
+                                  theme_bw() +
+                                  theme(legend.position = "inside",
+                                        legend.position.inside = c(0.75, 0.25),
+                                        axis.text = element_text(colour = "black"),
+                                        axis.ticks = element_line(colour = "black"),
+                                        panel.grid.major = element_blank(),
+                                        panel.grid.minor = element_blank()))
+SRB_effects_figure
+cairo_pdf("results/figures/SRB_Kmet_hgcA.pdf",
+          family = "Arial",
+          height = 3.6,
+          width = 7.2)
+SRB_effects_figure
+dev.off()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+```{r assign_position_status, include = FALSE, eval = FALSE }
 incubation_position_vector <- rep(NA, dim(incubation_data)[1])
 incubation_position_vector[which(incubation_data$depth > 19)] <- "deep_hypo"
 incubation_position_vector[which(incubation_data$depth %in% c(10.8, 14.2))] <- "turb_peak"
@@ -88,43 +580,18 @@ incubation_position_vector[which(incubation_data$depth %in% c(15.5))] <- "mid_hy
 incubation_data$position <- incubation_position_vector
 
 cb_translator <- readRDS("references/colorblind_friendly_colors.rds")
-color_vector <- cb_translator[c("reddishpurple", "orange", "skyblue", "blue")]
-names(color_vector) <- unique(incubation_position_vector)
+color_vector <- cb_translator[c("orange", "reddishpurple", "skyblue", "blue")]
+names(color_vector) <- c("turb_peak", "under_turb", "mid_hypo", "deep_hypo")
+name_vector <- c("Turbidity peak", "Under turbid peak", "Mid-hypolimnion", "Deep hypolimnion")
+names(name_vector) <- c("turb_peak", "under_turb", "mid_hypo", "deep_hypo")
 ```
 
-```{r ambient_vs_produced, echo = FALSE, message = FALSE, fig.width = 12, fig.height = 6}
-ggarrange(incubation_data %>%
-  filter(treatment == "unfiltered-unamended") %>%
-  left_join(geochem_data) %>%
-  ggplot(aes(x = FMHG_NG.L,
-             y = Kmet)) +
-  geom_point(aes(shape = as.character(year(date)),
-                 color = position),
-             size = 4) +
-  scale_shape_manual(values = c(16, 18), name = "Year") +
-  scale_color_manual(values = color_vector, name = "Position") +
-  theme_classic(),
-incubation_data %>%
-  filter(treatment == "unfiltered-unamended") %>%
-  left_join(geochem_data) %>%
-  ggplot(aes(x = FMHG_NG.L,
-             y = Kdem)) +
-  geom_point(aes(shape = as.character(year(date)),
-                 color = position),
-             size = 4) +
-  scale_shape_manual(values = c(16, 18), name = "Year") +
-  scale_color_manual(values = color_vector, name = "Position") +
-  theme_classic() +
-  theme(legend.position = "none"),
-widths = c(4,3)
-)
-```
 
 
 
 Plot it up in the 3D plot:
 
-```{r 3D_plots, fig.height = 10}
+```{r 3D_plots, fig.height = 10, eval = FALSE}
 
 
 top_vertArea <- c(0.50, 1.0)

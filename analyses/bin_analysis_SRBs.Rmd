@@ -1,0 +1,71 @@
+---
+title: "hgcA+ SRBs"
+author: "Benjamin D. Peterson"
+date: "2024-05-11"
+output: html_document
+---
+
+
+```{r setup, include = FALSE}
+rm(list = ls())
+#setwd("/Users/benjaminpeterson/Documents/research/BLiMMP")
+#new.wd <- "/Users/benjaminpeterson/Documents/research/BLiMMP"
+library(tidyverse)
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(echo = TRUE)
+new.wd <- gsub("\\/[[:alpha:]]+$", "", getwd())
+knitr::opts_knit$set(root.dir = new.wd)
+rm(new.wd)
+```
+
+This R markdown file is for tracking my analyses of the SRB genomes that carry *hgcA* genes.
+Here I'm specifically interested in highly expressed genes.
+
+```{r read_in_bin_data, warning=FALSE, message=FALSE}
+bin_metadata <- readRDS(file = 'dataEdited/bin_based_analyses/bin_data_aggregate_2_metabolism.rds') %>%
+  mutate(phylum = gtdb_tax %>%
+           strsplit("p__") %>% sapply('[', 2) %>%
+           strsplit(";c__") %>% sapply('[', 1),
+         class = gtdb_tax %>%
+           strsplit("c__") %>% sapply('[', 2) %>%
+           strsplit(";o__") %>% sapply('[', 1)) %>%
+  select(bin_id, hms_id, cluster_ID, hgca_id, phylum, class, meta_code) %>%
+  filter(meta_code == "SRB")
+```
+
+We only retrieved two hgcA+ SRB HMSs, but both had several genome representatives.
+Now read in the metatranscriptome data:
+
+```{r normalize_MT_data, message = FALSE }
+NF_vector <- readRDS("dataEdited/metatranscriptomes/normalization_vector.rds")
+
+bin_MT_data <- read.table("dataEdited/bin_based_analyses/final_bin_data/bin_MT_data.tsv",
+                      sep = '\t', header = TRUE) %>%
+  gather(key = mt_id,
+         value = rna_abund_per_eff_length,
+         -c(1:2)) %>%
+  mutate(million_counts_per_liter = rna_abund_per_eff_length*NF_vector[mt_id]/1000000) %>%
+  select(-rna_abund_per_eff_length) %>%
+  ungroup() %>%
+  spread(key = mt_id,
+         value = million_counts_per_liter) %>%
+  filter(bin_id %in% bin_metadata$bin_id)
+```
+
+Then, read in the KOFAMscan data.
+
+```{r kofamscan_data}
+kofamscan_data <- read.table("dataEdited/bin_based_analyses/final_bin_data/kofam_data.tsv")
+names(kofamscan_data) <- c("bin_id", "star", "gene_id", "KOFAM",
+                           "score_1", "score_2", "score_3", "gene_info")
+kofamscan_data <- kofamscan_data %>%
+  filter(bin_id %in% bin_metadata$bin_id)
+
+all_data <- bin_metadata %>%
+  left_join(bin_MT_data) %>%
+  left_join(kofamscan_data) %>%
+  filter(!is.na(gene_info))
+```
+
+
+

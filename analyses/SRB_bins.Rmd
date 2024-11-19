@@ -1,0 +1,99 @@
+---
+title: "Metabolic characterization of two SRB HMSs"
+author: "Benjamin D. Peterson"
+date: "2024-06-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+rm(list = ls())
+#setwd("/Users/benjaminpeterson/Documents/research/BLiMMP")
+#new.wd <- "/Users/benjaminpeterson/Documents/research/BLiMMP"
+library(tidyverse)
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(echo = TRUE)
+new.wd <- gsub("\\/[[:alpha:]]+$", "", getwd())
+knitr::opts_knit$set(root.dir = new.wd)
+rm(new.wd)
+```
+
+
+
+```{r read_in_color_translator, include = FALSE}
+cb.translator <- readRDS("references/colorblind_friendly_colors.rds")
+```
+
+Read in the bin data:
+
+```{r read_in_bin_data }
+# Bin data
+SRB_bin_data <- readRDS("dataEdited/bin_based_analyses/bin_data_aggregate_3.rds") %>%
+  filter(meta_code == "SRB") %>%
+  select(bin_id, hms_id, class)
+
+# Gene data
+bin_gene_data <- read.table("dataEdited/bin_based_analyses/final_bin_data/kofam_data.tsv",
+                            col.names = c("bin_id", "star", "gene_id", "kofam_family", "score_1", "score_2", "score_3", "gene_info")) %>%
+  select(bin_id, gene_id, kofam_family, gene_info)
+
+# Transcription data
+bin_MT_data <- read.table("dataEdited/bin_based_analyses/final_bin_data/bin_MT_data.tsv",
+                          header = TRUE)
+  
+MT_metadata <- read.csv("metadata/metatranscriptome_metadata.csv") %>%
+  dplyr::rename(omicID = metatranscriptomeID) %>%
+  mutate(seqType = "MT") %>%
+  select(omicID, sampleID, startDate, depth, seqType)
+
+NFs_expression <- readRDS("dataEdited/metatranscriptomes/normalization_vector.rds")
+
+all_SRB_data <- SRB_bin_data %>%
+  left_join(bin_MT_data) %>%
+  left_join(bin_gene_data) %>%
+  gather(key = mt_id,
+         value = counts_per_bp,
+         all_of(grep("_MT_",
+                     names(bin_MT_data),
+                     value = TRUE))) %>%
+  mutate(million_counts_per_liter = counts_per_bp*NFs_expression[mt_id]/1000000) %>%
+  select(-counts_per_bp)
+
+data_to_look_at <- all_SRB_data %>%
+  filter(!is.na(gene_info),
+         bin_id %in% c("BLI21_coassembly_dasTool_bin_0158",
+                       "BLI21_coassembly_anvio_bin_0107")) %>%
+  group_by(hms_id, class, gene_id, kofam_family, gene_info) %>%
+  summarise(million_counts_per_liter = mean(million_counts_per_liter, na.rm = TRUE))# %>%
+  # spread(key = mt_id,
+  #        value = million_counts_per_liter)
+
+rm(SRB_bin_data, bin_gene_data)
+```
+
+
+
+```{r KIR_bin_data}
+# Bin data
+KIR_bin_data <- readRDS("dataEdited/bin_based_analyses/bin_data_aggregate_3.rds") %>%
+  filter(class == "Kiritimatiellae") %>%
+  select(bin_id, hms_id, class) %>%
+  left_join(bin_MT_data) %>%
+  left_join(bin_gene_data) %>%
+  gather(key = mt_id,
+         value = counts_per_bp,
+         all_of(grep("_MT_",
+                     names(bin_MT_data),
+                     value = TRUE))) %>%
+  mutate(million_counts_per_liter = counts_per_bp*NFs_expression[mt_id]/1000000) %>%
+  select(-counts_per_bp) %>%
+  filter(!is.na(gene_info),
+         bin_id %in% c("BLI20_coassembly_dasTool_bin_0110", "BLI21_coassembly_anvio_bin_0100", "BLI21_coassembly_anvio_bin_0184",
+                       "BLI21_coassembly_dasTool_bin_0045", "BLI21_coassembly_dasTool_bin_0313", "BLI20_coassembly_anvio_bin_0032",
+                       "BLI20_coassembly_anvio_bin_0020", "BLI21_coassembly_anvio_bin_0019", "BLI21_coassembly_anvio_bin_0104",
+                       "BLI21_coassembly_anvio_bin_0014", "BLI21_coassembly_anvio_bin_0092", "BLI21_coassembly_anvio_bin_0003",
+                       "BLI21_coassembly_anvio_bin_0103", "BLI21_coassembly_dasTool_bin_0126", "BLI21_coassembly_anvio_bin_0105",
+                       "BLI21_coassembly_anvio_bin_0043", "BLI21_coassembly_anvio_bin_0005", "BLI21_coassembly_anvio_bin_0022",
+                       "BLI21_coassembly_anvio_bin_0063")) %>%
+  spread(key = mt_id,
+         value = million_counts_per_liter)
+```
