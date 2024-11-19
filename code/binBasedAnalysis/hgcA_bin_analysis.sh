@@ -501,3 +501,4 @@ do
   echo -e $binID"\t"$geneID"\t"$hemeCount
   echo -e $binID"\t"$geneID"\t"$hemeCount >> heme3_count_bins.tsv
 done
+mv heme3_count_bins.tsv ../../final_bin_data/heme3_count_bins.tsv
