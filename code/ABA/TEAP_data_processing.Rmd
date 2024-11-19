@@ -10,6 +10,7 @@ rm(list = ls())
 library(ggtree)
 library(tidyverse)
 library(treeio)
+library(tidytree)
 
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_knit$set(echo = TRUE)
@@ -19,9 +20,11 @@ rm(new.wd)
 #knitr::opts_knit$set(root.dir = "/Users/benjaminpeterson/Documents/research/BLiMMP")
 ```
 
+# Read in ancillary data
+
 First, I read in the metadata for both MGs and MTs:
   
-```{r MG_MT_metadata, include = FALSE}
+```{r MG_MT_metadata, message = FALSE, warning = FALSE}
 MG_metadata <- read.csv("metadata/metagenome_metadata.csv") %>%
   rename(omicID = metagenomeID) %>%
   mutate(seqType = "MG") %>%
@@ -31,9 +34,25 @@ MT_metadata <- read.csv("metadata/metatranscriptome_metadata.csv") %>%
   mutate(seqType = "MT") %>%
   select(omicID, startDate, depth, seqType)
 omic_metadata <- rbind(MG_metadata,
-                       MT_metadata)
+                       MT_metadata) %>%
+  mutate(date_depth = paste(startDate, ":", depth, "m",
+                            sep = ""))
 rm(MG_metadata, MT_metadata)
-NFs.expression <- readRDS("dataEdited/metatranscriptomes/normalization_vector.rds")
+```
+
+Then I read in the sulfide data.
+
+```{r sulfide_data,  warning = FALSE, message = FALSE}
+# Read in sulfide data
+sulfide_data <- read.csv("dataFinal/water_chem_data.csv") %>%
+  group_by(date, depth) %>%
+  summarize(sulfide_uM = mean(sulfide_uM, na.rm = TRUE)) %>%
+  ungroup() %>%
+  mutate(date_depth = paste(date, ":", depth, "m",
+                            sep = "")) %>%
+  select(date_depth, sulfide_uM)
+omic_metadata <- omic_metadata %>%
+  left_join(sulfide_data)
 ```
 
 # NarG sequences
@@ -56,20 +75,20 @@ ggtree(narG_tree_rooted) +
 ```
 
 Many of the identified sequences are actually cytoplasmic NxrA sequences.
-I removed those.
+I removed those by only keeping sequences under node 176.
 
 ```{r remove_nxrA_seqs}
 narG_tree_subset <- tree_subset(narG_tree_rooted,
                                 node = 176,
                                 levels_back = 0)
 rm(narG_tree_rooted)
-ggtree(narG_tree_subset) +
-  geom_tiplab(size = 2) +
-  geom_text2(aes(subset = !isTip, label = node),
-             size = 1.5,
-             hjust = 1,
-             vjust = -1) +
-  geom_treescale(x = 9)
+# ggtree(narG_tree_subset) +
+#   geom_tiplab(size = 2) +
+#   geom_text2(aes(subset = !isTip, label = node),
+#              size = 1.5,
+#              hjust = 1,
+#              vjust = -1) +
+#   geom_treescale(x = 9)
 ```
 
 ### Cluster NarG sequences
@@ -95,10 +114,9 @@ rm(narg_clstr_data, narG_tree_subset)
 
 Tough one to pick a cutoff for, but 97 vs. 99 is only a difference of two based on this dataset.
 Let's go with 99%.
-I went back into the *narG* processing sheet and reran cd-hit with the 0.99 cutoff.
+I went back into the *narG* processing sheet and re-ran CD-HIT with the 0.99 cutoff.
 Then I brought that data into R.
 
-### Aggregate and inspect NarG data
 ```{r narg_clstr_data }
 narg_data <- read.table("dataEdited/ABA/narG/narG_derep_99.tsv",
                               header = TRUE) %>%
@@ -109,9 +127,14 @@ narg_data <- read.table("dataEdited/ABA/narG/narG_derep_99.tsv",
 rm(narg_seq_list)
 ```
 
-Add in the metagenome and metatranscriptome data as well:
+
+### Aggregate *narG* data
+
+Next I pulled in the metagenome and metatranscriptome data.
+I normalized this data using the appropriate normalization vector set up for each one.
 
 ```{r narG_coverage_data, warning = FALSE, message = FALSE}
+# Read in normalization vector and MG data, normalize the data.
 normalized.coverage.vector <- readRDS("dataEdited/scg_coverage/scg_normalization_vector.rds")
 narG_MG <- read.table("dataEdited/ABA/narG/narG_MG_coverage.tsv",
                       header = FALSE,
@@ -119,7 +142,11 @@ narG_MG <- read.table("dataEdited/ABA/narG/narG_MG_coverage.tsv",
   mutate(NF = normalized.coverage.vector[metagenomeID],
          coverage_normalized = coverage*NF) %>%
   select(contigID, metagenomeID, coverage_normalized) %>%
-  spread(key = metagenomeID, value = coverage_normalized)
+  spread(key = metagenomeID,
+         value = coverage_normalized)
+
+# Read in normalization vector and MT data, normalize the data.
+NFs.expression <- readRDS("dataEdited/metatranscriptomes/normalization_vector.rds")
 narG_MT <- read.table("dataEdited/ABA/narG/narG_MT_coverage.tsv",
                         header = TRUE) %>%
   mutate(counts_per_bp = counts/effective_length,
@@ -132,9 +159,10 @@ narg_data <- left_join(narg_data, narG_MG) %>%
 rm(narG_MT, narG_MG)
 ```
 
-Inspect the metagenome and metatranscriptome abundance.
+Next I plotted up the abundance and transcription of *narG*.
+Since the 15.7 m depth is being removed from the Kmet analysis due to incomplete and unreliable data, I removed it from these plots as well.
 
-```{r check_narG_data, fig.height=10, echo = FALSE, warning=FALSE, message = FALSE}
+```{r check_narG_MG_MT_data, fig.height=5, fig.width=5, echo = FALSE, warning=FALSE, message = FALSE}
 plot_data <- narg_data %>%
   gather(key = omicID,
          value = coverage,
@@ -147,25 +175,40 @@ plot_data <- narg_data %>%
   ungroup() %>%
   left_join(omic_metadata) %>%
   mutate(date_depth = paste(startDate, "-", depth, "m",
-                            sep = "")) 
+                            sep = "")) %>%
+  arrange(sulfide_uM) %>%
+  filter(!(startDate == "2020-10-10" & depth == 15.7))
   
-narG_MG <- plot_data %>%
-  filter(seqType == "MG") %>%
+narG_plots <- plot_data %>%
+  mutate(date_depth = fct_relevel(date_depth, unique(plot_data$date_depth))) %>%
   ggplot(aes(x = date_depth,
              y = coverage)) +
   geom_point() +
   facet_wrap(~seqType,
              nrow = 2) +
   theme_bw() +
-  ylim(c(0, 10)) +
   theme(axis.text.x = element_text(angle = 90,
                                    vjust = 0.5,
                                    hjust=1)) +
-  xlab("")
-narG_MT <- plot_data %>%
-  filter(seqType == "MT") %>%
-  ggplot(aes(x = date_depth,
-             y = log(coverage, 10))) +
+  xlab("") +
+  facet_wrap(~seqType,
+             nrow = 2,
+             scales = "free_y", 
+             strip.position = "left",
+             labeller = as_labeller(c(MG = "narG abundance (%)", MT = "narG transcription\n(million counts per L"))) +
+  ylab(NULL) +
+     theme(strip.background = element_blank(),
+           strip.placement = "outside")
+narG_plots
+```
+
+Next 
+
+```{r plot_narg_vs_sulfide, fig.height=5, fig.width=5, echo = FALSE, warning=FALSE, message = FALSE}
+narG_vs_sulfide_plots <- plot_data %>%
+  mutate(date_depth = fct_relevel(date_depth, unique(plot_data$date_depth))) %>%
+  ggplot(aes(x = sulfide_uM,
+             y = coverage)) +
   geom_point() +
   facet_wrap(~seqType,
              nrow = 2) +
@@ -173,18 +216,17 @@ narG_MT <- plot_data %>%
   theme(axis.text.x = element_text(angle = 90,
                                    vjust = 0.5,
                                    hjust=1)) +
-  xlab("")
-ggpubr::ggarrange(narG_MG,
-                  narG_MT,
-                  ncol = 1,
-                  nrow = 2)
-rm(plot_data, narG_MT, narG_MG)
+  xlab("Sulfide (µM)") +
+  facet_wrap(~seqType,
+             nrow = 2,
+             scales = "free_y", 
+             strip.position = "left",
+             labeller = as_labeller(c(MG = "narG abundance (%)", MT = "narG transcription\n(million counts per L"))) +
+  ylab(NULL) +
+     theme(strip.background = element_blank(),
+           strip.placement = "outside")
+narG_vs_sulfide_plots
 ```
-
-
-
-
-
 
 
 # DsrA sequences
@@ -272,7 +314,7 @@ rm(dsrA_clstr_data)
 
 Using a cutoff of 0.97 here will work, so I re-clustered everything with CD-HIT at that 97% cutoff:
 
-```{zsh engine.opts='-i'}
+```{zsh cluster_dsr, engine.opts='-i'}
 conda activate bioinformatics
 cd-hit -g 1 \
         -i dataEdited/ABA/dsrA/dsrA.faa \
@@ -290,7 +332,7 @@ rm dataEdited/ABA/dsrA/dsrA_clustered.faa dataEdited/ABA/dsrA/dsrA_clustered.faa
 
 Now that all of the sequences have been clustered, I read them in and aggregated the cluster info with the MG and MT data.
 
-```{r dsrA_clstr_data }
+```{r dsrA_clstr_data, message = FALSE }
 dsrA_data <- read.table("dataEdited/ABA/dsrA/dsrA_clustered_97.tsv",
                               header = TRUE) %>%
   mutate(geneName = dsrA_type_vector[geneID]) %>%
@@ -305,6 +347,7 @@ dsrA_MG <- read.table("dataEdited/ABA/dsrA/dsrA_MG_coverage.tsv",
          coverage_normalized = coverage*NF) %>%
   select(contigID, metagenomeID, coverage_normalized) %>%
   spread(key = metagenomeID, value = coverage_normalized)
+
 dsrA_MT <- read.table("dataEdited/ABA/dsrA/dsrA_MT_coverage.tsv",
                         header = TRUE) %>%
   mutate(counts_per_bp = counts/effective_length,
@@ -318,7 +361,7 @@ rm(dsrA_MG, dsrA_MT)
 ```
 
 
-```{r check_red_dsrA_data, fig.height=10, echo = FALSE, warning=FALSE, message = FALSE}
+```{r check_red_dsrA_data, fig.height = 5, fig.width = 5, echo = FALSE, warning=FALSE, message = FALSE}
 plot_data_red_dsrA <- dsrA_data %>%
   filter(geneName == "red_dsrA") %>%
   gather(key = omicID,
@@ -332,44 +375,41 @@ plot_data_red_dsrA <- dsrA_data %>%
   ungroup() %>%
   left_join(omic_metadata) %>%
   mutate(date_depth = paste(startDate, "-", depth, "m",
-                            sep = "")) 
+                            sep = "")) %>%
+  arrange(sulfide_uM) %>%
+  filter(!(startDate == "2020-10-10" & depth == 15.7))
   
-dsrA_MG <- plot_data_red_dsrA %>%
-  filter(seqType == "MG") %>%
-  ggplot(aes(x = date_depth,
+  
+dsrA_plots <- plot_data_red_dsrA %>%
+  mutate(date_depth = fct_relevel(date_depth, unique(plot_data$date_depth))) %>%
+  ggplot(aes(x = sulfide_uM,
              y = coverage)) +
   geom_point() +
   facet_wrap(~seqType,
              nrow = 2) +
   theme_bw() +
-  ylim(c(0, 5)) +
   theme(axis.text.x = element_text(angle = 90,
                                    vjust = 0.5,
                                    hjust=1)) +
-  xlab("")
-dsrA_MT <- plot_data_red_dsrA %>%
-  filter(seqType == "MT") %>%
-  ggplot(aes(x = date_depth,
-             y = coverage)) +
-  geom_point() +
+  xlab("Sulfide (µM)") +
   facet_wrap(~seqType,
-             nrow = 2) +
-  theme_bw() +
-  # ylim(c(0, 4)) +
-  theme(axis.text.x = element_text(angle = 90,
-                                   vjust = 0.5,
-                                   hjust=1)) +
-  xlab("")
-ggpubr::ggarrange(dsrA_MG,
-                  dsrA_MT,
-                  ncol = 1,
-                  nrow = 2)
-rm(plot_data_red_dsrA, dsrA_MG, dsrA_MT)
+             nrow = 2,
+             scales = "free_y", 
+             strip.position = "left",
+             labeller = as_labeller(c(MG = "dsrA abundance (%)", MT = "dsrA transcription\n(million counts per L"))) +
+  ylab(NULL) +
+     theme(strip.background = element_blank(),
+           strip.placement = "outside")
+dsrA_plots
 ```
 
-Look at oxidative DsrA as well:
+First, I'll note that the *dsrA* is transcribed several orders of magnitude more than *narG* despite being less abundant.
+Additionally, this shows a surprising trend, where we see an increase in the relative abundance of SRBs as sulfide concentrations increase, but no clear trend in the *dsrA* transcription.
+I'll explore this more in the analysis markdown.
 
-```{r check_oxi_dsrA_data, fig.height=10, echo = FALSE, warning=FALSE, message = FALSE}
+### Oxidative DsrA
+
+```{r check_oxi_dsrA_data, fig.height = 5, fig.width = 5, echo = FALSE, warning=FALSE, message = FALSE}
 plot_data_oxi_dsrA <- dsrA_data %>%
   filter(geneName == "oxi_dsrA") %>%
   gather(key = omicID,
@@ -383,45 +423,39 @@ plot_data_oxi_dsrA <- dsrA_data %>%
   ungroup() %>%
   left_join(omic_metadata) %>%
   mutate(date_depth = paste(startDate, "-", depth, "m",
-                            sep = "")) 
-  
-dsrA_MG <- plot_data_oxi_dsrA %>%
-  filter(seqType == "MG") %>%
-  ggplot(aes(x = date_depth,
+                            sep = "")) %>%
+  arrange(sulfide_uM) %>%
+  filter(!(startDate == "2020-10-10" & depth == 15.7))
+   
+oxi_dsrA_plots <- plot_data_oxi_dsrA %>%
+  mutate(date_depth = fct_relevel(date_depth, unique(plot_data$date_depth))) %>%
+  ggplot(aes(x = sulfide_uM,
              y = coverage)) +
   geom_point() +
   facet_wrap(~seqType,
              nrow = 2) +
   theme_bw() +
-  ylim(c(0, 25)) +
   theme(axis.text.x = element_text(angle = 90,
                                    vjust = 0.5,
                                    hjust=1)) +
-  xlab("")
-dsrA_MT <- plot_data_oxi_dsrA %>%
-  filter(seqType == "MT") %>%
-  ggplot(aes(x = date_depth,
-             y = coverage)) +
-  geom_point() +
+  xlab("Sulfide (µM)") +
   facet_wrap(~seqType,
-             nrow = 2) +
-  theme_bw() +
-  ylim(c(0, 550)) +
-  theme(axis.text.x = element_text(angle = 90,
-                                   vjust = 0.5,
-                                   hjust=1)) +
-  xlab("")
-ggpubr::ggarrange(dsrA_MG,
-                  dsrA_MT,
-                  ncol = 1,
-                  nrow = 2)
-rm(plot_data_oxi_dsrA, dsrA_MG, dsrA_MT)
+             nrow = 2,
+             scales = "free_y", 
+             strip.position = "left",
+             labeller = as_labeller(c(MG = "Oxidative dsrA abundance (%)", MT = "Oxidative dsrA transcription\n(million counts per L"))) +
+  ylab(NULL) +
+     theme(strip.background = element_blank(),
+           strip.placement = "outside")
+oxi_dsrA_plots
+rm(plot_data_oxi_dsrA)
 ```
 
-
-
+Looks like what I'd expect!
 
 # Aggregate all TEAP data
+
+Finally I pulled the data together and saved it out.
 
 ```{r aggregate_TEAP_data}
 TEAP_data <- rbind(narg_data,

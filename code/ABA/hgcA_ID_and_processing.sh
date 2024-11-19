@@ -370,3 +370,31 @@ $cdhit/cd-hit -g 1 \
               -c 0.80 \
               -n 5 \
               -d 0
+
+
+#########################
+# Generate good tree with just study seqs using RAxML
+#########################
+source /home/GLBRCORG/bpeterson26/miniconda3/etc/profile.d/conda.sh
+conda activate bioinformatics
+PYTHONPATH=''
+PATH="/home/GLBRCORG/bpeterson26/BLiMMP/code/HomeBio/bin:$PATH"
+
+cd ~/BLiMMP/dataEdited/ABA/hgcA
+# Generate alignment
+muscle -align hgcA_for_phylogeny.faa \
+        -output hgcA_for_phylogeny.afa
+# Trim alignment
+trimal -in hgcA_for_phylogeny.afa \
+        -out hgcA_for_phylogeny_clean.afa \
+        -gt 0.5
+# Run RAxML
+raxml=/opt/bifxapps/raxml-8.2.11/raxmlHPC-PTHREADS
+$raxml -f a \
+        -p 283976 \
+        -m PROTGAMMAAUTO \
+        -N autoMRE \
+        -x 2381 \
+        -T 20 \
+        -s hgcA_for_phylogeny_clean.afa \
+        -n hgcA_for_phylogeny

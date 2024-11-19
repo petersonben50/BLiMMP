@@ -131,9 +131,6 @@ writeXStringSet(hgcA.for.phylogeny.faa,
                 width = 6000)
 ```
 
-Before I get into visualizing the tree, I want to figure out which *hgcA* sequences are going to have bin data associated with them
-
-
 For references, I took the Hg-MATE database (version 1) and clustered the sequences at 70% identity. I then aligned the output from this to hgcA_for_phylogeny.faa using Muscle (v5.1). I trimmed that alignment to eliminate residues with gaps in >50% of the sequences using trimal (v1.4.rev15). Finally, I generated a rough phylogenetic tree from this alignment using FastTree (v2.1.11). First I looked at the unrooted tree (not shown in this document) to identify the paralog (paralog_Candidatus_Omnitrophica_bacterium_CG1_02_41_171) for rooting purposes.
 
 ```{r unrooted_hgcA_phylogeny, include = FALSE}
@@ -151,9 +148,9 @@ ggtree(hgcA.tree.unrooted) +
 dev.off()
 ```
 
-The branch leading to the paralog in the unrooted tree is #419, so I used that to root the tree. I then saved out a PDF of the rooted tree to the working directory and used that to assign taxonomy to each of the *hgcA* sequences. The code to assign the taxonomy is embedded in this document but not shown.
+The branch leading to the paralog in the unrooted tree is #419, so I used that to root the tree. I then saved out a PDF of the rooted tree to the working directory and used that to assign taxonomy to each of the *hgcA* sequences.
 
-```{r rooted_hgcA_phylogeny, message = FALSE}
+```{r rooted_hgcA_phylogeny, message = FALSE, fig.height = 25}
 hgcA.tree <- root(hgcA.tree.unrooted,outgroup = "paralog_Candidatus_Omnitrophica_bacterium_CG1_02_41_171",
                   edgelabel = TRUE)
 this.study.indices <- which(hgcA.tree$tip.label %in% names(hgcA.for.phylogeny.faa))
@@ -187,15 +184,20 @@ hgcA.tree$tip.label[binned_index] <- hgcA_tree_tip_renaming[hgcA.tree$tip.label[
 hgcA.tree.image <- ggtree(hgcA.tree) + 
   geom_tiplab(size = 2.5,
               color = color.vector) +
-  geom_treescale(x = 9)
-pdf("working_directory/BLI_hgcA_tree_rooted.pdf",
-    height = 50,
-    width = 8)
-hgcA.tree.image +
+  geom_treescale(x = 9) +
   geom_text2(aes(subset = !isTip,
                  label = node),
              size = 1.5)
+hgcA.tree.image
+pdf("working_directory/BLI_hgcA_tree_rooted.pdf",
+    height = 50,
+    width = 8)
+hgcA.tree.image
 dev.off()
+
+saveRDS(object = hgcA.tree,
+        file = "manuscript/writing/Suppl_Data/hgcA_tree.rds")
+
 ```
 
 Next I'll work my way down the tree, assigning metabolic capacity and taxonomic identity to each sequence.

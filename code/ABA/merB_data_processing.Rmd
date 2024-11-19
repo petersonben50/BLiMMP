@@ -1,0 +1,273 @@
+---
+title: "merB data processing"
+author: "Benjamin D. Peterson"
+date: "2023-04-05"
+output: html_document
+---
+
+```{r setup, include = FALSE}
+rm(list = ls())
+#setwd("/Users/benjaminpeterson/Documents/research/BLiMMP")
+library(tidyverse)
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(echo = TRUE)
+new.wd <- gsub("\\/[[:alpha:]]+\\/[[:alpha:]]+$", "", getwd())
+knitr::opts_knit$set(root.dir = new.wd)
+rm(new.wd)
+```
+
+```{r read_in_faa, include = FALSE }
+library(Biostrings)
+merB.faa <- readAAStringSet("dataEdited/ABA/merB/merB.faa")
+# Store the HMM score in the metadata
+metadata(merB.faa)$HMM_scores <- strsplit(merB.faa@ranges@NAMES, " ") %>% sapply("[", 2) %>% data.frame()
+metadata(merB.faa)$seq_id <- strsplit(merB.faa@ranges@NAMES, " ") %>% sapply("[", 1) %>% data.frame()
+names(merB.faa) <- strsplit(names(merB.faa), " ") %>% sapply("[", 1)
+```
+
+I identified *merB* genes in the assemblies using my GID workflow from HomeBio.
+To verify which ones are *merB*, I aligned the amino acid sequences against the set of *merB* genes that were dereplicated at 70% identity from the Christakis review paper.
+I generated a tree of these using FastTree.
+I used the midpoint function from `phangorn` to roughly root the tree.
+I also added the HMM score to tip name to see if the ones I would exclude had lower scores.
+
+```{r merB_tree_for_identification, echo = FALSE}
+library(ggtree)
+library(treeio)
+library(tidytree)
+merB_tree_unrooted <- read.newick("dataEdited/ABA/merB/merB.tree")
+merB_tree_rooted <- phangorn::midpoint(merB_tree_unrooted)
+
+# Generate vector for colors
+study_seq_tree_index <- grep("BLI2", merB_tree_rooted$tip.label)
+color_vector_merB <- rep("black", length(merB_tree_rooted$tip.label))
+color_vector_merB[study_seq_tree_index] <- "red"
+
+# add HMM score to label
+HMM_score_vector <- unlist(metadata(merB.faa)$HMM_scores)
+names(HMM_score_vector) <- unlist(metadata(merB.faa)$seq_id)
+
+merB_tree_rooted$tip.label[study_seq_tree_index] <- paste(
+  merB_tree_rooted$tip.label[study_seq_tree_index], ":HMM_score_",
+  HMM_score_vector[merB_tree_rooted$tip.label[study_seq_tree_index]],
+  sep = "")
+
+# Generate tree object
+merB_tree_for_ID <- ggtree(merB_tree_rooted) +
+  geom_tiplab(size = 1,
+              colour = color_vector_merB) +
+  geom_text2(aes(subset = !isTip, label = node),
+             size = 1) +
+  geom_treescale(x = 9)
+```
+
+There are a set of genes here that are not even closely related to the other genes in the reference data set.
+In fact, most of the genes are in this group.
+Let's read it out so we can see more clearly.
+
+```{r save_out_merB_tree_for_identification, message = FALSE, warning = FALSE}
+pdf("dataEdited/ABA/merB/merB_identification_tree.pdf",
+    height = 40,
+    width = 7)
+merB_tree_for_ID
+dev.off()
+```
+
+Confirmed, there are many sequences that are very distinct.
+The scores are not that much different than the ones that are more phylogenetically conserved, so I don't think the alignment will show much.
+Let's check anyways, but make sure to attach a note the ones in that group.
+All the sequences under node 529 are to be included.
+
+```{r note_the_unknown_seqs_in_the_alignment }
+library(DECIPHER)
+unknown_merB_seqs_tree <- tree_subset(merB_tree_rooted,
+                                      node = 529,
+                                      levels_back = 0)
+unknown_merB_seqs <- unknown_merB_seqs_tree$tip.label %>%
+  strsplit(":") %>%
+  sapply("[", 1)
+
+merB_alignment_raw <- readAAStringSet("dataEdited/ABA/merB/merB.afa",
+                                      format = "fasta",
+                                      nrec = -1L,
+                                      skip = 0L,
+                                      seek.first.rec = FALSE,
+                                      use.names = TRUE)
+merB_alignment <- merB_alignment_raw
+names(merB_alignment)[which(names(merB_alignment) %in% unknown_merB_seqs)] <- paste(
+  "unknown_seq:",
+  names(merB_alignment)[which(names(merB_alignment) %in% unknown_merB_seqs)],
+  sep = ""
+)
+BrowseSeqs(merB_alignment,
+           htmlFile = "dataEdited/ABA/merB/merB_unknown_seqs.html")
+write(unknown_merB_seqs, "dataEdited/ABA/merB/merB_unknown_seqs.txt")
+```
+
+It seems that there is a difference between the genes in this cluster vs the others.
+Looking at the Christakis paper, there are some residues that are key to it being a *merB*.
+One of them is the vicinal cysteine pair at the carboxy terminus (aligned positions 628 and 629; numbering in reference to MerA from Bacillus cereus RC607).
+Others are the conserved cysteine pair at positions 207 and 212 in the redox active site, tyrosine at position 264, and tyrosine at position 605 for bacterial MerA and phenylalanine at position 605.
+The alignment we have doesn't match with that.
+But, curiously, the divergent sequences seem to have the dual cysteines.
+The cysteine pair near position 210 might be the CYLC/CYMC.
+
+Let's do a blast on those genes and see what comes out, then we can go from there.
+The scripts to do this are commented out below:
+
+```
+cd ~/BLiMMP/dataEdited/ABA/merB/
+cat merB_unknown_seqs.txt | while read merB
+do
+  grep -A 1 $merB merB.faa >> merB_unknown_seqs.faa
+done
+/opt/bifxapps/ncbi-blast-2.6.0+/bin/blastp -query merB_unknown_seqs.faa \
+                                            -db /opt/bifxapps/ncbi-blastdb/refseq_protein \
+                                            -evalue 0.0001 \
+                                            -outfmt '6 qseqid evalue sseqid sseq staxids' \
+                                            -max_target_seqs 5 \
+                                            -num_threads 50 \
+                                            -out merB_unknown_seqs_results.tsv
+                                            
+awk -F '\t' '{ print $3 }' merB_unknown_seqs_results.tsv | \
+  awk -F '|ref|' '{ print $2 }' | \
+  sed 's/|//g' | \
+  sort | uniq > merB_unknown_seqs_blast_hits_accessionID.tsv
+awk -F '\t' '{ print $1"\t"$2"\t"$3 }' merB_unknown_seqs_results.tsv > merB_unknown_seqs_results_metadata.tsv
+
+epost -db protein -input merB_unknown_seqs_blast_hits_accessionID.tsv | \
+    esummary | \
+    xtract -pattern DocumentSummary -element AccessionVersion,Title,TaxId > merB_unknown_seqs_blast_hits_metadata.tsv
+```
+
+These look like merB genes.
+They're blasting like merB at least.
+Need to go further, so let's look at the gene neighborhoods.
+Go back to the `merB_ID_and_processing.sh` file.
+
+
+
+
+----
+
+# Aggregate *merB* data
+
+```{r set_up_merB_data_frame }
+merB_data <- data.frame(seqID = names(merB_alignment_raw)) %>%
+  mutate(divergent_seq = (seqID %in% unknown_merB_seqs))
+```
+
+Next I added in the clustering information and scaffold names.
+It looks like CD-HIT automatically assigns one of the longest sequences in the cluster as the cluster representative, which is fine with me.
+
+```{r merB_cluster_scaffold, echo = -4, message = FALSE}
+merB_clstr_data <- read.table("dataEdited/ABA/merB/merB_cluster_data.tsv",
+                              header = TRUE) %>%
+  dplyr::rename(seqID = id) %>%
+  mutate(cluster_ID = paste("BLI_merB_clstr_", stringr::str_pad(clstr, width = 4, side = "left", pad = 0),
+                            sep = "")) %>%
+  select(seqID, cluster_ID, clstr_rep)
+merB_scaf_assembly <- read.table("dataEdited/ABA/merB/merB_G2A.tsv",
+                                 col.names = c("seqID", "assemblyID")) %>%
+  mutate(scaffoldID = paste(strsplit(seqID, "_") %>% sapply("[", 1),
+                            strsplit(seqID, "_") %>% sapply("[", 2),
+                            strsplit(seqID, "_") %>% sapply("[", 3),
+                            sep = "_"))
+
+merB_data <- merB_data %>%
+  left_join(merB_clstr_data) %>%
+  left_join(merB_scaf_assembly)
+rm(merB_clstr_data, merB_scaf_assembly)
+```
+
+# Abundance data for *merB*
+
+Then I processed the coverage data by normalizing to the coverage of the 16 ribosomal proteins, which are single copy core genes (SCG). See Sorek et al, 2007 for data on identification of these genes as SCG.
+SCG abundance values were calculated using the SiCoGeCo workflow from [HomeBio](https://github.com/petersonben50/HomeBio).
+
+```{r merB_coverage_normalization, echo = 1:3, message = FALSE}
+normalized_coverage_vector <- readRDS("dataEdited/scg_coverage/scg_normalization_vector.rds")
+merB_coverage <- read.table("dataEdited/ABA/merB/merB_MG_coverage.tsv",
+                            col.names = c("scaffoldID", "coverage", "length_of_scaffold", "metagenomeID")) %>%
+  mutate(NF = normalized_coverage_vector[metagenomeID],
+         coverage_normalized = coverage*NF) %>%
+  select(-c(coverage, NF)) %>%
+  spread(key = metagenomeID,
+         value = coverage_normalized)
+merB_data <- merB_data %>%
+  left_join(merB_coverage)
+rm(normalized_coverage_vector,
+   merB_coverage)
+```
+
+
+----
+
+# Expression data for *merB*
+
+Last, I generated expression data for each of the *merB* sequences. First, I searched through the pseudoalignment data for the number of metatranscriptomic reads that map to each *merB* sequence. This is the data that was pulled into this file.
+
+```{r merB_expression_normalization, echo = 1:3, message = FALSE}
+NFs_expression <- readRDS("dataEdited/metatranscriptomes/normalization_vector.rds")
+merB_expr <- read.table("dataEdited/ABA/merB/merB_MT_coverage.tsv",
+                        header = TRUE) %>%
+  mutate(counts_per_bp = counts/effective_length,
+         million_counts_per_liter = counts_per_bp*NFs_expression[mtID]/1000000) %>%
+  rename(seqID = geneID) %>%
+  select(seqID, mtID, million_counts_per_liter) %>%
+  spread(key = mtID,
+         value = million_counts_per_liter)
+merB_data <- merB_data %>%
+  left_join(merB_expr)
+rm(NFs_expression,
+   merB_expr)
+```
+
+
+----
+# Save out data
+
+```{r save_out_data}
+write.csv(merB_data,
+          "dataFinal/merB_data.csv",
+          row.names = FALSE)
+```
+
+
+----
+
+# Prep gene neighborhood data
+
+```{r prep_merB_GN_data }
+merB_GN_GFF <- read.table("dataEdited/ABA/merB/merB_geneNeighborhood_raw.gff",
+                          col.names = c("scaffoldID", "program", "type", "start", "stop", "something", "direction",
+                                        "zeros", "details")) %>%
+  mutate(gene_position = gsub("ID=", "",details) %>%
+           strsplit(";") %>% sapply("[", 1) %>%
+           strsplit("_") %>% sapply("[", 2)) %>%
+  mutate(geneID = paste(scaffoldID, "_",
+                        gene_position,
+                        sep = "")) %>%
+  select(scaffoldID, geneID, start, stop, direction) %>%
+  mutate(merB_gene = (geneID %in% merB_data$seqID))
+
+# merB_GN_kofam <- read.table("dataEdited/ABA/merB/merB_GN_kofamscan_qualityHits_clean.tsv",
+#                             sep = '\t',
+#                             header = TRUE) %>%
+#   rename(geneID = gene.name) %>%
+#   select(geneID, KO, E.value, KO.definition)
+
+merB_GN_kofam <- read.table("dataEdited/ABA/merB/merB_GN_kofamscan.tsv",
+                            sep = '\t',
+                            header = FALSE,
+                            col.names = c("empty", "geneID", "KO", "thrshld", "score", "Evalue", "KO_definition")) %>%
+  select(geneID, KO, Evalue, KO_definition) %>%
+  arrange(Evalue) %>%
+  group_by(geneID) %>%
+  dplyr::slice(1) %>%
+  ungroup()
+
+
+merB_GN <- left_join(merB_GN_GFF,
+                     merB_GN_kofam)
+```
