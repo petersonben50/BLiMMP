@@ -52,8 +52,8 @@ normalization.data <- count.data %>%
   mutate(NF_copies_per_readsPerBp = number.of.IS.copies.added / (IS_reads / length.of.IS)) %>%
   select(mtID, NF_copies_per_readsPerBp) %>%
   left_join(read.csv("metadata/metatranscriptome_metadata.csv") %>%
-              select(metatranscriptomeID, volumeFiltered) %>%
-              rename(mtID = metatranscriptomeID)) %>%
+              mutate(mtID = metatranscriptomeID) %>%
+              select(mtID, volumeFiltered)) %>%
   mutate(NF_counts_per_readsPerBp_per_L = NF_copies_per_readsPerBp / (volumeFiltered / 1000)) %>%
   as.data.frame()
 
@@ -79,8 +79,8 @@ metatranscriptomes <- count.data %>%
 
 # Join by year
 pseudomapping.key <- cbind(rep(metatranscriptomes, length(assemblies)),
-                           rep(assemblies, length(metatranscriptomes)) %>%
-                             sort())
+                           rep(assemblies, length(metatranscriptomes))) %>%
+  as.data.frame()
 write.table(pseudomapping.key,
             file = "dataEdited/metatranscriptomes/reports/pseudomapping_key.tsv",
             quote = FALSE,
