@@ -47,3 +47,9 @@ depth.df <- do.call(rbind,
 #### Write out file ####
 saveRDS(depth.df,
         "dataEdited/binning/depth/bin_depth_clean.rds")
+
+# Save out csv too for editing
+depth.df %>%
+  spread(key = metagenomeID,
+         value = coverage) %>%
+  write.csv("dataEdited/binning/depth/bin_depth_clean.csv")
